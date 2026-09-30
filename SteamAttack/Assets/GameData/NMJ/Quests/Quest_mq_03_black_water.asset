@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4f37ba31b98ec042bb831bafba9e734, type: 3}
+  m_Name: Quest_mq_03_black_water
+  m_EditorClassIdentifier: Assembly-CSharp::SteamAttack.Quests.QuestData
+  questId: mq_03_black_water
+  title: "\uC6B4\uC885\uAC00\uC758 \uD751\uC218\uD68C"
+  category: 0
+  summary: "\uC800\uC7A3\uAC70\uB9AC\uC5D0 \uC81C\uB2E8\uC744 \uC138\uC6B0\uACE0 \uD604\uBB34\uB97C \uC2E0\uC73C\uB85C \uC12C\uAE30\uB294 \uC790\uB4E4\uC774 \uC788\uB2E4. \uC81C\uB2E8\uBD80\uD130 \uB04A\uC5B4\uB77C."
+  questGiverId: npc_baekdongsu
+  startDialogue: "\uC800\uAC83\uC744 \uC2E0\uC73C\uB85C \uBAA8\uC2DC\uB294 \uBBF8\uCE5C \uC790\uB4E4\uC774 \uC6B4\uC885\uAC00\uC5D0 \uC81C\uB2E8\uC744 \uC138\uC6E0\uC18C. \uC5EC\uB35F\uB9CC \uBCA0\uBA74 \uAE38\uC774 \uC5F4\uB9AC\uC624."
+  completeDialogue: "\uC81C\uB2E8\uC774 \uAEBC\uC84C\uC18C. \uC774\uC81C \uAD70\uC878\uB4E4 \uCC28\uB840\uC694."
+  objectives:
+  - type: 1
+    targetId: enemy_heuksu_fanatic
+    targetItem: {fileID: 0}
+    description: "\uD751\uC218\uD68C \uAD11\uC2E0\uB3C4\uB97C 8\uBA85 \uD1A0\uBC8C\uD55C\uB2E4"
+    requiredAmount: 8
+  - type: 3
+    targetId: loc_heuksu_altar
+    targetItem: {fileID: 0}
+    description: "\uC6B4\uC885\uAC00 \uD751\uC218\uD68C \uC81C\uB2E8\uC5D0 \uB3C4\uB2EC\uD55C\uB2E4"
+    requiredAmount: 1
+  autoComplete: 0
+  consumeCollectedItems: 1
+  reward:
+    items:
+    - item: {fileID: 11400000, guid: 99429d5372643a241a610b56d8336a62, type: 2}
+      count: 5
+    - item: {fileID: 11400000, guid: 26a6a64e897e9a646bc86bb2fff7f127, type: 2}
+      count: 3
+    exp: 350
+    gold: 800
+    extraInventorySlots: 0
+  prerequisiteQuestIds:
+  - mq_02_gigichang_ember
+  nextQuestId: mq_04_frozen_soldiers

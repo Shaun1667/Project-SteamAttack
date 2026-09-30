@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4f37ba31b98ec042bb831bafba9e734, type: 3}
+  m_Name: Quest_mq_01_royal_edict
+  m_EditorClassIdentifier: Assembly-CSharp::SteamAttack.Quests.QuestData
+  questId: mq_01_royal_edict
+  title: "\uC5B4\uBA85(\u5FA1\u547D)"
+  category: 0
+  summary: "\uAC74\uCCAD\uAD81 \uB9C8\uB2F9\uC73C\uB85C \uB4E4\uB77C. \uC5BC\uC5B4\uBD99\uC740 \uC804\uB4F1 \uC544\uB798\uC5D0\uC11C \uD669\uC81C\uAC00 \uAE30\uB2E4\uB9B0\uB2E4."
+  questGiverId: npc_gojong
+  startDialogue: "\uBCF4\uC544\uB77C. \uC800\uAC83\uC774 \uBD81\uC7A5\uC744 \uAC10\uACE0 \uB3C4\uC131\uC758 \uC2DC\uAC04\uC744 \uC0BC\uD0A4\uACE0 \uC788\uB2E4. \uC804\uB4F1\uB3C4, \uC0AC\uB78C\uB3C4, \uC815\uC6D4\uB3C4 \uC800\uAE30\uC11C \uBA48\uCDC4\uB2E4.\n\uC5B4\uBA85\uC774\uB2E4 \u2014 \uD604\uBB34\uB97C \uBCA0\uB77C."
+  completeDialogue: "\uAD50\uC9C0\uB97C \uBC1B\uB4E4\uC5C8\uC73C\uBA74 \uC0BC\uCCAD\uB3D9\uC73C\uB85C \uAC00\uB77C. \uAE30\uAE30\uCC3D\uC5D0 \uC544\uC9C1 \uBD88\uC528\uAC00 \uB0A8\uC544 \uC788\uB2E4."
+  objectives:
+  - type: 0
+    targetId: npc_gojong
+    targetItem: {fileID: 0}
+    description: "\uAC74\uCCAD\uAD81 \uB9C8\uB2F9\uC5D0\uC11C \uACE0\uC885\uC758 \uC5B4\uBA85\uC744 \uBC1B\uB4E0\uB2E4"
+    requiredAmount: 1
+  autoComplete: 0
+  consumeCollectedItems: 1
+  reward:
+    items:
+    - item: {fileID: 11400000, guid: f8a048c03f648a54d8800a2010d7c14f, type: 2}
+      count: 1
+    - item: {fileID: 11400000, guid: 99429d5372643a241a610b56d8336a62, type: 2}
+      count: 2
+    exp: 100
+    gold: 500
+    extraInventorySlots: 0
+  prerequisiteQuestIds: []
+  nextQuestId: mq_02_gigichang_ember
