@@ -388,8 +388,8 @@ MonoBehaviour:
   _tank: {fileID: 7483665503542910460}
   _needlePivot: {fileID: 6280649865868488733}
   _rotationAxis: {x: 0, y: 0, z: 1}
-  _emptyAngle: -120
-  _fullAngle: 120
+  _emptyAngle: 90
+  _fullAngle: -90
   _smoothTime: 0.2
   _jitterThreshold: 0.2
   _jitterAmplitude: 1.5
@@ -477,7 +477,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f68757512f0229a41a9d66ebba3d1413, type: 2}
+  - {fileID: 2100000, guid: 5f91fd5ced4ba2446abf4a4e645dcb9e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -549,9 +549,9 @@ ParticleSystem:
   ringBufferMode: 0
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 1
-  looping: 1
+  looping: 0
   prewarm: 0
-  playOnAwake: 1
+  playOnAwake: 0
   useUnscaledTime: 0
   autoRandomSeed: 1
   startDelay:

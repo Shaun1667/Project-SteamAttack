@@ -13,9 +13,9 @@ public class YPH_SteamNeedleView : MonoBehaviour
     [Tooltip("바늘이 회전할 로컬 축입니다. (0,0,1)은 Z축, (1,0,0)은 X축입니다. 부호를 반대로 하면 회전 방향이 뒤집힙니다. 벡터 길이는 회전 속도에 영향을 주지 않으며 (0,0,0)은 사용할 수 없습니다.")]
     [SerializeField] private Vector3 _rotationAxis = Vector3.forward;
     [Tooltip("압력이 0일 때 바늘의 목표 각도(도)입니다. 초기 회전에 이 각도를 더합니다. Full Angle과의 차이를 키우면 전체 회전 범위가 넓어집니다. 실행 중 변경은 다음 압력 변경 또는 뷰 재활성화 때 목표에 반영됩니다.")]
-    [SerializeField] private float _emptyAngle = -120f;
+    [SerializeField] private float _emptyAngle = 90f;
     [Tooltip("압력이 가득 찼을 때 바늘의 목표 각도(도)입니다. Empty Angle보다 작게 설정하면 압력이 증가할 때 도는 방향이 반대가 됩니다. 실행 중 변경은 다음 압력 변경 또는 뷰 재활성화 때 목표에 반영됩니다.")]
-    [SerializeField] private float _fullAngle = 120f;
+    [SerializeField] private float _fullAngle = -90f;
     [Tooltip("바늘이 목표 각도를 따라가는 보간 시간(초)입니다. 클수록 느리고 부드럽게, 작을수록 빠르게 움직입니다. 0이면 다음 Update에서 목표 각도로 바로 이동합니다.")]
     [SerializeField, Min(0f)] private float _smoothTime = 0.2f;
     [Tooltip("바늘이 떨리기 시작하는 잔량 비율입니다. 0.2는 20% 미만에서 떨린다는 뜻입니다. 높일수록 더 많은 증기가 남아 있어도 떨리며, 0이면 떨리지 않습니다. 경계값과 같을 때는 떨리지 않습니다.")]
@@ -64,7 +64,7 @@ public class YPH_SteamNeedleView : MonoBehaviour
 
     private void Update()
     {
-        // 각도를 일반 숫자처럼 보간해야 -120도에서 120도로 갈 때 0도를 지납니다.
+        // 기본 프록시를 앞(-Z)에서 보면 -90도는 오른쪽, 90도는 왼쪽입니다. 잔량 감소 시 위쪽 0도를 지나갑니다.
         // 원형 최단 경로 보간을 쓰면 압력계의 반대편을 가로질러 잘못된 눈금을 지나갈 수 있습니다.
         _displayAngle = _smoothTime <= 0f ? _targetAngle : Mathf.SmoothDamp(_displayAngle, _targetAngle, ref _angleVelocity, _smoothTime);
         // 떨림은 표시할 때만 더하고 목표 각도·보간 속도에는 섞지 않아, 낮은 압력이 끝나면 남지 않게 합니다.
