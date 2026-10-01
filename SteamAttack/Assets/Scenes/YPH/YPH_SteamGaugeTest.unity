@@ -119,55 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &1519986155
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1519986157}
-  - component: {fileID: 1519986156}
-  m_Layer: 0
-  m_Name: YPH_SteamTankTester
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1519986156
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1519986155}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7d6d8546ee2871b40acfef1269488941, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamTankTester
-  _tank: {fileID: 964029226232887549}
-  _costPerRound: 0.5
-  _requestedRounds: 10
-  _grenadeCost: 10
-  _refillAmount: 30
---- !u!4 &1519986157
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1519986155}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1785468318
 GameObject:
   m_ObjectHideFlags: 0
@@ -484,27 +435,23 @@ PrefabInstance:
       propertyPath: m_Name
       value: YPH_SteamBackpack
       objectReference: {fileID: 0}
+    - target: {fileID: 8299038887259130098, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
+      propertyPath: InitialModule.startSizeY.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8299038887259130098, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
+      propertyPath: InitialModule.startSizeZ.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
---- !u!114 &964029226232887549 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7483665503542910460, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-  m_PrefabInstance: {fileID: 964029226232887548}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 859c1b08aad2f7b4fbc65921b304789a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamTank
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 964029226232887548}
-  - {fileID: 1519986157}
   - {fileID: 1785468321}
   - {fileID: 2104060307}
