@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d8ad594be2949f47b40d3b8b5a063aa, type: 3}
+  m_Name: Item_mat_firewater_core
+  m_EditorClassIdentifier: Assembly-CSharp::SteamAttack.Items.ItemData
+  itemId: mat_firewater_core
+  displayName: "\uBB3C\uBD88 \uB3D9\uB825\uD575"
+  description: "\uAC74\uCCAD\uAD81 \uBB3C\uBD88 \uC99D\uAE30 \uBC1C\uC804\uAE30\uC5D0\uC11C \uBF51\uC544\uB0B8 \uB3D9\uB825\uD575. \uC544\uC9C1 \uBBF8\uC9C0\uADFC\uD558\uB2E4. \uD55C\uAE30 \uC18D\uC5D0\uC11C \uAE30\uACC4\uB97C \uB3CC\uB9AC\uB294 \uC720\uC77C\uD55C \uBD88\uC528."
+  itemType: 3
+  grade: 1
+  maxStack: 99
+  icon: {fileID: 0}

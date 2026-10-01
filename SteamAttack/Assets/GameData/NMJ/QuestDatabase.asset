@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47f29e6946b546549abb5321e2a0b4bc, type: 3}
+  m_Name: QuestDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::SteamAttack.Quests.QuestDatabase
+  quests:
+  - {fileID: 11400000, guid: 148aee3d85c941b47afd4a74af2849e2, type: 2}
+  - {fileID: 11400000, guid: ba2e25bb34faacd499c9780bf047529d, type: 2}
+  - {fileID: 11400000, guid: 7b802381ca1fba247875864292259f0b, type: 2}
+  - {fileID: 11400000, guid: c40f0509a9b444c41b80d597d97a5c2c, type: 2}
+  - {fileID: 11400000, guid: ceafbf481b61c6b46b44763020fc11f1, type: 2}
