@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d8ad594be2949f47b40d3b8b5a063aa, type: 3}
+  m_Name: Item_quest_imperial_edict
+  m_EditorClassIdentifier: Assembly-CSharp::SteamAttack.Items.ItemData
+  itemId: quest_imperial_edict
+  displayName: "\uC5B4\uBA85 \uAD50\uC9C0(\u654E\u65E8)"
+  description: "\uC625\uC0C8\uAC00 \uCC0D\uD78C \uAD50\uC9C0. \uBD81\uC7A5\uC744 \uAC10\uC740 \uD604\uBB34\uB97C \uBCA0\uB77C\uB294 \uC5B4\uBA85\uC774 \uC801\uD600 \uC788\uB2E4. \uC885\uC774\uC5D0 \uC11C\uB9AC\uAC00 \uC549\uC544 \uC788\uB2E4."
+  itemType: 4
+  grade: 3
+  maxStack: 1
+  icon: {fileID: 0}
