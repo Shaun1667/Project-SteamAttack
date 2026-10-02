@@ -21,6 +21,8 @@ public class NGH_EnemyAttackHitbox : MonoBehaviour, NGH_IPoolable
     [Tooltip("명중 대상 태그")]
     [SerializeField] private string targetTag = "Player";
     [SerializeField] private bool logHits = true;
+    [Tooltip("명중한 대상이 CHG 플레이어면 피격 함수(TakeHit)를 호출해 실제로 데미지를 준다")]
+    [SerializeField] private bool applyDamageToPlayer = true;
 
     public int Damage { get; private set; } = 1;
     public GameObject Owner { get; private set; }
@@ -143,13 +145,29 @@ public class NGH_EnemyAttackHitbox : MonoBehaviour, NGH_IPoolable
             return;
         }
 
+        bool damaged = applyDamageToPlayer && ApplyDamage(target);
+
         if (logHits)
         {
             string ownerName = Owner != null ? Owner.name : "Unknown";
-            Debug.Log("[NGH_EnemyAttackHitbox] " + ownerName + " → " + target.name + " 명중 (데미지 " + Damage + ")", target);
+            string resultText = applyDamageToPlayer && !damaged ? " - 피해 없음 (무적 상태)" : "";
+            Debug.Log("[NGH_EnemyAttackHitbox] " + ownerName + " → " + target.name + " 명중 (데미지 " + Damage + ")" + resultText, target);
         }
 
         OnHit?.Invoke(this, target);
+    }
+
+    // 맞은 대상의 플레이어 피격 함수를 호출한다. 실제로 피해가 들어갔으면 true (구르기·피격 중 무적이면 false)
+    private bool ApplyDamage(GameObject target)
+    {
+        chg_PlayerController playerController = target.GetComponentInParent<chg_PlayerController>();
+        if (playerController == null)
+        {
+            return false;
+        }
+
+        Vector3 from = Owner != null ? Owner.transform.position : transform.position;
+        return playerController.TakeHit(Damage, from);
     }
 
     private void OnDrawGizmos()

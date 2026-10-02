@@ -55,7 +55,7 @@ namespace SteamAttack.UI
         public void Redraw()
         {
             var tracked = manager != null ? (manager.TrackedQuest ?? manager.GetActiveMainQuest()) : null;
-            bool show = tracked != null && tracked.Status != QuestStatus.Completed;
+            bool show = tracked != null && tracked.Data != null && tracked.Status != QuestStatus.Completed;
 
             if (root != null) root.SetActive(show);
             if (!show) return;

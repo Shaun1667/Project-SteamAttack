@@ -45,6 +45,10 @@ public class chg_PlayerController : MonoBehaviour
     public float DeadTime { get; private set; }
     /// <summary>(현재 HP, 최대 HP) — HP가 바뀔 때마다 호출</summary>
     public event System.Action<int, int> HpChanged;
+    /// <summary>살아 있던 대상을 근접 공격으로 실제로 맞힌 뒤 한 번 알립니다. (병합 — YPH 증기 회복 연결용)</summary>
+    public event System.Action<chg_Damageable> OnHitLanded;
+    /// <summary>원거리 장비(isMelee = false) 사격 동작이 시작될 때 장착 무기와 함께 알립니다. 실제 발사·투척은 구독하는 쪽이 처리합니다. (병합 — YPH 총·수류탄 연결용)</summary>
+    public event System.Action<chg_Weapon> ShotStarted;
 
     [Header("이동 속도 (m/s)")]
     public float walkSpeed = 0.7f;
@@ -58,6 +62,8 @@ public class chg_PlayerController : MonoBehaviour
     public float runSpeed = 3.5f;
     public float turnSpeed = 720f;        // 도/초
     public float gravity = -20f;
+    [Tooltip("일반 이동의 속도 배율입니다. 1이면 기존 속도, 0이면 제자리이며 구르기·공격 이동·중력에는 적용하지 않습니다. (병합 — YPH 조준 배율 연결용)")]
+    public float MoveSpeedMultiplier = 1f;
 
     [System.Serializable]
     public class AttackData
@@ -290,7 +296,7 @@ public class chg_PlayerController : MonoBehaviour
 
         if (face.sqrMagnitude > 0.0001f) TurnTowards(face);
 
-        Vector3 velocity = moveDir * speed;
+        Vector3 velocity = moveDir * (speed * MoveSpeedMultiplier);
         _vy = _cc.isGrounded ? -2f : _vy + gravity * Time.deltaTime;
         velocity.y = _vy;
         _cc.Move(velocity * Time.deltaTime);
@@ -435,7 +441,7 @@ public class chg_PlayerController : MonoBehaviour
             case ActionState.LightAttack: _attack = lightAttack; state = lightState; break;
             case ActionState.HeavyAttack: _attack = heavyAttack; state = heavyState; break;
             case ActionState.LightCombo2: _attack = lightCombo2; state = combo2State; break;   // 2단베기 동작
-            case ActionState.Shot: _attack = shotAttack; state = shotState; break;
+            case ActionState.Shot: _attack = shotAttack; state = shotState; ShotStarted?.Invoke(weapons ? weapons.Current : null); break;
             case ActionState.Draw: _attack = drawAction; state = drawState; break;
             case ActionState.Sheath: _attack = sheathAction; state = sheathState; break;
             case ActionState.HitSmall: _attack = hitSmallAction; state = hitSmallState; break;
@@ -537,6 +543,7 @@ public class chg_PlayerController : MonoBehaviour
             if (!d || !d.IsAlive || _hitThisSwing.Contains(d)) continue;
             _hitThisSwing.Add(d);
             d.TakeDamage(dmg, transform.position);
+            OnHitLanded?.Invoke(d);
             if (!_healedThisAction) { _healedThisAction = true; Heal(healOnHit); }   // 공격 1회당 한 번만 회복
         }
     }

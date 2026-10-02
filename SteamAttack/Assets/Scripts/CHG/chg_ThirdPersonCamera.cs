@@ -10,6 +10,8 @@ public class chg_ThirdPersonCamera : MonoBehaviour
     public float distance = 2.4f;
     public float shoulderOffset = 0.25f;     // 오른쪽 어깨 너머
     public float mouseSensitivity = 0.12f;
+    [Tooltip("외부 조준 시스템의 감도 배율입니다. 1이면 기존 감도, 낮추면 마우스 회전이 느려집니다. (병합 — YPH 조준 배율 연결용)")]
+    public float SensitivityMultiplier = 1f;
     public float minPitch = -25f, maxPitch = 60f;
     public float lockOnTurnSpeed = 8f;
     public float collisionRadius = 0.15f;
@@ -67,7 +69,7 @@ public class chg_ThirdPersonCamera : MonoBehaviour
         }
         else if (!guideOpen && mouse != null && Cursor.lockState == CursorLockMode.Locked)
         {
-            Vector2 d = mouse.delta.ReadValue() * mouseSensitivity;
+            Vector2 d = mouse.delta.ReadValue() * mouseSensitivity * SensitivityMultiplier;
             _yaw += d.x;
             _pitch = Mathf.Clamp(_pitch - d.y, minPitch, maxPitch);
         }

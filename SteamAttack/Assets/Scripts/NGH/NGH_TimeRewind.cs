@@ -203,6 +203,22 @@ public class NGH_TimeRewind : MonoBehaviour
         return null;
     }
 
+    // 복원할 때 이어서 재생하지 않고 대기 상태로 바꿀 동작 (공격, 구르기, 발도/납도, 피격)
+    private static bool ShouldDropOnRestore(chg_PlayerController.ActionState a)
+    {
+        switch (a)
+        {
+            case chg_PlayerController.ActionState.Roll:
+            case chg_PlayerController.ActionState.Draw:
+            case chg_PlayerController.ActionState.Sheath:
+            case chg_PlayerController.ActionState.HitSmall:
+            case chg_PlayerController.ActionState.HitLarge:
+                return true;
+            default:
+                return IsAttackAction(a);
+        }
+    }
+
     private static bool IsAttackAction(chg_PlayerController.ActionState a)
     {
         switch (a)
@@ -344,11 +360,11 @@ public class NGH_TimeRewind : MonoBehaviour
         if (ccEnabled) characterController.enabled = true;
 
         // 체력, 행동, 발도/납도, 무기 칸, 락온
-        // 공격 동작이나 예약된 입력(버퍼)까지 되살리면 되돌아가자마자 공격 모션이 나가므로,
-        // 공격 중이던 기록은 대기(이동) 상태로 바꾸고 예약 입력은 항상 비운다.
+        // 공격·구르기·발도/납도·피격 동작이나 예약된 입력(버퍼)까지 되살리면 되돌아가자마자 그 동작이 이어서 나가므로,
+        // 그런 동작 중이던 기록은 대기(이동) 상태로 바꾸고 예약 입력은 항상 비운다.
         chg_PlayerController.RewindState ps = s.player;
-        bool droppedAttack = IsAttackAction(ps.action);
-        if (droppedAttack)
+        bool droppedAction = ShouldDropOnRestore(ps.action);
+        if (droppedAction)
         {
             ps.action = chg_PlayerController.ActionState.None;
             ps.actionTime = 0f;
@@ -387,9 +403,9 @@ public class NGH_TimeRewind : MonoBehaviour
                 float t = s.stateLoops[i] ? Mathf.Repeat(s.stateTimes[i], 1f) : Mathf.Clamp01(s.stateTimes[i]);
                 animator.Play(s.stateHashes[i], i, t);
             }
-            if (droppedAttack)
+            if (droppedAction)
             {
-                // 공격 동작 대신 기본 이동 상태로
+                // 진행 중이던 동작 대신 기본 이동 상태로
                 animator.speed = 1f;
                 animator.Play(player.locomotionState, 0, 0f);
             }

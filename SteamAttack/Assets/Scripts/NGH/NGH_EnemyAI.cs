@@ -181,6 +181,46 @@ public class NGH_EnemyAI : MonoBehaviour
         }
     }
 
+    #region Death (NGH_EnemyHealth 연동)
+
+    /// <summary>쓰러졌을 때 NGH_EnemyHealth가 호출한다. 공격·전진·이동을 즉시 멈추고 AI를 끈다.</summary>
+    public void StopForDeath()
+    {
+        StopAllCoroutines();
+        attackRoutine = null;
+        isLunging = false;
+        lungeRemaining = 0f;
+        isAware = false;
+        moveDirection = Vector3.zero;
+        moveSpeed = 0f;
+        if (rb != null && !rb.isKinematic)
+        {
+            rb.linearVelocity = Vector3.zero;
+        }
+        SetState(State.Wander);
+        enabled = false;
+    }
+
+    /// <summary>부활할 때 NGH_EnemyHealth가 호출한다. 스폰 지점으로 돌아가 배회부터 다시 시작한다.</summary>
+    public void ReviveAtHome()
+    {
+        if (hasHome)
+        {
+            transform.position = homePosition;
+            if (rb != null)
+            {
+                rb.position = homePosition;
+            }
+        }
+        isAware = false;
+        hasWanderTarget = false;
+        SetState(State.Wander);
+        wanderWaitTimer = Random.Range(wanderWaitMin, wanderWaitMax);
+        enabled = true;
+    }
+
+    #endregion
+
     #region Awareness
 
     private void FindPlayer()

@@ -26,7 +26,8 @@ namespace SteamAttack.Quests
         [SerializeField] private bool autoAcceptMainQuests = true;
 
         private readonly Dictionary<string, QuestProgress> progresses = new Dictionary<string, QuestProgress>();
-        private Inventory boundInventory;
+        // 런타임 전용. 스크립트 재컴파일 시 Unity가 빈 Inventory를 채워 넣지 않도록 직렬화에서 제외한다. (NGH 수정)
+        [NonSerialized] private Inventory boundInventory;
 
         /// <summary>퀘스트 상태가 바뀔 때마다(수락/완료/잠금해제).</summary>
         public event Action<QuestProgress> QuestStatusChanged;
@@ -40,7 +41,8 @@ namespace SteamAttack.Quests
         public event Action<int, int> RewardGranted;
 
         /// <summary>UI 가 추적 중인 퀘스트. 기본값은 진행 중인 메인 퀘스트.</summary>
-        public QuestProgress TrackedQuest { get; private set; }
+        // 런타임 전용. 직렬화되면 재컴파일 후 Data가 비어 있는 QuestProgress가 생겨 UI에서 NullReference가 난다. (NGH 수정)
+        [field: NonSerialized] public QuestProgress TrackedQuest { get; private set; }
 
         private void Awake()
         {
@@ -237,6 +239,7 @@ namespace SteamAttack.Quests
         private void BuildInitialStates()
         {
             progresses.Clear();
+            TrackedQuest = null;
             if (database == null)
             {
                 Debug.LogWarning("[QuestManager] QuestDatabase 가 비어 있다. 인스펙터에서 지정해라.");

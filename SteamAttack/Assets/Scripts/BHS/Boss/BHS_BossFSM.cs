@@ -148,17 +148,25 @@ public class BHS_BossFSM : MonoBehaviour
         ChangeState(State.Attack);
     }
 
-    // 공격이 명중하면 플레이어의 피격 함수를 직접 호출한다.
+    // 공격이 명중하면 Player 태그가 붙은 대상의 피격 함수를 호출한다.
     private void DamagePlayer(float damage)
     {
-        if (player == null) return;
-        /*테스트용*/
-        BHS_PlayerHitTeleport receiverA = player.GetComponentInParent<BHS_PlayerHitTeleport>();
-        receiverA.TakeDamage(damage);
+        if (player == null || !player.CompareTag("Player")) return;
 
-        BHS_PlayerHealth receiver = player.GetComponentInParent<BHS_PlayerHealth>();
+        // 실제 플레이어(CHG): 무적·HP·피격 동작은 플레이어 쪽에서 처리한다.
+        chg_PlayerController playerController = player.GetComponentInParent<chg_PlayerController>();
+        if (playerController != null)
+        {
+            int hitDamage = Mathf.Max(1, Mathf.RoundToInt(damage));
+            playerController.TakeHit(hitDamage, transform.position);
+            return;
+        }
 
-        receiver.TakeDamage(damage);
+        // 보스 시험 씬의 임시 플레이어 (해당 컴포넌트가 있을 때만 호출)
+        BHS_PlayerHitTeleport teleport = player.GetComponentInParent<BHS_PlayerHitTeleport>();
+        if (teleport != null) teleport.TakeDamage(damage);
+        BHS_PlayerHealth health = player.GetComponentInParent<BHS_PlayerHealth>();
+        if (health != null) health.TakeDamage(damage);
     }
 
     private void UpdateAttack()
