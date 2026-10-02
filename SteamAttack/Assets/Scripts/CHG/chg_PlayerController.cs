@@ -131,7 +131,8 @@ public class chg_PlayerController : MonoBehaviour
     [HideInInspector] public float lightAttackDuration, heavyAttackDuration, shotDuration, rollDuration;
 
     [Header("락온")]
-    public float lockOnRange = 12f;
+    [Tooltip("락온 가능 거리(m). 락온 후 이 거리의 1.3배보다 멀어지면 해제")]
+    public float lockOnRange = 9f;
 
     [Header("애니메이터 상태 이름")]
     public string locomotionState = "Locomotion";
@@ -588,14 +589,33 @@ public class chg_PlayerController : MonoBehaviour
             float score = dist + angle * 0.05f;
             if (score < bestScore) { bestScore = score; best = d; }
         }
-        if (best) { if (!drawn) SetDrawn(true); SetLockTarget(best); }
+        if (!best) return;
+        if (!drawn)
+        {
+            // 납도 상태: 발도 동작을 하면서 락온 (카메라는 바로 대상을 따라감)
+            if (IsHitReacting || IsDead || IsStandingUp) return;
+            if (action == ActionState.None) StartAction(ActionState.Draw);
+            else if (action != ActionState.Draw && _buffered == ActionState.None) _buffered = ActionState.Draw;   // 지금 동작이 끝나면 발도
+            if (!DrawPending()) return;   // 무기 교체 중 등으로 발도할 수 없으면 락온도 하지 않음
+        }
+        SetLockTarget(best);
+    }
+
+    // 발도가 진행 중이거나 예약돼 있는지 (납도 상태 공격 예약도 발도를 거침)
+    bool DrawPending()
+    {
+        if (action == ActionState.Draw || _buffered == ActionState.Draw) return true;
+        return _buffered == ActionState.LightAttack || _buffered == ActionState.HeavyAttack
+            || _buffered == ActionState.LightCombo2 || _buffered == ActionState.Shot;
     }
 
     void ValidateLockOn()
     {
         if (!lockTarget) return;
         bool tooFar = Flat(lockTarget.transform.position - transform.position).magnitude > lockOnRange * 1.3f;
-        if (!lockTarget.isActiveAndEnabled || !lockTarget.IsAlive || tooFar || !IsMeleeEquipped()) SetLockTarget(null);
+        // 발도가 피격 등으로 끊겨 납도 상태로 남으면 락온도 해제
+        bool sheathedNoDraw = !drawn && !DrawPending();
+        if (!lockTarget.isActiveAndEnabled || !lockTarget.IsAlive || tooFar || !IsMeleeEquipped() || sheathedNoDraw) SetLockTarget(null);
     }
 
     void SetLockTarget(chg_Damageable t)
