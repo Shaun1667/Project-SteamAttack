@@ -54,6 +54,8 @@ public class YPH_SteamGun : MonoBehaviour
     public int PouchCapacity => Mathf.Max(1, _pouchCapacity);
     /// <summary>성공한 발사만 총구, 광선 끝점, 적 명중 여부를 보냅니다. 빗맞아도 발사는 성공입니다.</summary>
     public event Action<Vector3, Vector3, bool> OnFired;
+    /// <summary>물체를 맞힌 발사에서 OnFired 다음에 지점·면의 법선·적 피해 여부를 보냅니다. 허공에는 발생하지 않습니다.</summary>
+    public event Action<Vector3, Vector3, bool> OnImpact;
     /// <summary>모든 단계 전환을 이전 상태와 새 상태로 알립니다.</summary>
     public event Action<State, State> OnStateChanged;
 
@@ -86,8 +88,13 @@ public class YPH_SteamGun : MonoBehaviour
         if (!isActiveAndEnabled || _state != State.Ready || !_chamberLoaded) return false;
         _chamberLoaded = false;
         SetState(State.Firing);
-        bool hitEnemy = FindHit(out Vector3 end);
+        bool hitSomething = FindHit(out Vector3 end, out RaycastHit hit);
+        bool hitEnemy = hitSomething && ApplyHit(hit);
         OnFired?.Invoke(_muzzle.position, end, hitEnemy);
+        if (hitSomething)
+        {
+            OnImpact?.Invoke(hit.point, hit.normal, hitEnemy);
+        }
         FinishElapsedStates(); // 시간이 0인 설정은 다음 프레임을 기다리지 않습니다.
         return true;
     }
@@ -105,27 +112,57 @@ public class YPH_SteamGun : MonoBehaviour
         return true;
     }
 
-    private bool FindHit(out Vector3 end)
+    /// <summary>발사와 같은 광선으로 현재 조준점을 읽습니다. 허공은 사거리 끝을 반환하며 꺼진 총은 false입니다.</summary>
+    public bool TryGetAimPoint(out Vector3 point)
+    {
+        point = default;
+        if (!isActiveAndEnabled)
+        {
+            return false;
+        }
+        // 조준 연출이 매 프레임 물어도 탄·증기·피해 이벤트에는 손대지 않습니다.
+        FindHit(out point, out _);
+        return true;
+    }
+
+    /// <summary>플레이어 몸을 제외한 가장 가까운 충돌을 찾습니다. 조회와 실제 사격이 이 검사를 공유합니다.</summary>
+    private bool FindHit(out Vector3 end, out RaycastHit hit)
     {
         Vector3 origin = _aimOrigin.position;
         Vector3 direction = _aimOrigin.forward;
         end = origin + direction * _range;
+        hit = default;
         int count = Physics.RaycastNonAlloc(origin, direction, _hitBuffer, _range, _hitMask, QueryTriggerInteraction.Ignore);
         int nearest = -1;
         float distance = float.PositiveInfinity;
         // ponytail: 16개 넘게 겹치면 가까운 대상을 놓칠 수 있습니다. 전용 레이어가 정해지면 단일 Raycast로 바꿉니다.
         for (int i = 0; i < count; i++)
         {
-            if (_hitBuffer[i].collider.transform.IsChildOf(_ignoreRoot) || _hitBuffer[i].distance >= distance) continue;
+            if (_hitBuffer[i].collider.transform.IsChildOf(_ignoreRoot) || _hitBuffer[i].distance >= distance)
+            {
+                continue;
+            }
             nearest = i;
             distance = _hitBuffer[i].distance;
         }
-        if (nearest < 0) return false;
-        RaycastHit hit = _hitBuffer[nearest];
+        if (nearest < 0)
+        {
+            return false;
+        }
+        hit = _hitBuffer[nearest];
         end = hit.point; // 적이 아닌 벽도 선을 막습니다. 피해 대상 여부와 물리적인 끝점을 구분합니다.
+        return true;
+    }
+
+    /// <summary>실제 발사 때만 살아 있는 적에게 피해를 준 뒤 명중 회복을 요청합니다.</summary>
+    private bool ApplyHit(RaycastHit hit)
+    {
         YPH_IDamageable target = hit.collider.GetComponentInParent<YPH_IDamageable>();
-        if (!YPH_CombatTags.IsEnemy(target) || !target.IsAlive || _damage <= 0f) return false;
-        target.TakeDamage(_damage, origin);
+        if (!YPH_CombatTags.IsEnemy(target) || !target.IsAlive || _damage <= 0f)
+        {
+            return false;
+        }
+        target.TakeDamage(_damage, _aimOrigin.position);
         _hitRefill.NotifyHit(target);
         return true;
     }
