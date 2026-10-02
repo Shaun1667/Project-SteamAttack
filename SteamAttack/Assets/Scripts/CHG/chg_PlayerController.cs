@@ -111,7 +111,7 @@ public class chg_PlayerController : MonoBehaviour
     [Tooltip("납도 동작의 몇 % 지점에서 칼이 사라질지")]
     [Range(0, 1)] public float sheathHideAt = 0.75f;
     [Tooltip("공격하거나 락온할 때 발도 동작 없이 즉시 칼을 꺼냄")]
-    public bool instantDrawOnAttack = true;
+    public bool instantDrawOnAttack = false;   // 끔: 납도 상태에서 공격하면 발도 동작 후 공격
 
     [Header("피격 — 동작이 재생되는 동안 무적")]
     [Tooltip("데미지 1: 피격(소)")]

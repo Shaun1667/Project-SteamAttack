@@ -1,8 +1,9 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>맞을 수 있는 대상(허수아비 등). 락온 대상이 되기도 합니다. 쓰러지면 일정 시간 뒤 부활합니다.</summary>
-public class chg_Damageable : MonoBehaviour
+/// <summary>맞을 수 있는 대상(허수아비 등). 락온 대상이 되기도 합니다. 쓰러지면 일정 시간 뒤 부활합니다.
+/// chg_ObjectPool 로 꺼내 쓰는 적에 붙여도 재사용 시 HP·표시가 초기화됩니다 (chg_IPoolable).</summary>
+public class chg_Damageable : MonoBehaviour, chg_IPoolable
 {
     public float maxHp = 5f;
     public float hp;
@@ -27,19 +28,45 @@ public class chg_Damageable : MonoBehaviour
         for (int i = 0; i < _renderers.Length; i++)
             _baseColors[i] = _renderers[i].material.color;
 
-        // 락온 표시용 작은 구 (UI 대신 월드 오브젝트)
-        _marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        _marker.name = "chg_LockMarker";
-        Destroy(_marker.GetComponent<Collider>());
-        _marker.transform.SetParent(transform, false);
-        _marker.transform.localPosition = Vector3.up * markerHeight / Mathf.Max(0.01f, transform.lossyScale.y);
-        _marker.transform.localScale = Vector3.one * 0.12f / Mathf.Max(0.01f, transform.lossyScale.x);
-        _marker.GetComponent<Renderer>().material.color = Color.red;
-        _marker.SetActive(false);
+        // 락온 표시용 작은 구 (UI 대신 월드 오브젝트) — 오브젝트 풀에서 꺼냄
+        _marker = chg_ObjectPool.Spawn("chg_LockMarker", CreateMarker, transform);
+        if (_marker)
+        {
+            _marker.transform.localPosition = Vector3.up * markerHeight / Mathf.Max(0.01f, transform.lossyScale.y);
+            _marker.transform.localScale = Vector3.one * 0.12f / Mathf.Max(0.01f, transform.lossyScale.x);
+            _marker.SetActive(false);
+        }
+    }
+
+    // 풀이 비었을 때만 호출됨
+    static GameObject CreateMarker()
+    {
+        var m = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        DestroyImmediate(m.GetComponent<Collider>());   // 판정에 걸리지 않게 바로 제거
+        m.GetComponent<Renderer>().material.color = Color.red;
+        return m;
+    }
+
+    // ── 오브젝트 풀 재사용 시 초기화 ──
+    public void OnSpawned()
+    {
+        StopAllCoroutines();
+        _flash = null;
+        hp = maxHp;
+        _alive = true;
+        for (int i = 0; i < _renderers.Length; i++) if (_renderers[i]) _renderers[i].material.color = _baseColors[i];
+        SetVisible(true);
+        SetLocked(false);
+    }
+
+    public void OnDespawned()
+    {
+        StopAllCoroutines();
+        SetLocked(false);
     }
 
     public Vector3 AimPoint => transform.position + Vector3.up * markerHeight * 0.6f;
-    public bool IsAlive => _alive && hp > 0f;
+    public bool IsAlive => _alive && hp > 0f && isActiveAndEnabled;   // 풀로 반납(비활성)되면 락온 해제
 
     public void SetLocked(bool locked)
     {

@@ -279,7 +279,7 @@ MonoBehaviour:
     lungeDistance: -1
   drawShowAt: 0.3
   sheathHideAt: 0.75
-  instantDrawOnAttack: 1
+  instantDrawOnAttack: 0
   hitSmallAction:
     clipLength: 1.6333334
     playSpeed: 1
@@ -442,8 +442,8 @@ MonoBehaviour:
   isMelee: 1
   lightDamage: 1
   heavyDamage: 3
-  reach: 0.7
-  hitRadius: 0.5
+  reach: 0.90999997
+  hitRadius: 0.65
 --- !u!1 &7676735592682978294
 GameObject:
   m_ObjectHideFlags: 0
@@ -609,8 +609,8 @@ MonoBehaviour:
   isMelee: 1
   lightDamage: 1
   heavyDamage: 3
-  reach: 0.9
-  hitRadius: 0.6
+  reach: 1.17
+  hitRadius: 0.78000003
 --- !u!4 &3933925296522799872 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5563426904203572502, guid: 5db8073d7c789b24ab558190ea424217, type: 3}
