@@ -25,6 +25,10 @@ public class YPH_Grenade : MonoBehaviour
     private LayerMask _hitMask = ~0;
     [SerializeField, Tooltip("폭발 반경을 보여 줄 선택 프리팹입니다. 비워 두어도 피해는 정상 처리합니다.")]
     private YPH_ExplosionFlash _explosionFlashPrefab;
+    [SerializeField, Tooltip("정식 폭발 이펙트 프리팹입니다. 비워도 피해는 같으며, 프리팹의 Stop Action=Destroy로 스스로 삭제되어야 합니다.")]
+    private GameObject _explosionEffectPrefab;
+    [SerializeField, Min(0.01f), Tooltip("폭발 이펙트를 제작한 기준 반경(m)입니다. 실제 폭발 반경/이 값만큼 확대합니다. 높이면 표시가 작아지고 피해 반경은 변하지 않습니다.")]
+    private float _effectBaseRadius = 4f;
 
     private Rigidbody _rigidbody;
     private SphereCollider _collider;
@@ -73,6 +77,7 @@ public class YPH_Grenade : MonoBehaviour
         if (_detonationMode == DetonationMode.AfterThrow && _fuseTime <= 0f) Explode(transform.position);
     }
 
+    /// <summary>중복 폭발을 막고 범위 피해를 처리한 뒤 선택된 표시를 남깁니다.</summary>
     private void Explode(Vector3 position)
     {
         if (_exploded) return;
@@ -93,6 +98,12 @@ public class YPH_Grenade : MonoBehaviour
         }
         if (_explosionFlashPrefab != null)
             Instantiate(_explosionFlashPrefab, position, Quaternion.identity).Show(_explosionRadius);
+        if (_explosionEffectPrefab != null)
+        {
+            GameObject effect = Instantiate(_explosionEffectPrefab, position, Quaternion.identity);
+            // 피해와 표시의 크기를 함께 맞춥니다. 이펙트의 수명은 파티클 자체가 관리합니다.
+            effect.transform.localScale *= _explosionRadius / Mathf.Max(0.01f, _effectBaseRadius);
+        }
         Destroy(gameObject);
     }
 }
