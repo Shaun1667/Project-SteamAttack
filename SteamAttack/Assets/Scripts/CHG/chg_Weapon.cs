@@ -9,7 +9,7 @@ public class chg_Weapon : MonoBehaviour
     public float lightDamage = 1f;   // 좌클릭: 모션당 1
     public float heavyDamage = 3f;   // 강공격
     [Tooltip("공격 판정 거리(캐릭터 앞쪽)")]
-    public float reach = 0.9f;
+    public float reach = 1.17f;
     [Tooltip("공격 판정 반경")]
-    public float hitRadius = 0.6f;
+    public float hitRadius = 0.78f;
 }

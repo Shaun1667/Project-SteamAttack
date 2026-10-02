@@ -44,6 +44,27 @@ public static class chg_PrototypeSetup
                 EditorPrefs.SetBool("chg_Migrated_v21", true);
                 ApplyStandupTuning();
             }
+            if (!EditorPrefs.GetBool("chg_Migrated_v23", false) && File.Exists(PrefabDir + "chg_Player.prefab"))
+            {
+                // 피드백 반영: 공격 판정 범위 1.3배, 납도 상태에서 공격하면 발도 동작 먼저
+                EditorPrefs.SetBool("chg_Migrated_v23", true);
+                string pp23 = PrefabDir + "chg_Player.prefab";
+                var r23 = PrefabUtility.LoadPrefabContents(pp23);
+                var log = new System.Text.StringBuilder("[CHG][검증] 공격 판정 1.3배:");
+                foreach (var w in r23.GetComponentsInChildren<chg_Weapon>(true))
+                {
+                    if (!w.isMelee) continue;
+                    float r0 = w.reach, h0 = w.hitRadius;
+                    w.reach = r0 * 1.3f; w.hitRadius = h0 * 1.3f;
+                    log.Append($" {w.weaponName} 거리 {r0:0.##}→{w.reach:0.##}, 반경 {h0:0.##}→{w.hitRadius:0.##};");
+                }
+                var pc23 = r23.GetComponent<chg_PlayerController>();
+                if (pc23) pc23.instantDrawOnAttack = false;
+                PrefabUtility.SaveAsPrefabAsset(r23, pp23);
+                PrefabUtility.UnloadPrefabContents(r23);
+                var chk23 = AssetDatabase.LoadAssetAtPath<GameObject>(pp23).GetComponent<chg_PlayerController>();
+                Debug.Log(log.ToString() + " / 납도 공격 시 발도 먼저: " + (chk23 && !chk23.instantDrawOnAttack ? "OK" : "실패"));
+            }
             if (!EditorPrefs.GetBool("chg_Migrated_v22", false) && File.Exists(PrefabDir + "chg_Player.prefab"))
             {
                 EditorPrefs.SetBool("chg_Migrated_v22", true);
@@ -150,7 +171,7 @@ public static class chg_PrototypeSetup
         var swordT = model.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "chg_sword");
         if (swordT == null) { Debug.LogError("[CHG] 모델 안에서 chg_sword를 찾지 못했습니다."); return; }
         var sword = swordT.gameObject;
-        AddWeapon(sword, "환도", true, 1f, 3f, 0.9f, 0.6f);
+        AddWeapon(sword, "환도", true, 1f, 3f, 1.17f, 0.78f);
 
         // 손잡이 쥐는 점: 칼 손잡이 끝에서 약 20% 지점 (T-포즈에서 칼끝은 +Z)
         var sb = GetBounds(swordT);
@@ -164,7 +185,7 @@ public static class chg_PrototypeSetup
         club.transform.position = grip + Vector3.forward * 0.16f;
         if (hand) club.transform.SetParent(hand, true);
         Tint(club, new Color(0.45f, 0.3f, 0.15f));
-        AddWeapon(club, "테스트 둔기", true, 1f, 3f, 0.7f, 0.5f);
+        AddWeapon(club, "테스트 둔기", true, 1f, 3f, 0.91f, 0.65f);
 
         var gun = GameObject.CreatePrimitive(PrimitiveType.Cube);
         gun.name = "chg_TestGun";

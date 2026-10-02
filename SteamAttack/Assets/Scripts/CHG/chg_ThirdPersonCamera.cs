@@ -16,6 +16,17 @@ public class chg_ThirdPersonCamera : MonoBehaviour
 
     float _yaw, _pitch = 15f;
 
+    // ---- 시간 역행(NGH_TimeRewind) 연동 — NGH(남귀훈) 추가
+    /// <summary>현재 카메라 회전 (x = 좌우 yaw, y = 상하 pitch)</summary>
+    public Vector2 ViewAngles => new Vector2(_yaw, _pitch);
+
+    /// <summary>카메라 회전을 즉시 지정 (pitch는 Min/Max Pitch 안으로 제한)</summary>
+    public void SetViewAngles(float yaw, float pitch)
+    {
+        _yaw = yaw;
+        _pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+    }
+
     void Start()
     {
         // 프리팹으로 넣었을 때: 씬에서 플레이어를 자동으로 찾음
