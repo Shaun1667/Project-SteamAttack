@@ -3,7 +3,7 @@ using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(CharacterController))]
-public class BossDashAttack : BossAttack
+public class BHS_BossDashAttack : BossAttack
 {
     [Header("보스 앞쪽의 공격용 BoxCollider 연결")]
     public BoxCollider attackCollider;

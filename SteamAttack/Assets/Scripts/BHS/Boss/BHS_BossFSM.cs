@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class BossFSM : MonoBehaviour
+public class BHS_BossFSM : MonoBehaviour
 {
     public enum State
     {
@@ -153,10 +153,10 @@ public class BossFSM : MonoBehaviour
     {
         if (player == null) return;
         /*테스트용*/
-        PlayerHitTeleport receiverA = player.GetComponentInParent<PlayerHitTeleport>();
+        BHS_PlayerHitTeleport receiverA = player.GetComponentInParent<BHS_PlayerHitTeleport>();
         receiverA.TakeDamage(damage);
 
-        PlayerHealth receiver = player.GetComponentInParent<PlayerHealth>();
+        BHS_PlayerHealth receiver = player.GetComponentInParent<BHS_PlayerHealth>();
 
         receiver.TakeDamage(damage);
     }

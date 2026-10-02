@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PlayerHealth : MonoBehaviour
+public class BHS_PlayerHealth : MonoBehaviour
 {
     public float hp = 5f;
 

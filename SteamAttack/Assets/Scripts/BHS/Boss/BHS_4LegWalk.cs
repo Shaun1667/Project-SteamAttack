@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SpiderProceduralAnimation : MonoBehaviour
+public class BHS_4LegWalks : MonoBehaviour
 {
     [Header("왼쪽 앞발 Target")]
     public Transform leftFrontTarget;

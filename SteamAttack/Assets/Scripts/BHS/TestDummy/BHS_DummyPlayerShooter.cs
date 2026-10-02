@@ -4,11 +4,11 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-public class DummyPlayerShooter : MonoBehaviour
+public class BHS_DummyPlayerShooter : MonoBehaviour
 {
     [Header("발사 설정")]
     public Transform firePoint;
-    public DummyBullet bulletPrefab;
+    public BHS_DummyBullet bulletPrefab;
 
     public float damage = 2f;
 
@@ -20,7 +20,7 @@ public class DummyPlayerShooter : MonoBehaviour
     [Min(1)]
     public int poolSize = 20;
 
-    private DummyBullet[] bulletPool;
+    private BHS_DummyBullet[] bulletPool;
     private float nextFireTime;
 
     private void Awake()
@@ -32,13 +32,13 @@ public class DummyPlayerShooter : MonoBehaviour
             return;
         }
 
-        bulletPool = new DummyBullet[poolSize];
+        bulletPool = new BHS_DummyBullet[poolSize];
 
         for (int i = 0; i < poolSize; i++)
         {
             // 플레이어가 움직여도 탄환이 따라가지 않도록
             // 플레이어의 자식으로 만들지 않음
-            DummyBullet bullet = Instantiate(bulletPrefab);
+            BHS_DummyBullet bullet = Instantiate(bulletPrefab);
 
             bullet.gameObject.SetActive(false);
             bulletPool[i] = bullet;
@@ -64,7 +64,7 @@ public class DummyPlayerShooter : MonoBehaviour
 
     private void Fire()
     {
-        foreach (DummyBullet bullet in bulletPool)
+        foreach (BHS_DummyBullet bullet in bulletPool)
         {
             if (bullet.gameObject.activeSelf)
                 continue;
@@ -87,7 +87,7 @@ public class DummyPlayerShooter : MonoBehaviour
         if (bulletPool == null)
             return;
 
-        foreach (DummyBullet bullet in bulletPool)
+        foreach (BHS_DummyBullet bullet in bulletPool)
         {
             if (bullet != null)
                 Destroy(bullet.gameObject);

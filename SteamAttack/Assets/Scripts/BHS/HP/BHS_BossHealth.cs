@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class BossHealth : MonoBehaviour
+public class BHS_BossHealth : MonoBehaviour
 {
     [Header("보스 체력")]
     public float maxHp = 100f;

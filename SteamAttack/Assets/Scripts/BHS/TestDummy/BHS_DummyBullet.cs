@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class DummyBullet : MonoBehaviour
+public class BHS_DummyBullet : MonoBehaviour
 {
     [Header("탄환 설정")]
     [Min(0.01f)]
@@ -68,8 +68,8 @@ public class DummyBullet : MonoBehaviour
 
     private void ApplyDamage(Collider target)
     {
-        BossWallHealth wall =
-            target.GetComponentInParent<BossWallHealth>();
+        BHS_BossWallHealth wall =
+            target.GetComponentInParent<BHS_BossWallHealth>();
 
         if (wall != null)
         {
@@ -83,8 +83,8 @@ public class DummyBullet : MonoBehaviour
         }
 
         // 코어는 기존에 등록한 Collider로 확인
-        BossHealth boss =
-            target.GetComponentInParent<BossHealth>();
+        BHS_BossHealth boss =
+            target.GetComponentInParent<BHS_BossHealth>();
 
         if (boss != null && target == boss.coreCollider)
         {

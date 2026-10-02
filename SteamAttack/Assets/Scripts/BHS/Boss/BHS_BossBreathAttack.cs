@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
-public class BossBreathAttack : BossAttack
+public class BHS_BossBreathAttack : BossAttack
 {
     [Header("브레스 판정 - 월드 거리")]
     [Min(0.01f)] public float innerRadius = 3f;

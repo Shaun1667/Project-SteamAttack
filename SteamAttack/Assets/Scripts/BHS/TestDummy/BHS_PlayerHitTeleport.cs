@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerHitTeleport : MonoBehaviour
+public class BHS_PlayerHitTeleport : MonoBehaviour
 {
     [Header("순간이동 거리 목록 - 보스와의 수평 거리")]
     [Tooltip("목록의 항목 중 하나를 같은 확률로 선택합니다.")]

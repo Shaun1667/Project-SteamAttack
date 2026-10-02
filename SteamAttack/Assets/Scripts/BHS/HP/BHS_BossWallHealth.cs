@@ -1,20 +1,20 @@
 using UnityEngine;
 
-public class BossWallHealth : MonoBehaviour
+public class BHS_BossWallHealth : MonoBehaviour
 {
     [Header("벽 체력")]
     public float maxHp = 20f;
 
     public float currentHp;
     private bool isBroken;
-    private BossHealth bossHealth;
+    private BHS_BossHealth bossHealth;
 
     private void Awake()
     {
         currentHp = maxHp;
 
         // 부모에 있는 보스 체력 스크립트를 찾음
-        bossHealth = GetComponentInParent<BossHealth>();
+        bossHealth = GetComponentInParent<BHS_BossHealth>();
 
         if (bossHealth == null)
             Debug.LogError($"{name}: 부모에 BossHealth가 없습니다.", this);
