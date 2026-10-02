@@ -168,6 +168,7 @@ MonoBehaviour:
   _grenadeHandView: {fileID: 619988204}
   _aimRig: {fileID: 1362135347}
   _aimCamera: {fileID: 1730423596}
+  _aim: {fileID: 1799231664}
   _lookSpeed: 90
   _pitchLimit: 60
 --- !u!1 &310556148
@@ -765,6 +766,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: YPH_SteamGunProxy
       objectReference: {fileID: 0}
+    - target: {fileID: 937351075663703657, guid: 98a75a2d90911b047bd0c0e9639dc528, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4532869924787101385, guid: 98a75a2d90911b047bd0c0e9639dc528, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.35
@@ -1237,6 +1242,7 @@ GameObject:
   - component: {fileID: 1730423596}
   - component: {fileID: 1730423598}
   - component: {fileID: 1730423597}
+  - component: {fileID: 1730423599}
   m_Layer: 0
   m_Name: AimCamera
   m_TagString: MainCamera
@@ -1259,6 +1265,7 @@ Transform:
   m_Children:
   - {fileID: 1106133681}
   - {fileID: 619988205}
+  - {fileID: 1799231665}
   m_Father: {fileID: 1362135347}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!81 &1730423597
@@ -1320,6 +1327,135 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!114 &1730423599
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1730423595}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 1
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
+--- !u!1001 &1799231663
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1730423596}
+    m_Modifications:
+    - target: {fileID: 2177534023529623286, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: _camera
+      value: 
+      objectReference: {fileID: 1730423598}
+    - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6806834361620626373, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: _gun
+      value: 
+      objectReference: {fileID: 1106133680}
+    - target: {fileID: 6806834361620626373, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: _camera
+      value: 
+      objectReference: {fileID: 1730423598}
+    - target: {fileID: 8961958683358155609, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: m_Name
+      value: YPH_AimEffects
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+--- !u!114 &1799231664 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6806834361620626373, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+  m_PrefabInstance: {fileID: 1799231663}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fb9714ac0db5ec46895f7e3526a72bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::YPH_AimController
+--- !u!4 &1799231665 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+  m_PrefabInstance: {fileID: 1799231663}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1901604958
 GameObject:
   m_ObjectHideFlags: 0
