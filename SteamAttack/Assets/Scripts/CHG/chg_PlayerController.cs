@@ -156,7 +156,8 @@ public class chg_PlayerController : MonoBehaviour
     public bool IsHitReacting => action == ActionState.HitSmall || action == ActionState.HitLarge;
     /// <summary>구르기 무적 시간 중이거나 피격 동작 중이면 무적</summary>
     public bool IsInvincible => (action == ActionState.Roll && _actionTime < rollInvincibleTime) || IsHitReacting
-                                || IsDead || Time.time < _spawnInvincibleUntil;
+                                || IsDead || Time.time < _spawnInvincibleUntil
+                                || _externalInvincible.Count > 0;   // 외부 무적 (예: 시간 역행 연출, NGH_TimeRewind)
     public chg_Damageable LockTarget => lockTarget;
     public ActionState CurrentAction => action;
 
@@ -172,6 +173,7 @@ public class chg_PlayerController : MonoBehaviour
     Vector3 _rollDir;
     ActionState _buffered;
     readonly HashSet<chg_Damageable> _hitThisSwing = new HashSet<chg_Damageable>();
+    readonly HashSet<object> _externalInvincible = new HashSet<object>();   // 외부에서 켠 무적 (켠 쪽별로 관리)
 
     static readonly int SpeedHash = Animator.StringToHash("Speed");
     static readonly int AnimSpeedHash = Animator.StringToHash("AnimSpeed");
@@ -601,6 +603,109 @@ public class chg_PlayerController : MonoBehaviour
         if (lockTarget) lockTarget.SetLocked(false);
         lockTarget = t;
         if (lockTarget) lockTarget.SetLocked(true);
+    }
+
+    // ================================================================ 시간 역행 연동 (NGH_TimeRewind)
+    // NGH(남귀훈) 추가: 시간 역행이 플레이어 내부 상태를 기록/복원할 수 있도록 하는 통로.
+    // 위치·회전·애니메이터는 NGH_TimeRewind가 직접 기록/복원하고, 여기서는 이 스크립트 안의 상태만 다룬다.
+
+    /// <summary>시간 역행용 플레이어 상태 (체력, 행동, 발도·납도, 무기 칸 등)</summary>
+    [System.Serializable]
+    public struct RewindState
+    {
+        public int hp;
+        public bool drawn;
+        public int weaponIndex;
+        public ActionState action;
+        public float actionTime, actionDuration, actionPlaySpeed;
+        public ActionState buffered;
+        public int hitWindowIndex;
+        public bool visualSwitched, healedThisAction;
+        public Vector3 rollDir;
+        public float verticalVelocity;
+        public string locoState;
+        public float spawnInvincibleRemaining;
+        public float deadTimeAgo;
+        public chg_Damageable lockTarget;
+    }
+
+    /// <summary>외부 시스템이 무적을 켜고 끔. 켠 쪽(source)별로 관리하며, 모두 끄면 해제된다.</summary>
+    public void SetExternalInvincible(object source, bool on)
+    {
+        if (source == null) return;
+        if (on) _externalInvincible.Add(source);
+        else _externalInvincible.Remove(source);
+    }
+
+    /// <summary>현재 상태를 기록용으로 복사</summary>
+    public RewindState CaptureRewindState()
+    {
+        return new RewindState
+        {
+            hp = hp,
+            drawn = drawn,
+            weaponIndex = weapons ? weapons.currentIndex : 0,
+            action = action,
+            actionTime = _actionTime,
+            actionDuration = _actionDuration,
+            actionPlaySpeed = _actionPlaySpeed,
+            buffered = _buffered,
+            hitWindowIndex = _hitWindowIndex,
+            visualSwitched = _visualSwitched,
+            healedThisAction = _healedThisAction,
+            rollDir = _rollDir,
+            verticalVelocity = _vy,
+            locoState = _locoState,
+            spawnInvincibleRemaining = Mathf.Max(0f, _spawnInvincibleUntil - Time.time),
+            deadTimeAgo = Time.time - DeadTime,
+            lockTarget = lockTarget,
+        };
+    }
+
+    /// <summary>기록해 둔 상태로 되돌림 (체력, 행동, 발도·납도, 무기 칸, 락온)</summary>
+    public void RestoreRewindState(RewindState s)
+    {
+        SetLockTarget(null);
+        _hitThisSwing.Clear();
+        SetHp(s.hp);
+
+        drawn = s.drawn;
+        if (weapons) weapons.RestoreState(s.weaponIndex, drawn);
+
+        action = s.action;
+        _attack = AttackDataFor(s.action);
+        _actionTime = s.actionTime;
+        _actionDuration = s.actionDuration;
+        _actionPlaySpeed = s.actionPlaySpeed;
+        _buffered = s.buffered;
+        _hitWindowIndex = s.hitWindowIndex;
+        _visualSwitched = s.visualSwitched;
+        _healedThisAction = s.healedThisAction;
+        _rollDir = s.rollDir;
+        _vy = s.verticalVelocity;
+        _locoState = string.IsNullOrEmpty(s.locoState) ? locomotionState : s.locoState;
+        _spawnInvincibleUntil = Time.time + s.spawnInvincibleRemaining;
+        DeadTime = Time.time - s.deadTimeAgo;
+
+        // 락온: 대상이 아직 살아 있고, 발도 상태에서 근접 무기를 들고 있을 때만 되살림
+        chg_Damageable lt = s.lockTarget;
+        if (lt && lt.isActiveAndEnabled && lt.IsAlive && drawn && IsMeleeEquipped()) SetLockTarget(lt);
+    }
+
+    AttackData AttackDataFor(ActionState a)
+    {
+        switch (a)
+        {
+            case ActionState.LightAttack: return lightAttack;
+            case ActionState.HeavyAttack: return heavyAttack;
+            case ActionState.LightCombo2: return lightCombo2;
+            case ActionState.Shot: return shotAttack;
+            case ActionState.Draw: return drawAction;
+            case ActionState.Sheath: return sheathAction;
+            case ActionState.HitSmall: return hitSmallAction;
+            case ActionState.HitLarge: return hitLargeAction;
+            default: return null;
+        }
     }
 
     // ================================================================ 유틸

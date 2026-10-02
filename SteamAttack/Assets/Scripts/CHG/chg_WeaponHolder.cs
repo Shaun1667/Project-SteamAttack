@@ -35,6 +35,19 @@ public class chg_WeaponHolder : MonoBehaviour
         Refresh();
     }
 
+    /// <summary>
+    /// 시간 역행(NGH_TimeRewind) 복원용 — NGH(남귀훈) 추가.
+    /// 진행 중인 교체 연출을 멈추고, 무기 칸과 발도/납도 표시를 즉시 맞춘다.
+    /// </summary>
+    public void RestoreState(int index, bool drawn)
+    {
+        StopAllCoroutines();
+        IsSwapping = false;
+        if (index >= 0 && index < slots.Count && slots[index]) currentIndex = index;
+        _drawn = drawn;
+        Refresh();
+    }
+
     public void SwapNext()
     {
         if (IsSwapping) return;
