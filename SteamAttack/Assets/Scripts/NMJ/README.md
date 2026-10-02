@@ -100,3 +100,24 @@ bool ok     = PlayerInventory.Instance.TryAddAll(item, 10);   // 전부 들어�
   오브젝트가 생겨야 실제로 동작한다. 그 전까지는 디버그 키로 검증한다.
 
 > 입력은 Input System 패키지 전용 설정이라 `Keyboard.current` 를 쓴다.
+
+## 5. 플레이어 캡슐로 아이템 줍기 (테스트용)
+
+`SteamAttack ▸ 플레이어 캡슐 + 떨어진 아이템 배치` 메뉴를 누르면 지금 씬에
+`Player` 태그가 붙은 캡슐과 필드 아이템 7개가 깔린다.
+
+| 조작 | |
+|---|---|
+| WASD / 방향키 | 이동 (카메라가 보는 방향 기준) |
+| Shift | 달리기 |
+| Space | 점프 |
+| 마우스 오른쪽 드래그 | 시점 회전 |
+| I | 인벤토리 열기 |
+
+아이템 구체 위를 지나가면 `ItemPickup` 트리거가 걸려 인벤토리로 들어간다.
+칸이 모자라면 들어가는 만큼만 줍고 나머지는 필드에 남으며, 그 자리에 서 있는 동안
+0.5초마다 다시 시도하므로 가방을 비우면 바로 주워진다.
+
+- `Player/PlayerMover.cs` — CharacterController 이동
+- `Player/PlayerFollowCamera.cs` — 씬 카메라에 붙는 추적 카메라 (재생 중에만 움직이고, 멈추면 원래 구도로 복귀)
+- `Player/PickupBob.cs` — 떨어진 아이템 회전/부유 연출
