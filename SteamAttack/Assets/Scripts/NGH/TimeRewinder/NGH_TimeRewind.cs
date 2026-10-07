@@ -226,6 +226,9 @@ public class NGH_TimeRewind : MonoBehaviour
             case NGH_PlayerController.ActionState.LightAttack:
             case NGH_PlayerController.ActionState.HeavyAttack:
             case NGH_PlayerController.ActionState.LightCombo2:
+            case NGH_PlayerController.ActionState.LightCombo3:
+            case NGH_PlayerController.ActionState.LightCombo4:
+            case NGH_PlayerController.ActionState.LightCombo5:
             case NGH_PlayerController.ActionState.Shot:
                 return true;
             default:

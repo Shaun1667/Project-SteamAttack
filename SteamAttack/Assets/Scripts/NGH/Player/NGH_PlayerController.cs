@@ -5,12 +5,14 @@ using UnityEngine.InputSystem;
 /// <summary>
 /// 3인칭 플레이어 이동 + 근접 전투 프로토타입.
 ///  WASD 8방향(카메라 기준, 대각선도 같은 속도) / Shift 달리기 / Space 구르기(무적)
-///  F 발도·납도 / 좌클릭 약공격 / 우클릭 강공격 / 휠클릭 락온 / Tab 무기 교체
+///  F 발도·납도 / 좌클릭 약공격(최대 5연타) / 좌+우 동시 클릭 강공격 / 휠클릭 락온 / Tab 무기 교체
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class NGH_PlayerController : MonoBehaviour
 {
-    public enum ActionState { None, Roll, LightAttack, HeavyAttack, Shot, Draw, Sheath, HitSmall, HitLarge, LightCombo2, Death, StandUp }
+    // 새 값은 저장된 씬·프리팹 값이 바뀌지 않도록 항상 끝에 추가
+    public enum ActionState { None, Roll, LightAttack, HeavyAttack, Shot, Draw, Sheath, HitSmall, HitLarge, LightCombo2, Death, StandUp,
+                              LightCombo3, LightCombo4, LightCombo5 }
 
     [Header("참조")]
     public Animator animator;
@@ -80,8 +82,13 @@ public class NGH_PlayerController : MonoBehaviour
         public bool hitOncePerAction;
         [Tooltip("판정 구간(휘두르는 순간)마다 앞으로 쭉 나가는 거리(m). 0 = 제자리")]
         public float lungeDistance = -1f;   // -1 = 기본값 사용
+        [Tooltip("이전 동작에서 이 동작으로 넘어갈 때 섞는 시간(초)")]
+        public float blendIn = 0.08f;
+        [Tooltip("다음 약공격 타가 예약돼 있으면 클립의 이 지점(0~1)에서 바로 넘어감. 1 = 끝까지 재생 후")]
+        [Range(0.05f, 1f)] public float chainAt = 1f;
 
         public float ActionTime => clipLength * endAt / Mathf.Max(0.01f, playSpeed);
+        public float ChainTime => clipLength * Mathf.Min(chainAt, endAt) / Mathf.Max(0.01f, playSpeed);
     }
 
     [Header("구르기")]
@@ -98,11 +105,19 @@ public class NGH_PlayerController : MonoBehaviour
         { playSpeed = 2f, endAt = 0.30f, hitWindows = new[] { new Vector2(0.13f, 0.27f) }, lungeDistance = 0.4f };
     public AttackData heavyAttack = new AttackData   // 파워슬래시(powerslash): 회전 점프 베기, 판정 1번
         { playSpeed = 2f, endAt = 0.57f, hitWindows = new[] { new Vector2(0.345f, 0.39f) }, lungeDistance = 0.5f };   // 내려치는 순간(프레임 52~58)
-    [Tooltip("약공격 2타: 약공격 중 좌클릭을 한 번 더 누르면 이어지는 2단베기 동작 (데미지는 약공격 기준)")]
+    [Tooltip("약공격 2타: 1타 중 좌클릭을 한 번 더 누르면 이어짐 (데미지는 약공격 기준)")]
     public AttackData lightCombo2 = new AttackData
         { playSpeed = 2f, endAt = 0.66f, hitWindows = new[] { new Vector2(0.18f, 0.31f), new Vector2(0.48f, 0.61f) }, lungeDistance = 0.15f, hitOncePerAction = false };   // 두 번 베기 = 판정 2번
-    [Tooltip("약공격이 이 비율(0~1) 이상 진행된 뒤 누른 좌클릭은 2타로 이어짐")]
+    [Tooltip("약공격 3타: 2타 중 좌클릭")]
+    public AttackData lightCombo3 = new AttackData { playSpeed = 1f, endAt = 0.6f, hitWindows = new[] { new Vector2(0.16f, 0.33f) }, lungeDistance = 0.2f };
+    [Tooltip("약공격 4타: 3타 중 좌클릭")]
+    public AttackData lightCombo4 = new AttackData { playSpeed = 1f, endAt = 0.6f, hitWindows = new[] { new Vector2(0.16f, 0.33f) }, lungeDistance = 0.2f };
+    [Tooltip("약공격 5타(마무리): 4타 중 좌클릭")]
+    public AttackData lightCombo5 = new AttackData { playSpeed = 1f, endAt = 0.85f, hitWindows = new[] { new Vector2(0.25f, 0.35f) }, lungeDistance = 0.35f };
+    [Tooltip("약공격이 이 비율(0~1) 이상 진행된 뒤 누른 좌클릭은 다음 타로 이어짐")]
     [Range(0, 1)] public float comboInputFrom = 0.2f;
+    [Tooltip("좌클릭과 우클릭을 이 시간(초) 안에 함께 누르면 강공격. 좌클릭 약공격은 이 시간만큼 늦게 시작됨")]
+    public float bothClickWindow = 0.08f;
     [Tooltip("판정 구간보다 이만큼(클립 기준 0~1) 먼저 전진을 시작")]
     [Range(0, 0.2f)] public float lungeLead = 0.04f;
     [Tooltip("락온 대상과 이 거리(m)보다 가까우면 더 파고들지 않음")]
@@ -146,6 +161,9 @@ public class NGH_PlayerController : MonoBehaviour
     public string lightState = "LightAttack";
     public string heavyState = "HeavyAttack";
     public string combo2State = "Combo2";
+    public string combo3State = "Combo3";
+    public string combo4State = "Combo4";
+    public string combo5State = "Combo5";
     public string strafeLeftState = "StrafeLeft";
     public string strafeRightState = "StrafeRight";
     public string shotState = "Shot";
@@ -179,6 +197,7 @@ public class NGH_PlayerController : MonoBehaviour
     string _locoState = "Locomotion";
     Vector3 _rollDir;
     ActionState _buffered;
+    float _leftClickAt = -1f, _rightClickAt = -1f;   // 동시 클릭 판정용 (-1 = 대기 중인 클릭 없음)
     readonly HashSet<NGH_Damageable> _hitThisSwing = new HashSet<NGH_Damageable>();
     readonly HashSet<object> _externalInvincible = new HashSet<object>();   // 외부에서 켠 무적 (켠 쪽별로 관리)
 
@@ -198,6 +217,11 @@ public class NGH_PlayerController : MonoBehaviour
         if (heavyAttack.lungeDistance < 0f) heavyAttack.lungeDistance = 0.3f;
         if (lightCombo2.clipLength <= 0f) lightCombo2.clipLength = heavyAttackDuration > 0f ? heavyAttackDuration : heavyAttack.clipLength;
         if (lightCombo2.lungeDistance < 0f) lightCombo2.lungeDistance = 0.15f;
+        foreach (var c in new[] { lightCombo3, lightCombo4, lightCombo5 })
+        {
+            if (c.clipLength <= 0f) c.clipLength = 1f;
+            if (c.lungeDistance < 0f) c.lungeDistance = 0.2f;
+        }
         if (shotAttack.clipLength <= 0f) shotAttack.clipLength = shotDuration > 0f ? shotDuration : 1f;
         if (drawAction.clipLength <= 0f) drawAction.clipLength = 0.5f;
         if (sheathAction.clipLength <= 0f) sheathAction.clipLength = drawAction.clipLength;
@@ -232,8 +256,7 @@ public class NGH_PlayerController : MonoBehaviour
         if (mouse.middleButton.wasPressedThisFrame) ToggleLockOn();
 
         if (kb.spaceKey.wasPressedThisFrame) Request(ActionState.Roll);
-        if (mouse.leftButton.wasPressedThisFrame) Request(IsMeleeEquipped() ? ActionState.LightAttack : ActionState.Shot);
-        if (mouse.rightButton.wasPressedThisFrame && IsMeleeEquipped()) Request(ActionState.HeavyAttack);
+        ReadAttackInput(mouse);
 
         ValidateLockOn();
 
@@ -394,11 +417,11 @@ public class NGH_PlayerController : MonoBehaviour
     {
         if (IsHitReacting || IsDead || IsStandingUp) return;   // 피격·사망·부활 중에는 입력 무시
         if (action == ActionState.None) { StartAction(a); return; }
-        // 약공격 중 좌클릭 → 2타(2단베기)를 예약
-        if (a == ActionState.LightAttack && action == ActionState.LightAttack
+        // 약공격 중 좌클릭 → 다음 타를 예약 (1타 → 2타 → … → 5타)
+        if (a == ActionState.LightAttack && NextLightCombo(action) != ActionState.None
             && _actionTime >= _actionDuration * comboInputFrom)
         {
-            _buffered = ActionState.LightCombo2;
+            _buffered = NextLightCombo(action);
             return;
         }
         // 행동이 끝나갈 때 들어온 입력은 예약해 두었다가 바로 이어서 실행
@@ -411,8 +434,7 @@ public class NGH_PlayerController : MonoBehaviour
         if (!isHit && weapons && weapons.IsSwapping && a != ActionState.Roll) return;
         if (a == ActionState.Draw && drawn) return;
         if (a == ActionState.Sheath && !drawn) return;
-        bool isAttack = a == ActionState.LightAttack || a == ActionState.HeavyAttack || a == ActionState.Shot
-                        || a == ActionState.LightCombo2;
+        bool isAttack = IsLightChain(a) || a == ActionState.HeavyAttack || a == ActionState.Shot;
         if (isAttack && !drawn)
         {
             // 납도 상태에서 공격: 즉시 발도하거나, 발도 동작 뒤에 공격을 이어서 실행
@@ -440,7 +462,10 @@ public class NGH_PlayerController : MonoBehaviour
                 _actionDuration = rollTime; _actionPlaySpeed = rollAnimSpeed; state = rollState; break;
             case ActionState.LightAttack: _attack = lightAttack; state = lightState; break;
             case ActionState.HeavyAttack: _attack = heavyAttack; state = heavyState; break;
-            case ActionState.LightCombo2: _attack = lightCombo2; state = combo2State; break;   // 2단베기 동작
+            case ActionState.LightCombo2: _attack = lightCombo2; state = combo2State; break;
+            case ActionState.LightCombo3: _attack = lightCombo3; state = combo3State; break;
+            case ActionState.LightCombo4: _attack = lightCombo4; state = combo4State; break;
+            case ActionState.LightCombo5: _attack = lightCombo5; state = combo5State; break;
             case ActionState.Shot: _attack = shotAttack; state = shotState; ShotStarted?.Invoke(weapons ? weapons.Current : null); break;
             case ActionState.Draw: _attack = drawAction; state = drawState; break;
             case ActionState.Sheath: _attack = sheathAction; state = sheathState; break;
@@ -457,7 +482,7 @@ public class NGH_PlayerController : MonoBehaviour
         {
             animator.SetFloat(AnimSpeedHash, 1f);
             animator.speed = _actionPlaySpeed;
-            animator.CrossFadeInFixedTime(state, 0.08f);
+            animator.CrossFadeInFixedTime(state, _attack != null ? _attack.blendIn : 0.08f);
         }
     }
 
@@ -476,7 +501,7 @@ public class NGH_PlayerController : MonoBehaviour
         {
             // 클립 기준 진행도 (0~1)
             float clipT = _actionTime * _actionPlaySpeed / Mathf.Max(0.01f, _attack.clipLength);
-            if (action == ActionState.LightAttack || action == ActionState.HeavyAttack || action == ActionState.LightCombo2) Lunge(clipT);
+            if (IsLightChain(action) || action == ActionState.HeavyAttack) Lunge(clipT);
             for (int i = 0; i < _attack.hitWindows.Length; i++)
             {
                 var w = _attack.hitWindows[i];
@@ -502,7 +527,8 @@ public class NGH_PlayerController : MonoBehaviour
             }
         }
 
-        if (_actionTime >= _actionDuration)
+        bool chaining = _attack != null && IsLightChain(action) && IsLightChain(_buffered);
+        if (_actionTime >= (chaining ? _attack.ChainTime : _actionDuration))
         {
             var next = _buffered;
             action = ActionState.None;
@@ -571,6 +597,54 @@ public class NGH_PlayerController : MonoBehaviour
         Debug.Log(drawn ? "[CHG] 발도 (전투 상태)" : "[CHG] 납도 (대기 상태)");
     }
 
+    /// <summary>
+    /// 근접 무기: 좌클릭 = 약공격, 좌+우 동시 클릭(Both Click Window 안) = 강공격, 우클릭 단독 = 동작 없음.
+    /// 원거리 무기: 좌클릭 = 사격 (지연 없음)
+    /// </summary>
+    void ReadAttackInput(Mouse mouse)
+    {
+        if (!IsMeleeEquipped())
+        {
+            _leftClickAt = _rightClickAt = -1f;
+            if (mouse.leftButton.wasPressedThisFrame) Request(ActionState.Shot);
+            return;
+        }
+        float now = Time.time;
+        if (mouse.leftButton.wasPressedThisFrame) _leftClickAt = now;
+        if (mouse.rightButton.wasPressedThisFrame) _rightClickAt = now;
+
+        if (_leftClickAt >= 0f && _rightClickAt >= 0f)
+        {
+            _leftClickAt = _rightClickAt = -1f;
+            Request(ActionState.HeavyAttack);
+            return;
+        }
+        if (_leftClickAt >= 0f && now - _leftClickAt >= bothClickWindow)
+        {
+            // 입력이 멈춰 있던 동안(조작 안내 등) 오래 남은 클릭은 버림
+            if (now - _leftClickAt < bothClickWindow + 0.2f) Request(ActionState.LightAttack);
+            _leftClickAt = -1f;
+        }
+        if (_rightClickAt >= 0f && now - _rightClickAt >= bothClickWindow) _rightClickAt = -1f;
+    }
+
+    static bool IsLightChain(ActionState a) =>
+        a == ActionState.LightAttack || a == ActionState.LightCombo2 || a == ActionState.LightCombo3
+        || a == ActionState.LightCombo4 || a == ActionState.LightCombo5;
+
+    /// <summary>약공격 연타에서 다음 타. 마지막 타(5타)거나 약공격이 아니면 None</summary>
+    static ActionState NextLightCombo(ActionState a)
+    {
+        switch (a)
+        {
+            case ActionState.LightAttack: return ActionState.LightCombo2;
+            case ActionState.LightCombo2: return ActionState.LightCombo3;
+            case ActionState.LightCombo3: return ActionState.LightCombo4;
+            case ActionState.LightCombo4: return ActionState.LightCombo5;
+            default: return ActionState.None;
+        }
+    }
+
     bool IsMeleeEquipped()
     {
         var w = weapons ? weapons.Current : null;
@@ -612,8 +686,7 @@ public class NGH_PlayerController : MonoBehaviour
     bool DrawPending()
     {
         if (action == ActionState.Draw || _buffered == ActionState.Draw) return true;
-        return _buffered == ActionState.LightAttack || _buffered == ActionState.HeavyAttack
-            || _buffered == ActionState.LightCombo2 || _buffered == ActionState.Shot;
+        return IsLightChain(_buffered) || _buffered == ActionState.HeavyAttack || _buffered == ActionState.Shot;
     }
 
     void ValidateLockOn()
@@ -726,6 +799,9 @@ public class NGH_PlayerController : MonoBehaviour
             case ActionState.LightAttack: return lightAttack;
             case ActionState.HeavyAttack: return heavyAttack;
             case ActionState.LightCombo2: return lightCombo2;
+            case ActionState.LightCombo3: return lightCombo3;
+            case ActionState.LightCombo4: return lightCombo4;
+            case ActionState.LightCombo5: return lightCombo5;
             case ActionState.Shot: return shotAttack;
             case ActionState.Draw: return drawAction;
             case ActionState.Sheath: return sheathAction;
