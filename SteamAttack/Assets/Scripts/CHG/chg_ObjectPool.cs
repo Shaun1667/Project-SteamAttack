@@ -1,271 +1,369 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
-/// 오브젝트 풀. 런타임에 만드는 모든 오브젝트는 Instantiate/Destroy 대신 이걸 씁니다.
-///
-///   생성 : var fx = chg_ObjectPool.Spawn(hitFxPrefab, pos, rot);          // Instantiate 대신
-///          var bullet = chg_ObjectPool.Spawn(bulletPrefab, pos, rot);       // 컴포넌트 프리팹도 가능 (제네릭)
-///   반납 : chg_ObjectPool.Despawn(fx);            // Destroy 대신
-///          chg_ObjectPool.Despawn(fx, 1.5f);      // Destroy(obj, t) 대신 — 1.5초 뒤 반납
-///   예열 : chg_ObjectPool.Prewarm(hitFxPrefab, 10);  // 로딩 때 미리 만들어 두기 (Inspector 의 Prewarm 목록도 가능)
-///   코드로 만드는 오브젝트(프리미티브 등) : chg_ObjectPool.Spawn("키", () => 만드는함수(), parent);
-///
-/// 씬에 따로 배치하지 않아도 처음 Spawn 할 때 "chg_ObjectPool" 오브젝트가 자동으로 생깁니다.
-/// 예열 목록·최대 개수를 정하고 싶으면 씬에 빈 오브젝트를 만들고 이 컴포넌트를 붙이세요.
-/// 재사용될 때 초기화가 필요한 스크립트는 chg_IPoolable 을 구현하세요 (Awake 는 처음 한 번만 실행됨).
-/// 풀은 씬에 속합니다 — 씬이 바뀌면 풀과 꺼내진 오브젝트가 함께 정리됩니다.
+/// 풀링 오브젝트가 꺼내질 때(Spawn) / 반납될 때(Despawn) 알림을 받고 싶으면 구현한다.
+/// 풀링 오브젝트는 Awake/Start가 최초 1회만 호출되므로,
+/// 꺼낼 때마다 초기화해야 하는 값은 OnSpawned에서 리셋한다.
 /// </summary>
-[DefaultExecutionOrder(-1000)]
-[DisallowMultipleComponent]
-public class chg_ObjectPool : MonoBehaviour
+public interface CHG_IPoolable
 {
-    [Serializable]
-    public class PrewarmEntry
+    void OnSpawned();
+    void OnDespawned();
+}
+
+/// <summary>
+/// 프리팹별 오브젝트 풀 (NGH)
+/// - Instantiate 대신 CHG_ObjectPool.Spawn, Destroy 대신 CHG_ObjectPool.Despawn 을 사용한다.
+/// - 씬에 따로 배치하지 않아도 처음 사용할 때 [CHG_ObjectPool] 오브젝트가 자동 생성된다.
+/// - DontDestroyOnLoad 로 씬이 바뀌어도 풀(비활성 오브젝트)이 유지된다.
+/// - 씬이 언로드되면, 부모 없이 Spawn 해서 아직 사용 중인 오브젝트는 자동 반납된다.
+///
+/// 사용 예)
+///   Bullet b = CHG_ObjectPool.Spawn(bulletPrefab, pos, rot);
+///   CHG_ObjectPool.Despawn(b.gameObject);          // 즉시 반납
+///   CHG_ObjectPool.Despawn(b.gameObject, 2f);      // 2초 뒤 반납
+///   CHG_ObjectPool.Prewarm(bulletPrefab.gameObject, 10); // 미리 10개 만들어 두기
+/// </summary>
+[DisallowMultipleComponent]
+public class CHG_ObjectPool : MonoBehaviour
+{
+    private class Pool
     {
-        public GameObject prefab;
-        [Min(0)] public int count = 5;
+        public GameObject Prefab;
+        public Transform Root;
+        public readonly Stack<GameObject> Inactive = new Stack<GameObject>();
+        public int TotalCreated;
     }
 
-    [Tooltip("시작할 때 미리 만들어 둘 프리팹과 개수 (첫 생성 때 끊김 방지)")]
-    public List<PrewarmEntry> prewarm = new List<PrewarmEntry>();
-    [Tooltip("풀 하나에 보관할 최대 개수. 넘치게 반납되면 그 오브젝트는 파괴 (0 = 제한 없음)")]
-    [Min(0)] public int maxPerPool = 0;
-    [Tooltip("새로 만들 때마다 Console 에 로그 (풀 크기 확인용)")]
-    public bool logCreate = false;
+    private static CHG_ObjectPool instance;
+    private static bool isQuitting;
 
-    static chg_ObjectPool _instance;
-    static bool _quitting;
+    private readonly Dictionary<GameObject, Pool> poolsByPrefab = new Dictionary<GameObject, Pool>();
+    private readonly Dictionary<GameObject, Pool> poolsByInstance = new Dictionary<GameObject, Pool>();
+    private readonly Dictionary<GameObject, int> spawnVersions = new Dictionary<GameObject, int>();
+    private readonly HashSet<GameObject> inactiveSet = new HashSet<GameObject>();
 
-    readonly Dictionary<object, Stack<GameObject>> _free = new Dictionary<object, Stack<GameObject>>();
-    readonly Dictionary<object, int> _createdCount = new Dictionary<object, int>();
-    Transform _storage;   // 비활성 보관함 — 이 아래에서 만들어지면 꺼낼 때까지 Awake 가 실행되지 않음
-    static readonly List<chg_IPoolable> _callbackBuffer = new List<chg_IPoolable>();
+    // 생성 직후 Awake가 바로 호출되지 않도록 비활성 상태로 두는 보관용 부모
+    private Transform storage;
 
-    // Enter Play Mode 옵션으로 도메인 리로드를 꺼도 정적 값이 남지 않게
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() { _instance = null; _quitting = false; }
-
-    /// <summary>현재 풀. 없으면 자동 생성 (게임 종료 중에는 null)</summary>
-    public static chg_ObjectPool Instance
+    public static CHG_ObjectPool Instance
     {
         get
         {
-            if (_instance || _quitting) return _instance;
-            _instance = FindAnyObjectByType<chg_ObjectPool>();
-            if (!_instance) _instance = new GameObject("chg_ObjectPool").AddComponent<chg_ObjectPool>();
-            return _instance;
+            if (instance == null && !isQuitting)
+            {
+                instance = FindAnyObjectByType<CHG_ObjectPool>();
+                if (instance == null)
+                {
+                    instance = new GameObject("[CHG_ObjectPool]").AddComponent<CHG_ObjectPool>();
+                }
+            }
+            return instance;
         }
     }
 
-    void Awake()
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
     {
-        if (_instance && _instance != this)
+        instance = null;
+        isQuitting = false;
+    }
+
+    private void Awake()
+    {
+        if (instance != null && instance != this)
         {
-            Debug.LogWarning("[CHG] chg_ObjectPool 이 씬에 두 개 있습니다. 나중 것은 무시합니다.", this);
-            enabled = false;
+            Destroy(gameObject);
             return;
         }
-        _instance = this;
+        instance = this;
+
+        // 씬이 바뀌어도 풀을 유지한다 (DontDestroyOnLoad는 루트 오브젝트만 가능)
+        if (transform.parent != null)
+        {
+            transform.SetParent(null, true);
+        }
+        DontDestroyOnLoad(gameObject);
+
+        SceneManager.sceneUnloaded += OnSceneUnloaded;
         EnsureStorage();
-        Application.quitting += OnQuitting;
-        foreach (var e in prewarm)
-            if (e != null && e.prefab) Prewarm(e.prefab, e.count);
     }
 
-    void OnDestroy()
+    private void OnApplicationQuit()
     {
-        Application.quitting -= OnQuitting;
-        if (_instance == this) _instance = null;
+        isQuitting = true;
     }
 
-    static void OnQuitting() { _quitting = true; }
-
-    void EnsureStorage()
+    private void OnDestroy()
     {
-        if (_storage) return;
-        var s = new GameObject("chg_PoolStorage (inactive)");
-        s.SetActive(false);
-        s.transform.SetParent(transform, false);
-        _storage = s.transform;
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;
+
+        if (instance == this)
+        {
+            instance = null;
+        }
     }
 
-    // ───────────────────────── 꺼내기 ─────────────────────────
+    #region Static API
 
-    /// <summary>프리팹을 풀에서 꺼냄 (없으면 새로 만듦). Instantiate(prefab, pos, rot, parent) 대신 사용.</summary>
+    /// <summary>풀에서 오브젝트를 꺼낸다. 남는 게 없으면 새로 만든다.</summary>
     public static GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent = null)
     {
-        if (!prefab) { Debug.LogError("[CHG] chg_ObjectPool.Spawn: prefab 이 비어 있습니다."); return null; }
-        var pool = Instance;
-        if (!pool) return null;
-        var go = pool.Take(prefab, prefab.name, () => Instantiate(prefab, pool._storage));
-        return pool.Activate(go, parent, true, position, rotation);
+        if (prefab == null)
+        {
+            Debug.LogError("[CHG_ObjectPool] Spawn 실패: prefab이 비어 있습니다.");
+            return null;
+        }
+
+        CHG_ObjectPool pool = Instance;
+        return pool != null ? pool.SpawnInternal(prefab, position, rotation, parent) : null;
     }
 
-    /// <summary>프리팹의 위치·회전 그대로 꺼냄. parent 를 주면 그 아래 프리팹의 로컬 위치로 붙음.</summary>
-    public static GameObject Spawn(GameObject prefab, Transform parent = null)
-    {
-        if (!prefab) { Debug.LogError("[CHG] chg_ObjectPool.Spawn: prefab 이 비어 있습니다."); return null; }
-        var pool = Instance;
-        if (!pool) return null;
-        var go = pool.Take(prefab, prefab.name, () => Instantiate(prefab, pool._storage));
-        var t = prefab.transform;
-        go = pool.Activate(go, parent, false, t.localPosition, t.localRotation);
-        return go;
-    }
-
-    /// <summary>컴포넌트 프리팹 버전 — 꺼낸 오브젝트의 같은 컴포넌트를 돌려줌</summary>
+    /// <summary>컴포넌트 타입으로 바로 받는 Spawn.</summary>
     public static T Spawn<T>(T prefab, Vector3 position, Quaternion rotation, Transform parent = null) where T : Component
     {
-        if (!prefab) { Debug.LogError("[CHG] chg_ObjectPool.Spawn: prefab 이 비어 있습니다."); return null; }
-        var go = Spawn(prefab.gameObject, position, rotation, parent);
-        return go ? go.GetComponent<T>() : null;
-    }
-
-    /// <summary>
-    /// 프리팹 없이 코드로 만드는 오브젝트용 (CreatePrimitive, new GameObject 등).
-    /// 같은 key 끼리 재사용됩니다. factory 는 풀이 비었을 때만 호출됩니다. parent 아래 로컬 (0,0,0) 에 붙습니다.
-    /// </summary>
-    public static GameObject Spawn(string key, Func<GameObject> factory, Transform parent = null)
-    {
-        if (string.IsNullOrEmpty(key) || factory == null) { Debug.LogError("[CHG] chg_ObjectPool.Spawn: key/factory 가 비어 있습니다."); return null; }
-        var pool = Instance;
-        if (!pool) return null;
-        var go = pool.Take(key, key, () =>
+        if (prefab == null)
         {
-            var made = factory();
-            if (made) made.transform.SetParent(pool._storage, false);
-            return made;
-        });
-        return pool.Activate(go, parent, false, Vector3.zero, Quaternion.identity);
-    }
-
-    /// <summary>로딩 시점에 미리 만들어서 풀에 넣어 둠 (이미 보관 중인 개수 포함해 count 개가 되게)</summary>
-    public static void Prewarm(GameObject prefab, int count)
-    {
-        if (!prefab || count <= 0) return;
-        var pool = Instance;
-        if (!pool) return;
-        pool.EnsureStorage();
-        var stack = pool.GetStack(prefab);
-        while (stack.Count < count)
-        {
-            var go = pool.Create(prefab, prefab.name, () => Instantiate(prefab, pool._storage));
-            if (!go) break;
-            go.SetActive(false);
-            go.GetComponent<chg_PooledObject>().inPool = true;
-            stack.Push(go);
+            Debug.LogError("[CHG_ObjectPool] Spawn 실패: prefab이 비어 있습니다.");
+            return null;
         }
+
+        GameObject spawned = Spawn(prefab.gameObject, position, rotation, parent);
+        return spawned != null ? spawned.GetComponent<T>() : null;
     }
 
-    // ───────────────────────── 반납 ─────────────────────────
-
-    /// <summary>풀로 반납. Destroy(go) 대신 사용. 풀 출신이 아니면 그냥 파괴합니다.</summary>
-    public static void Despawn(GameObject go, float delay = 0f)
+    /// <summary>오브젝트를 풀에 반납한다.</summary>
+    public static void Despawn(GameObject obj)
     {
-        if (!go) return;
-        var po = go.GetComponent<chg_PooledObject>();
-        if (!po || !_instance)
+        if (obj == null)
         {
-            if (!po) Debug.LogWarning($"[CHG] {go.name} 은 풀에서 만든 오브젝트가 아니라서 파괴합니다. chg_ObjectPool.Spawn 으로 만들어 주세요.", go);
-            if (delay > 0f) Destroy(go, delay); else Destroy(go);
             return;
         }
-        if (po.inPool) return;   // 이미 반납됨
-        if (delay > 0f) { _instance.StartCoroutine(_instance.DespawnLater(po, po.spawnVersion, delay)); return; }
-        _instance.Return(po);
-    }
 
-    /// <summary>컴포넌트로 반납</summary>
-    public static void Despawn(Component c, float delay = 0f) { if (c) Despawn(c.gameObject, delay); }
-
-    /// <summary>해당 프리팹 풀에 대기 중인 개수 (디버그용)</summary>
-    public static int FreeCount(GameObject prefab)
-    {
-        Stack<GameObject> s;
-        return _instance && prefab && _instance._free.TryGetValue(prefab, out s) ? s.Count : 0;
-    }
-
-    // ───────────────────────── 내부 ─────────────────────────
-
-    Stack<GameObject> GetStack(object key)
-    {
-        Stack<GameObject> s;
-        if (!_free.TryGetValue(key, out s)) { s = new Stack<GameObject>(); _free[key] = s; }
-        return s;
-    }
-
-    GameObject Take(object key, string label, Func<GameObject> create)
-    {
-        EnsureStorage();
-        var stack = GetStack(key);
-        while (stack.Count > 0)
+        if (instance == null)
         {
-            var g = stack.Pop();
-            if (g) return g;   // 씬 정리 등으로 파괴된 항목은 건너뜀
+            Destroy(obj);
+            return;
         }
-        return Create(key, label, create);
+        instance.DespawnInternal(obj);
     }
 
-    GameObject Create(object key, string label, Func<GameObject> create)
+    /// <summary>delay초 뒤에 풀에 반납한다. 그 전에 반납/재사용되면 이 예약은 무시된다.</summary>
+    public static void Despawn(GameObject obj, float delay)
     {
-        var go = create();
-        if (!go) return null;
-        int n;
-        _createdCount.TryGetValue(key, out n);
-        _createdCount[key] = ++n;
-        go.name = label;
-        var po = go.GetComponent<chg_PooledObject>();
-        if (!po) po = go.AddComponent<chg_PooledObject>();
-        po.poolKey = key;
-        po.inPool = false;
-        if (logCreate) Debug.Log($"[CHG][Pool] {label} 새로 생성 (총 {n}개)");
-        return go;
+        if (obj == null)
+        {
+            return;
+        }
+
+        if (delay <= 0f)
+        {
+            Despawn(obj);
+            return;
+        }
+
+        if (instance == null)
+        {
+            Destroy(obj, delay);
+            return;
+        }
+        instance.StartCoroutine(instance.DespawnAfter(obj, delay));
     }
 
-    GameObject Activate(GameObject go, Transform parent, bool world, Vector3 pos, Quaternion rot)
+    /// <summary>비활성 상태로 최소 count개를 미리 만들어 둔다.</summary>
+    public static void Prewarm(GameObject prefab, int count)
     {
-        if (!go) return null;
-        var po = go.GetComponent<chg_PooledObject>();
-        po.inPool = false;
-        po.spawnVersion++;
+        if (prefab == null || count <= 0)
+        {
+            return;
+        }
 
-        var t = go.transform;
-        t.SetParent(parent, false);
-        if (world) t.SetPositionAndRotation(pos, rot);
-        else { t.localPosition = pos; t.localRotation = rot; }
-        go.SetActive(true);   // 처음 꺼낸 경우 여기서 Awake/OnEnable 실행
-
-        go.GetComponentsInChildren(true, _callbackBuffer);
-        for (int i = 0; i < _callbackBuffer.Count; i++) _callbackBuffer[i].OnSpawned();
-        _callbackBuffer.Clear();
-        return go;
+        CHG_ObjectPool pool = Instance;
+        if (pool != null)
+        {
+            pool.PrewarmInternal(prefab, count);
+        }
     }
 
-    void Return(chg_PooledObject po)
+    #endregion
+
+    #region Internal
+
+    // 씬이 언로드될 때: 이전 씬에서 부모 없이 꺼내 쓰던(=풀 루트 아래에 있는) 활성 오브젝트를 반납하고,
+    // 씬과 함께 파괴된 오브젝트의 기록을 정리한다.
+    private void OnSceneUnloaded(Scene scene)
     {
-        var go = po.gameObject;
-        go.GetComponentsInChildren(true, _callbackBuffer);
-        for (int i = 0; i < _callbackBuffer.Count; i++) _callbackBuffer[i].OnDespawned();
-        _callbackBuffer.Clear();
+        List<GameObject> keys = new List<GameObject>(poolsByInstance.Keys);
+        for (int i = 0; i < keys.Count; i++)
+        {
+            GameObject obj = keys[i];
 
-        po.inPool = true;
-        po.spawnVersion++;
-        var stack = GetStack(po.poolKey);
-        if (maxPerPool > 0 && stack.Count >= maxPerPool) { Destroy(go); return; }
+            if (obj == null)
+            {
+                poolsByInstance.Remove(obj);
+                spawnVersions.Remove(obj);
+                inactiveSet.Remove(obj);
+                continue;
+            }
 
-        go.SetActive(false);
+            Pool pool = poolsByInstance[obj];
+            if (!inactiveSet.Contains(obj) && obj.transform.parent == pool.Root)
+            {
+                DespawnInternal(obj);
+            }
+        }
+    }
+
+    private void EnsureStorage()
+    {
+        if (storage != null)
+        {
+            return;
+        }
+
+        GameObject storageObject = new GameObject("Storage");
+        storageObject.SetActive(false);
+        storage = storageObject.transform;
+        storage.SetParent(transform, false);
+    }
+
+    private Pool GetPool(GameObject prefab)
+    {
+        if (!poolsByPrefab.TryGetValue(prefab, out Pool pool))
+        {
+            Transform root = new GameObject(prefab.name + " Pool").transform;
+            root.SetParent(transform, false);
+            pool = new Pool { Prefab = prefab, Root = root };
+            poolsByPrefab.Add(prefab, pool);
+        }
+        return pool;
+    }
+
+    private GameObject CreateInstance(Pool pool)
+    {
         EnsureStorage();
-        go.transform.SetParent(_storage, false);
-        stack.Push(go);
+
+        // 비활성 부모 아래에서 생성 → 처음 Spawn 될 때 Awake가 호출된다
+        GameObject obj = Instantiate(pool.Prefab, storage, false);
+        pool.TotalCreated++;
+        obj.name = pool.Prefab.name + " (" + pool.TotalCreated + ")";
+        obj.SetActive(false);
+        obj.transform.SetParent(pool.Root, false);
+
+        poolsByInstance[obj] = pool;
+        spawnVersions[obj] = 0;
+        return obj;
     }
 
-    IEnumerator DespawnLater(chg_PooledObject po, int version, float delay)
+    private GameObject SpawnInternal(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent)
     {
-        yield return new WaitForSeconds(delay);
-        // 그 사이 이미 반납됐다가 다시 꺼내졌으면 이번 예약은 취소
-        if (po && !po.inPool && po.spawnVersion == version) Return(po);
+        Pool pool = GetPool(prefab);
+
+        GameObject obj = null;
+        while (obj == null && pool.Inactive.Count > 0)
+        {
+            GameObject candidate = pool.Inactive.Pop();
+            inactiveSet.Remove(candidate);
+
+            if (candidate == null)
+            {
+                // 외부에서 Destroy 된 오브젝트는 정리
+                poolsByInstance.Remove(candidate);
+                spawnVersions.Remove(candidate);
+                continue;
+            }
+            obj = candidate;
+        }
+
+        if (obj == null)
+        {
+            obj = CreateInstance(pool);
+        }
+
+        Transform objTransform = obj.transform;
+        objTransform.SetParent(parent != null ? parent : pool.Root, false);
+        objTransform.SetPositionAndRotation(position, rotation);
+
+        spawnVersions[obj] = spawnVersions.TryGetValue(obj, out int version) ? version + 1 : 1;
+        obj.SetActive(true);
+
+        CHG_IPoolable[] poolables = obj.GetComponentsInChildren<CHG_IPoolable>(true);
+        for (int i = 0; i < poolables.Length; i++)
+        {
+            poolables[i].OnSpawned();
+        }
+
+        return obj;
     }
+
+    private void DespawnInternal(GameObject obj)
+    {
+        if (!poolsByInstance.TryGetValue(obj, out Pool pool))
+        {
+            Debug.LogWarning("[CHG_ObjectPool] 풀에서 생성되지 않은 오브젝트라 Destroy 합니다: " + obj.name, obj);
+            Destroy(obj);
+            return;
+        }
+
+        // 이미 반납된 오브젝트
+        if (inactiveSet.Contains(obj))
+        {
+            return;
+        }
+
+        CHG_IPoolable[] poolables = obj.GetComponentsInChildren<CHG_IPoolable>(true);
+        for (int i = 0; i < poolables.Length; i++)
+        {
+            poolables[i].OnDespawned();
+        }
+
+        // 버전을 올려서 대기 중인 지연 반납 예약을 무효화
+        spawnVersions[obj] = spawnVersions.TryGetValue(obj, out int version) ? version + 1 : 1;
+
+        obj.SetActive(false);
+        obj.transform.SetParent(pool.Root, false);
+        pool.Inactive.Push(obj);
+        inactiveSet.Add(obj);
+    }
+
+    private IEnumerator DespawnAfter(GameObject obj, float delay)
+    {
+        bool isPooled = poolsByInstance.ContainsKey(obj);
+        int version = spawnVersions.TryGetValue(obj, out int v) ? v : -1;
+
+        yield return new WaitForSeconds(delay);
+
+        if (obj == null)
+        {
+            yield break;
+        }
+
+        if (!isPooled)
+        {
+            DespawnInternal(obj);
+            yield break;
+        }
+
+        if (spawnVersions.TryGetValue(obj, out int current) && current == version)
+        {
+            DespawnInternal(obj);
+        }
+    }
+
+    private void PrewarmInternal(GameObject prefab, int count)
+    {
+        Pool pool = GetPool(prefab);
+        int toCreate = count - pool.Inactive.Count;
+        for (int i = 0; i < toCreate; i++)
+        {
+            GameObject obj = CreateInstance(pool);
+            pool.Inactive.Push(obj);
+            inactiveSet.Add(obj);
+        }
+    }
+
+    #endregion
 }

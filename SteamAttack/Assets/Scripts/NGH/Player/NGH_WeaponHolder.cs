@@ -3,22 +3,22 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>무기 최대 3개 장착, Tab으로 다음 무기 교체, 발도/납도 시 표시 전환.</summary>
-public class chg_WeaponHolder : MonoBehaviour
+public class NGH_WeaponHolder : MonoBehaviour
 {
     public const int MaxSlots = 3;
 
     [Tooltip("장착 무기 (최대 3개, 빈 칸은 건너뜀)")]
-    public List<chg_Weapon> slots = new List<chg_Weapon>();
+    public List<NGH_Weapon> slots = new List<NGH_Weapon>();
     public int currentIndex;
     [Tooltip("교체 연출 시간(사라짐+나타남)")]
     public float swapTime = 0.2f;
 
     public bool IsSwapping { get; private set; }
-    public chg_Weapon Current =>
+    public NGH_Weapon Current =>
         (currentIndex >= 0 && currentIndex < slots.Count) ? slots[currentIndex] : null;
 
     bool _drawn;
-    readonly Dictionary<chg_Weapon, Vector3> _baseScale = new Dictionary<chg_Weapon, Vector3>();
+    readonly Dictionary<NGH_Weapon, Vector3> _baseScale = new Dictionary<NGH_Weapon, Vector3>();
 
     void Awake()
     {
@@ -36,7 +36,7 @@ public class chg_WeaponHolder : MonoBehaviour
     }
 
     /// <summary>
-    /// 시간 역행(NGH_TimeRewind) 복원용 — NGH(남귀훈) 추가.
+    /// 시간 역행(CHG_TimeRewind) 복원용 — NGH(남귀훈) 추가.
     /// 진행 중인 교체 연출을 멈추고, 무기 칸과 발도/납도 표시를 즉시 맞춘다.
     /// </summary>
     public void RestoreState(int index, bool drawn)
@@ -81,7 +81,7 @@ public class chg_WeaponHolder : MonoBehaviour
         IsSwapping = false;
     }
 
-    IEnumerator Scale(chg_Weapon w, float from, float to, float time)
+    IEnumerator Scale(NGH_Weapon w, float from, float to, float time)
     {
         Vector3 b;
         if (!_baseScale.TryGetValue(w, out b)) b = w.transform.localScale;

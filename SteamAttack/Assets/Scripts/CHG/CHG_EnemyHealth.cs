@@ -5,13 +5,13 @@ using UnityEngine;
 /// <summary>
 /// 적 HP와 피해 처리 (NGH)
 /// - 다른 파트(YPH 총·수류탄, CHG 근접)가 공통으로 쓰는 피해 API: IsAlive, TakeDamage(float, Vector3)
-/// - HP가 0이 되면 같은 오브젝트의 NGH_EnemyAI를 멈추고, 잠시 뒤 몸(렌더러·콜라이더)을 숨긴다.
+/// - HP가 0이 되면 같은 오브젝트의 CHG_EnemyAI를 멈추고, 잠시 뒤 몸(렌더러·콜라이더)을 숨긴다.
 ///   피해를 준 호출 안에서 오브젝트를 파괴하거나 끄지 않으므로, 공격한 쪽은 명중 직후 태그를 읽을 수 있다.
 /// - Respawn Delay가 0보다 크면 그 시간 뒤 스폰 지점에서 부활한다.
-/// - 오브젝트 풀(NGH_ObjectPool)로 다시 꺼낼 때도 HP·생존 상태가 초기화된다.
+/// - 오브젝트 풀(CHG_ObjectPool)로 다시 꺼낼 때도 HP·생존 상태가 초기화된다.
 /// </summary>
 [DisallowMultipleComponent]
-public class NGH_EnemyHealth : MonoBehaviour, NGH_IPoolable
+public class CHG_EnemyHealth : MonoBehaviour, CHG_IPoolable
 {
     [Header("HP")]
     [SerializeField, Min(1f)] private float maxHp = 5f;
@@ -40,7 +40,7 @@ public class NGH_EnemyHealth : MonoBehaviour, NGH_IPoolable
 
     private float hp;
     private bool alive = true;
-    private NGH_EnemyAI ai;
+    private CHG_EnemyAI ai;
     private Rigidbody rb;
     private bool rbWasKinematic;
     private Renderer[] renderers;
@@ -50,7 +50,7 @@ public class NGH_EnemyHealth : MonoBehaviour, NGH_IPoolable
 
     private void Awake()
     {
-        ai = GetComponent<NGH_EnemyAI>();
+        ai = GetComponent<CHG_EnemyAI>();
         rb = GetComponent<Rigidbody>();
         rbWasKinematic = rb != null && rb.isKinematic;
         renderers = GetComponentsInChildren<Renderer>(true);
@@ -74,7 +74,7 @@ public class NGH_EnemyHealth : MonoBehaviour, NGH_IPoolable
         hp = Mathf.Max(0f, hp - amount);
         if (logDamage)
         {
-            Debug.Log("[NGH_EnemyHealth:" + name + "] 피격 -" + amount + " (HP " + hp + "/" + maxHp + ")", this);
+            Debug.Log("[CHG_EnemyHealth:" + name + "] 피격 -" + amount + " (HP " + hp + "/" + maxHp + ")", this);
         }
 
         if (hitFlashTime > 0f && hp > 0f)
@@ -109,7 +109,7 @@ public class NGH_EnemyHealth : MonoBehaviour, NGH_IPoolable
         }
         if (logDamage)
         {
-            Debug.Log("[NGH_EnemyHealth:" + name + "] 부활 (HP " + maxHp + ")", this);
+            Debug.Log("[CHG_EnemyHealth:" + name + "] 부활 (HP " + maxHp + ")", this);
         }
         Revived?.Invoke();
     }
@@ -131,7 +131,7 @@ public class NGH_EnemyHealth : MonoBehaviour, NGH_IPoolable
         alive = false;
         if (logDamage)
         {
-            Debug.Log("[NGH_EnemyHealth:" + name + "] 쓰러짐" + (respawnDelay > 0f ? " → " + respawnDelay + "초 후 부활" : ""), this);
+            Debug.Log("[CHG_EnemyHealth:" + name + "] 쓰러짐" + (respawnDelay > 0f ? " → " + respawnDelay + "초 후 부활" : ""), this);
         }
         if (ai != null)
         {

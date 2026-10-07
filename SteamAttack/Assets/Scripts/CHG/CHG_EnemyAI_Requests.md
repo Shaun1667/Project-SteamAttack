@@ -2,14 +2,14 @@
 
 - 작성: 남귀훈 (NGH)
 - 최종 수정: 2026-10-01
-- 관련 파일: `Assets/Scripts/NGH/NGH_EnemyAI.cs`, `Assets/Scripts/NGH/NGH_EnemyAttackHitbox.cs`, `Assets/Scripts/NGH/NGH_ObjectPool.cs`, `Assets/Prefabs/NGH/NGH_EnemyAttackHitbox.prefab`
+- 관련 파일: `Assets/Scripts/NGH/CHG_EnemyAI.cs`, `Assets/Scripts/NGH/CHG_EnemyAttackHitbox.cs`, `Assets/Scripts/NGH/CHG_ObjectPool.cs`, `Assets/Prefabs/NGH/CHG_EnemyAttackHitbox.prefab`
 - 테스트 씬: `Assets/Scenes/NGH/EnemyTest.unity`
 
 ---
 
 ## 1. [플레이어 담당] EnemyAttack 피격 처리 요청
 
-적의 근접 공격은 **공격하는 순간에만** `EnemyAttack` 태그를 가진 트리거 콜라이더(`NGH_EnemyAttackHitbox`)를 꺼내서 판정하는 방식입니다. 히트박스는 약 0.15초 유지된 뒤 사라집니다. 공격할 때 적이 살짝 앞으로 전진하며, 히트박스도 적을 따라 움직입니다.
+적의 근접 공격은 **공격하는 순간에만** `EnemyAttack` 태그를 가진 트리거 콜라이더(`CHG_EnemyAttackHitbox`)를 꺼내서 판정하는 방식입니다. 히트박스는 약 0.15초 유지된 뒤 사라집니다. 공격할 때 적이 살짝 앞으로 전진하며, 히트박스도 적을 따라 움직입니다.
 
 Player는 NGH 영역이 아니라서 직접 수정하지 않았습니다. 플레이어 쪽에서 아래 처리를 부탁드립니다.
 
@@ -30,7 +30,7 @@ private void OnTriggerEnter(Collider other)
     }
 
     int damage = 1;
-    NGH_EnemyAttackHitbox hitbox = other.GetComponent<NGH_EnemyAttackHitbox>();
+    CHG_EnemyAttackHitbox hitbox = other.GetComponent<CHG_EnemyAttackHitbox>();
     if (hitbox != null)
     {
         damage = hitbox.Damage;
@@ -48,15 +48,15 @@ private void OnTriggerEnter(Collider other)
 
 ## 3. [공통] 오브젝트 풀 사용 안내 (선택)
 
-`NGH_ObjectPool`은 누구나 가져다 쓸 수 있습니다. 씬에 따로 배치할 필요 없이 처음 호출할 때 자동으로 생성됩니다.
+`CHG_ObjectPool`은 누구나 가져다 쓸 수 있습니다. 씬에 따로 배치할 필요 없이 처음 호출할 때 자동으로 생성됩니다.
 
 ```csharp
-Bullet bullet = NGH_ObjectPool.Spawn(bulletPrefab, position, rotation); // Instantiate 대신
-NGH_ObjectPool.Despawn(bullet.gameObject);       // Destroy 대신
-NGH_ObjectPool.Despawn(bullet.gameObject, 2f);   // 2초 뒤 반납
+Bullet bullet = CHG_ObjectPool.Spawn(bulletPrefab, position, rotation); // Instantiate 대신
+CHG_ObjectPool.Despawn(bullet.gameObject);       // Destroy 대신
+CHG_ObjectPool.Despawn(bullet.gameObject, 2f);   // 2초 뒤 반납
 ```
 
-풀링되는 오브젝트는 Awake/Start가 처음 한 번만 호출되므로, 꺼낼 때마다 초기화가 필요하면 `NGH_IPoolable`을 구현해서 `OnSpawned()`에서 처리하면 됩니다.
+풀링되는 오브젝트는 Awake/Start가 처음 한 번만 호출되므로, 꺼낼 때마다 초기화가 필요하면 `CHG_IPoolable`을 구현해서 `OnSpawned()`에서 처리하면 됩니다.
 
 ## 4. 참고: 사용 중인 태그
 

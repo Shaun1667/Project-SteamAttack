@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3211063009791052357}
   - component: {fileID: 5033030438070658486}
   m_Layer: 0
-  m_Name: chg_ControlsGuide
+  m_Name: NGH_ControlsGuide
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

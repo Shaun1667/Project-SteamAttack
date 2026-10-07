@@ -154,7 +154,7 @@ public class BHS_BossFSM : MonoBehaviour
         if (player == null || !player.CompareTag("Player")) return;
 
         // 실제 플레이어(CHG): 무적·HP·피격 동작은 플레이어 쪽에서 처리한다.
-        chg_PlayerController playerController = player.GetComponentInParent<chg_PlayerController>();
+        NGH_PlayerController playerController = player.GetComponentInParent<NGH_PlayerController>();
         if (playerController != null)
         {
             int hitDamage = Mathf.Max(1, Mathf.RoundToInt(damage));

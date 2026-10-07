@@ -2,10 +2,10 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>3인칭 백사이드뷰 카메라. 마우스로 회전, 락온 시 대상 쪽으로 자동 회전.</summary>
-public class chg_ThirdPersonCamera : MonoBehaviour
+public class NGH_ThirdPersonCamera : MonoBehaviour
 {
     public Transform target;                 // 플레이어
-    public chg_PlayerController player;
+    public NGH_PlayerController player;
     public float pivotHeight = 0.85f;        // 어깨 높이 (캐릭터 키 약 1m 기준)
     public float distance = 2.4f;
     public float shoulderOffset = 0.25f;     // 오른쪽 어깨 너머
@@ -18,7 +18,7 @@ public class chg_ThirdPersonCamera : MonoBehaviour
 
     float _yaw, _pitch = 15f;
 
-    // ---- 시간 역행(NGH_TimeRewind) 연동 — NGH(남귀훈) 추가
+    // ---- 시간 역행(CHG_TimeRewind) 연동 — NGH(남귀훈) 추가
     /// <summary>현재 카메라 회전 (x = 좌우 yaw, y = 상하 pitch)</summary>
     public Vector2 ViewAngles => new Vector2(_yaw, _pitch);
 
@@ -34,11 +34,11 @@ public class chg_ThirdPersonCamera : MonoBehaviour
         // 프리팹으로 넣었을 때: 씬에서 플레이어를 자동으로 찾음
         if (!target)
         {
-            var pc = FindFirstObjectByType<chg_PlayerController>();
+            var pc = FindFirstObjectByType<NGH_PlayerController>();
             if (pc) { target = pc.transform; player = pc; }
         }
         if (target) _yaw = target.eulerAngles.y;
-        if (!player && target) player = target.GetComponent<chg_PlayerController>();
+        if (!player && target) player = target.GetComponent<NGH_PlayerController>();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -47,7 +47,7 @@ public class chg_ThirdPersonCamera : MonoBehaviour
     {
         if (!target) return;
         var mouse = Mouse.current;
-        bool guideOpen = chg_ControlsOverlay.IsOpen;   // ESC 안내가 열려 있으면 카메라 조작 멈춤
+        bool guideOpen = NGH_ControlsOverlay.IsOpen;   // ESC 안내가 열려 있으면 카메라 조작 멈춤
 
         if (!guideOpen && mouse != null && mouse.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
         {

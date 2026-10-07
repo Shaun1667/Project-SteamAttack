@@ -5,9 +5,9 @@ using UnityEngine;
 /// 바래는 방식의 세부 값은 재질(chg_mat_body)의 Wash Out 항목에서 조절합니다.
 /// chg_CharacterDesaturate 셰이더를 쓰는 재질에만 적용됩니다 (다른 재질 — 예: 증기통 — 은 그대로). 모델 오브젝트에 붙입니다.
 /// </summary>
-public class chg_HpTint : MonoBehaviour
+public class NGH_HpTint : MonoBehaviour
 {
-    public chg_PlayerController player;
+    public NGH_PlayerController player;
     [Tooltip("HP별 채도 (인덱스 = HP). 1 = 원래 색, 0 = 흑백")]
     public float[] saturationByHp = { 0.0f, 0.2f, 0.7f, 1.0f };
     [Tooltip("HP별 명도 (인덱스 = HP). 1 = 원래 밝기, 낮을수록 어두워짐")]
@@ -34,7 +34,7 @@ public class chg_HpTint : MonoBehaviour
 
     void Awake()
     {
-        if (!player) player = GetComponentInParent<chg_PlayerController>();
+        if (!player) player = GetComponentInParent<NGH_PlayerController>();
         // 이 셰이더(_Saturation)를 쓰는 렌더러만 — 증기통 등 다른 재질은 제외
         var list = new System.Collections.Generic.List<Renderer>();
         foreach (var r in GetComponentsInChildren<Renderer>(true))

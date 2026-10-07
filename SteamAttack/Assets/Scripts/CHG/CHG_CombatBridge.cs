@@ -10,16 +10,16 @@ using UnityEngine.InputSystem;
 /// YPH와 CHG가 서로를 직접 참조하지 않도록 이 컴포넌트가 가운데서만 연결한다.
 /// </summary>
 [DisallowMultipleComponent]
-public class NGH_CombatBridge : MonoBehaviour
+public class CHG_CombatBridge : MonoBehaviour
 {
     [Header("CHG")]
-    [SerializeField] private chg_PlayerController player;
-    [SerializeField] private chg_WeaponHolder weapons;
-    [SerializeField] private chg_ThirdPersonCamera playerCamera;
-    [Tooltip("무기 칸에서 총으로 쓸 chg_Weapon")]
-    [SerializeField] private chg_Weapon gunWeapon;
-    [Tooltip("무기 칸에서 수류탄으로 쓸 chg_Weapon")]
-    [SerializeField] private chg_Weapon grenadeWeapon;
+    [SerializeField] private NGH_PlayerController player;
+    [SerializeField] private NGH_WeaponHolder weapons;
+    [SerializeField] private NGH_ThirdPersonCamera playerCamera;
+    [Tooltip("무기 칸에서 총으로 쓸 NGH_Weapon")]
+    [SerializeField] private NGH_Weapon gunWeapon;
+    [Tooltip("무기 칸에서 수류탄으로 쓸 NGH_Weapon")]
+    [SerializeField] private NGH_Weapon grenadeWeapon;
 
     [Header("YPH")]
     [SerializeField] private YPH_SteamGun gun;
@@ -40,15 +40,15 @@ public class NGH_CombatBridge : MonoBehaviour
     private bool grenadeShown;
     private bool grenadeShownInitialized;
 
-    private chg_Weapon Equipped => weapons != null && !weapons.IsSwapping ? weapons.Current : null;
+    private NGH_Weapon Equipped => weapons != null && !weapons.IsSwapping ? weapons.Current : null;
     private bool GunReady => player != null && player.IsDrawn && gunWeapon != null && Equipped == gunWeapon;
     private bool GrenadeReady => player != null && player.IsDrawn && grenadeWeapon != null && Equipped == grenadeWeapon;
 
     private void Awake()
     {
-        if (player == null) player = GetComponentInParent<chg_PlayerController>();
-        if (weapons == null && player != null) weapons = player.GetComponent<chg_WeaponHolder>();
-        if (playerCamera == null) playerCamera = FindAnyObjectByType<chg_ThirdPersonCamera>();
+        if (player == null) player = GetComponentInParent<NGH_PlayerController>();
+        if (weapons == null && player != null) weapons = player.GetComponent<NGH_WeaponHolder>();
+        if (playerCamera == null) playerCamera = FindAnyObjectByType<NGH_ThirdPersonCamera>();
     }
 
     private void OnEnable()
@@ -78,7 +78,7 @@ public class NGH_CombatBridge : MonoBehaviour
 
         Keyboard keyboard = Keyboard.current;
         Mouse mouse = Mouse.current;
-        bool canAct = keyboard != null && mouse != null && !player.IsDead && !chg_ControlsOverlay.IsOpen;
+        bool canAct = keyboard != null && mouse != null && !player.IsDead && !NGH_ControlsOverlay.IsOpen;
 
         // 손의 수류탄 표시: 수류탄 칸 + 발도 중일 때만
         bool showGrenade = GrenadeReady;
@@ -114,7 +114,7 @@ public class NGH_CombatBridge : MonoBehaviour
         if (player != null) player.MoveSpeedMultiplier = moveSpeed;
     }
 
-    private void HandleShotStarted(chg_Weapon weapon)
+    private void HandleShotStarted(NGH_Weapon weapon)
     {
         if (weapon == null) return;
 
@@ -130,25 +130,25 @@ public class NGH_CombatBridge : MonoBehaviour
         }
     }
 
-    private void HandleMeleeHit(chg_Damageable target)
+    private void HandleMeleeHit(NGH_Damageable target)
     {
         if (hitRefill == null || target == null) return;
-        // 적 쪽에 YPH 피해 대상(예: NGH_EnemyDamageRelay)이 있으면 그걸로, 없으면 chg_Damageable을 감싸서 전달
+        // 적 쪽에 YPH 피해 대상(예: CHG_EnemyDamageRelay)이 있으면 그걸로, 없으면 NGH_Damageable을 감싸서 전달
         YPH_IDamageable damageable = target.GetComponentInParent<YPH_IDamageable>();
         hitRefill.NotifyHit(damageable ?? new ChgTarget(target));
     }
 
     private void Log(string message)
     {
-        if (logActions) Debug.Log("[NGH_CombatBridge] " + message, this);
+        if (logActions) Debug.Log("[CHG_CombatBridge] " + message, this);
     }
 
-    /// <summary>CHG 표적(chg_Damageable)을 YPH 증기 회복 판정에 넘기기 위한 얇은 포장</summary>
+    /// <summary>CHG 표적(NGH_Damageable)을 YPH 증기 회복 판정에 넘기기 위한 얇은 포장</summary>
     private sealed class ChgTarget : YPH_IDamageable
     {
-        private readonly chg_Damageable target;
+        private readonly NGH_Damageable target;
 
-        public ChgTarget(chg_Damageable target) { this.target = target; }
+        public ChgTarget(NGH_Damageable target) { this.target = target; }
 
         public bool IsAlive => target != null && target.IsAlive;
         public void TakeDamage(float amount, Vector3 hitFrom) { if (target != null) target.TakeDamage(amount, hitFrom); }

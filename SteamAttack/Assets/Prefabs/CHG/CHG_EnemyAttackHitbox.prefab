@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8462701020233454580}
   - component: {fileID: 7922252720182429100}
   m_Layer: 0
-  m_Name: NGH_EnemyAttackHitbox
+  m_Name: CHG_EnemyAttackHitbox
   m_TagString: EnemyAttack
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

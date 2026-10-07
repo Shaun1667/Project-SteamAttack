@@ -129,7 +129,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3223172342658892932, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
       propertyPath: m_Name
-      value: chg_PlayerCamera
+      value: NGH_PlayerCamera
       objectReference: {fileID: 0}
     - target: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
       propertyPath: player
@@ -194,7 +194,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1766717810704266006, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_Name
-      value: chg_Player
+      value: NGH_Player
       objectReference: {fileID: 0}
     - target: {fileID: 1766717810704266006, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_TagString
@@ -526,7 +526,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3235624445174967541, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
       propertyPath: m_Name
-      value: chg_Dummy
+      value: NGH_Dummy
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -2,8 +2,8 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>맞을 수 있는 대상(허수아비 등). 락온 대상이 되기도 합니다. 쓰러지면 일정 시간 뒤 부활합니다.
-/// chg_ObjectPool 로 꺼내 쓰는 적에 붙여도 재사용 시 HP·표시가 초기화됩니다 (chg_IPoolable).</summary>
-public class chg_Damageable : MonoBehaviour, chg_IPoolable
+/// NGH_ObjectPool 로 꺼내 쓰는 적에 붙여도 재사용 시 HP·표시가 초기화됩니다 (NGH_IPoolable).</summary>
+public class NGH_Damageable : MonoBehaviour, NGH_IPoolable
 {
     public float maxHp = 5f;
     public float hp;
@@ -29,7 +29,7 @@ public class chg_Damageable : MonoBehaviour, chg_IPoolable
             _baseColors[i] = _renderers[i].material.color;
 
         // 락온 표시용 작은 구 (UI 대신 월드 오브젝트) — 오브젝트 풀에서 꺼냄
-        _marker = chg_ObjectPool.Spawn("chg_LockMarker", CreateMarker, transform);
+        _marker = NGH_ObjectPool.Spawn("chg_LockMarker", CreateMarker, transform);
         if (_marker)
         {
             _marker.transform.localPosition = Vector3.up * markerHeight / Mathf.Max(0.01f, transform.lossyScale.y);

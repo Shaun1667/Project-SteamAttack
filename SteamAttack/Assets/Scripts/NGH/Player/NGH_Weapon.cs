@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>무기 하나의 데이터. 무기 모델(손에 붙은 오브젝트)에 붙입니다.</summary>
-public class chg_Weapon : MonoBehaviour
+public class NGH_Weapon : MonoBehaviour
 {
     public string weaponName = "환도";
     [Tooltip("근접 무기만 락온 가능")]

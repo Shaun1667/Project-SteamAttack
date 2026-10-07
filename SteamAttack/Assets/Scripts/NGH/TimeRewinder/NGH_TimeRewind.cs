@@ -9,10 +9,10 @@ using UnityEngine.InputSystem;
 /// - N초보다 오래된 기록은 폐기한다.
 /// - 발동하면 연출(RewindEffectRoutine, 지금은 비어 있음)을 먼저 재생한 뒤 N초 전 상태로 모두 되돌린다.
 /// - 연출이 재생되는 동안 플레이어는 무적이다.
-/// 플레이어 루트(chg_PlayerController가 있는 오브젝트)에 붙인다.
+/// 플레이어 루트(NGH_PlayerController가 있는 오브젝트)에 붙인다.
 /// </summary>
 [DisallowMultipleComponent]
-[RequireComponent(typeof(chg_PlayerController))]
+[RequireComponent(typeof(NGH_PlayerController))]
 public class NGH_TimeRewind : MonoBehaviour
 {
     /// <summary>한 시점의 기록</summary>
@@ -21,7 +21,7 @@ public class NGH_TimeRewind : MonoBehaviour
         public float time;
         public Vector3 position;
         public Quaternion rotation;
-        public chg_PlayerController.RewindState player;
+        public NGH_PlayerController.RewindState player;
         public bool hasSteam;
         public float steamPressure;
 
@@ -41,13 +41,13 @@ public class NGH_TimeRewind : MonoBehaviour
     }
 
     [Header("참조 (비워 두면 자동으로 찾음)")]
-    [SerializeField] private chg_PlayerController player;
+    [SerializeField] private NGH_PlayerController player;
     [SerializeField] private CharacterController characterController;
     [SerializeField] private Animator animator;
     [Tooltip("플레이어 등에 붙은 스팀백의 탱크 (비우면 자식에서 찾음)")]
     [SerializeField] private YPH_SteamTank steamTank;
     [Tooltip("플레이어를 따라가는 3인칭 카메라 (비우면 씬에서 찾음)")]
-    [SerializeField] private chg_ThirdPersonCamera playerCamera;
+    [SerializeField] private NGH_ThirdPersonCamera playerCamera;
 
     [Header("기록")]
     [Tooltip("되돌아갈 시간(초). 이보다 오래된 기록은 폐기한다")]
@@ -110,7 +110,7 @@ public class NGH_TimeRewind : MonoBehaviour
 
     private void Awake()
     {
-        if (!player) player = GetComponent<chg_PlayerController>();
+        if (!player) player = GetComponent<NGH_PlayerController>();
         if (!characterController) characterController = GetComponent<CharacterController>();
         if (!animator) animator = player && player.animator ? player.animator : GetComponentInChildren<Animator>();
         if (!steamTank) steamTank = GetComponentInChildren<YPH_SteamTank>();
@@ -141,7 +141,7 @@ public class NGH_TimeRewind : MonoBehaviour
         if (IsRewinding) return;
 
         Keyboard keyboard = Keyboard.current;
-        if (keyboard == null || chg_ControlsOverlay.IsOpen) return;
+        if (keyboard == null || NGH_ControlsOverlay.IsOpen) return;
 
         if (keyboard[rewindKey].wasPressedThisFrame)
         {
@@ -173,7 +173,7 @@ public class NGH_TimeRewind : MonoBehaviour
         string blockedBy = GetBlockingAction();
         if (blockedBy != null)
         {
-            if (logRewind) Debug.Log($"[NGH_TimeRewind] {blockedBy} 중에는 시간 역행을 사용할 수 없습니다.", this);
+            if (logRewind) Debug.Log($"[CHG_TimeRewind] {blockedBy} 중에는 시간 역행을 사용할 수 없습니다.", this);
             return false;
         }
 
@@ -194,39 +194,39 @@ public class NGH_TimeRewind : MonoBehaviour
     public string GetBlockingAction()
     {
         if (player == null) return null;
-        chg_PlayerController.ActionState a = player.CurrentAction;
+        NGH_PlayerController.ActionState a = player.CurrentAction;
         if (blockWhileAttacking && IsAttackAction(a)) return "공격";
-        if (blockWhileDrawSheath && a == chg_PlayerController.ActionState.Draw) return "발도";
-        if (blockWhileDrawSheath && a == chg_PlayerController.ActionState.Sheath) return "납도";
-        if (blockWhileRolling && a == chg_PlayerController.ActionState.Roll) return "구르기";
-        if (blockWhileHit && (a == chg_PlayerController.ActionState.HitSmall || a == chg_PlayerController.ActionState.HitLarge)) return "피격";
+        if (blockWhileDrawSheath && a == NGH_PlayerController.ActionState.Draw) return "발도";
+        if (blockWhileDrawSheath && a == NGH_PlayerController.ActionState.Sheath) return "납도";
+        if (blockWhileRolling && a == NGH_PlayerController.ActionState.Roll) return "구르기";
+        if (blockWhileHit && (a == NGH_PlayerController.ActionState.HitSmall || a == NGH_PlayerController.ActionState.HitLarge)) return "피격";
         return null;
     }
 
     // 복원할 때 이어서 재생하지 않고 대기 상태로 바꿀 동작 (공격, 구르기, 발도/납도, 피격)
-    private static bool ShouldDropOnRestore(chg_PlayerController.ActionState a)
+    private static bool ShouldDropOnRestore(NGH_PlayerController.ActionState a)
     {
         switch (a)
         {
-            case chg_PlayerController.ActionState.Roll:
-            case chg_PlayerController.ActionState.Draw:
-            case chg_PlayerController.ActionState.Sheath:
-            case chg_PlayerController.ActionState.HitSmall:
-            case chg_PlayerController.ActionState.HitLarge:
+            case NGH_PlayerController.ActionState.Roll:
+            case NGH_PlayerController.ActionState.Draw:
+            case NGH_PlayerController.ActionState.Sheath:
+            case NGH_PlayerController.ActionState.HitSmall:
+            case NGH_PlayerController.ActionState.HitLarge:
                 return true;
             default:
                 return IsAttackAction(a);
         }
     }
 
-    private static bool IsAttackAction(chg_PlayerController.ActionState a)
+    private static bool IsAttackAction(NGH_PlayerController.ActionState a)
     {
         switch (a)
         {
-            case chg_PlayerController.ActionState.LightAttack:
-            case chg_PlayerController.ActionState.HeavyAttack:
-            case chg_PlayerController.ActionState.LightCombo2:
-            case chg_PlayerController.ActionState.Shot:
+            case NGH_PlayerController.ActionState.LightAttack:
+            case NGH_PlayerController.ActionState.HeavyAttack:
+            case NGH_PlayerController.ActionState.LightCombo2:
+            case NGH_PlayerController.ActionState.Shot:
                 return true;
             default:
                 return false;
@@ -272,7 +272,7 @@ public class NGH_TimeRewind : MonoBehaviour
 
         if (logRewind)
         {
-            Debug.Log($"[NGH_TimeRewind] {rewoundSeconds:0.00}초 전으로 되돌림 → HP {player.Hp}, 증기 {(steamTank ? steamTank.CurrentPressure.ToString("0.#") : "-")}, {(player.IsDrawn ? "발도" : "납도")}", this);
+            Debug.Log($"[CHG_TimeRewind] {rewoundSeconds:0.00}초 전으로 되돌림 → HP {player.Hp}, 증기 {(steamTank ? steamTank.CurrentPressure.ToString("0.#") : "-")}, {(player.IsDrawn ? "발도" : "납도")}", this);
         }
         RewindFinished?.Invoke();
     }
@@ -362,11 +362,11 @@ public class NGH_TimeRewind : MonoBehaviour
         // 체력, 행동, 발도/납도, 무기 칸, 락온
         // 공격·구르기·발도/납도·피격 동작이나 예약된 입력(버퍼)까지 되살리면 되돌아가자마자 그 동작이 이어서 나가므로,
         // 그런 동작 중이던 기록은 대기(이동) 상태로 바꾸고 예약 입력은 항상 비운다.
-        chg_PlayerController.RewindState ps = s.player;
+        NGH_PlayerController.RewindState ps = s.player;
         bool droppedAction = ShouldDropOnRestore(ps.action);
         if (droppedAction)
         {
-            ps.action = chg_PlayerController.ActionState.None;
+            ps.action = NGH_PlayerController.ActionState.None;
             ps.actionTime = 0f;
             ps.actionDuration = 0f;
             ps.actionPlaySpeed = 1f;
@@ -375,7 +375,7 @@ public class NGH_TimeRewind : MonoBehaviour
             ps.healedThisAction = false;
             ps.locoState = player.locomotionState;
         }
-        ps.buffered = chg_PlayerController.ActionState.None;
+        ps.buffered = NGH_PlayerController.ActionState.None;
         player.RestoreRewindState(ps);
 
         // 증기 게이지
@@ -415,10 +415,10 @@ public class NGH_TimeRewind : MonoBehaviour
         Physics.SyncTransforms();
     }
 
-    private chg_ThirdPersonCamera FindPlayerCamera()
+    private NGH_ThirdPersonCamera FindPlayerCamera()
     {
-        chg_ThirdPersonCamera fallback = null;
-        foreach (chg_ThirdPersonCamera cam in FindObjectsByType<chg_ThirdPersonCamera>(FindObjectsInactive.Exclude))
+        NGH_ThirdPersonCamera fallback = null;
+        foreach (NGH_ThirdPersonCamera cam in FindObjectsByType<NGH_ThirdPersonCamera>(FindObjectsInactive.Exclude))
         {
             if (cam.target == transform) return cam;
             if (fallback == null) fallback = cam;

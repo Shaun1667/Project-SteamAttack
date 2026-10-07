@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>ESC로 조작키 안내 이미지를 열고 닫습니다. 열려 있는 동안 게임은 일시정지됩니다.</summary>
-public class chg_ControlsOverlay : MonoBehaviour
+public class NGH_ControlsOverlay : MonoBehaviour
 {
     public Texture2D guide;
     [Tooltip("안내가 열려 있는 동안 게임 일시정지")]

@@ -368,7 +368,7 @@ GameObject:
   - component: {fileID: 469659200}
   - component: {fileID: 469659199}
   m_Layer: 0
-  m_Name: chg_Dummy_2
+  m_Name: NGH_Dummy_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -753,7 +753,7 @@ GameObject:
   - component: {fileID: 2077218865}
   - component: {fileID: 2077218864}
   m_Layer: 0
-  m_Name: chg_Dummy_3
+  m_Name: NGH_Dummy_3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -880,7 +880,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1766717810704266006, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_Name
-      value: chg_Player
+      value: NGH_Player
       objectReference: {fileID: 0}
     - target: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -981,7 +981,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3235624445174967541, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
       propertyPath: m_Name
-      value: chg_Dummy_1
+      value: NGH_Dummy_1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -998,7 +998,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1438599434905141441, guid: b6add89f8b532d04fa59e0c5bfbf4724, type: 3}
       propertyPath: m_Name
-      value: chg_ControlsGuide
+      value: NGH_ControlsGuide
       objectReference: {fileID: 0}
     - target: {fileID: 3211063009791052357, guid: b6add89f8b532d04fa59e0c5bfbf4724, type: 3}
       propertyPath: m_LocalPosition.x

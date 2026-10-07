@@ -8,14 +8,14 @@ using UnityEngine.InputSystem;
 ///  F 발도·납도 / 좌클릭 약공격 / 우클릭 강공격 / 휠클릭 락온 / Tab 무기 교체
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
-public class chg_PlayerController : MonoBehaviour
+public class NGH_PlayerController : MonoBehaviour
 {
     public enum ActionState { None, Roll, LightAttack, HeavyAttack, Shot, Draw, Sheath, HitSmall, HitLarge, LightCombo2, Death, StandUp }
 
     [Header("참조")]
     public Animator animator;
     public Transform cameraTransform;
-    public chg_WeaponHolder weapons;
+    public NGH_WeaponHolder weapons;
 
     [Header("체력")]
     public int maxHp = 3;
@@ -46,9 +46,9 @@ public class chg_PlayerController : MonoBehaviour
     /// <summary>(현재 HP, 최대 HP) — HP가 바뀔 때마다 호출</summary>
     public event System.Action<int, int> HpChanged;
     /// <summary>살아 있던 대상을 근접 공격으로 실제로 맞힌 뒤 한 번 알립니다. (병합 — YPH 증기 회복 연결용)</summary>
-    public event System.Action<chg_Damageable> OnHitLanded;
+    public event System.Action<NGH_Damageable> OnHitLanded;
     /// <summary>원거리 장비(isMelee = false) 사격 동작이 시작될 때 장착 무기와 함께 알립니다. 실제 발사·투척은 구독하는 쪽이 처리합니다. (병합 — YPH 총·수류탄 연결용)</summary>
-    public event System.Action<chg_Weapon> ShotStarted;
+    public event System.Action<NGH_Weapon> ShotStarted;
 
     [Header("이동 속도 (m/s)")]
     public float walkSpeed = 0.7f;
@@ -157,15 +157,15 @@ public class chg_PlayerController : MonoBehaviour
     [Header("현재 상태 (확인용)")]
     [SerializeField] bool drawn;
     [SerializeField] ActionState action;
-    [SerializeField] chg_Damageable lockTarget;
+    [SerializeField] NGH_Damageable lockTarget;
 
     public bool IsDrawn => drawn;
     public bool IsHitReacting => action == ActionState.HitSmall || action == ActionState.HitLarge;
     /// <summary>구르기 무적 시간 중이거나 피격 동작 중이면 무적</summary>
     public bool IsInvincible => (action == ActionState.Roll && _actionTime < rollInvincibleTime) || IsHitReacting
                                 || IsDead || Time.time < _spawnInvincibleUntil
-                                || _externalInvincible.Count > 0;   // 외부 무적 (예: 시간 역행 연출, NGH_TimeRewind)
-    public chg_Damageable LockTarget => lockTarget;
+                                || _externalInvincible.Count > 0;   // 외부 무적 (예: 시간 역행 연출, CHG_TimeRewind)
+    public NGH_Damageable LockTarget => lockTarget;
     public ActionState CurrentAction => action;
 
     CharacterController _cc;
@@ -179,7 +179,7 @@ public class chg_PlayerController : MonoBehaviour
     string _locoState = "Locomotion";
     Vector3 _rollDir;
     ActionState _buffered;
-    readonly HashSet<chg_Damageable> _hitThisSwing = new HashSet<chg_Damageable>();
+    readonly HashSet<NGH_Damageable> _hitThisSwing = new HashSet<NGH_Damageable>();
     readonly HashSet<object> _externalInvincible = new HashSet<object>();   // 외부에서 켠 무적 (켠 쪽별로 관리)
 
     static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -190,7 +190,7 @@ public class chg_PlayerController : MonoBehaviour
         _cc = GetComponent<CharacterController>();
         hp = maxHp;
         if (!animator) animator = GetComponentInChildren<Animator>();
-        if (!weapons) weapons = GetComponent<chg_WeaponHolder>();
+        if (!weapons) weapons = GetComponent<NGH_WeaponHolder>();
         if (!cameraTransform && Camera.main) cameraTransform = Camera.main.transform;
         if (lightAttack.clipLength <= 0f) lightAttack.clipLength = lightAttackDuration > 0f ? lightAttackDuration : 1f;
         if (heavyAttack.clipLength <= 0f) heavyAttack.clipLength = heavyAttackDuration > 0f ? heavyAttackDuration : 1f;
@@ -215,7 +215,7 @@ public class chg_PlayerController : MonoBehaviour
         var kb = Keyboard.current;
         var mouse = Mouse.current;
         if (kb == null || mouse == null) return;
-        if (chg_ControlsOverlay.IsOpen) return;   // ESC 조작키 안내가 열려 있으면 입력 무시
+        if (NGH_ControlsOverlay.IsOpen) return;   // ESC 조작키 안내가 열려 있으면 입력 무시
         if (IsDead) { UpdateDeath(); ApplyGravityOnly(); return; }
 
         // ---------- 입력
@@ -539,7 +539,7 @@ public class chg_PlayerController : MonoBehaviour
         Vector3 center = transform.position + Vector3.up * 0.5f + transform.forward * reach;
         foreach (var col in Physics.OverlapSphere(center, radius, ~0, QueryTriggerInteraction.Collide))
         {
-            var d = col.GetComponentInParent<chg_Damageable>();
+            var d = col.GetComponentInParent<NGH_Damageable>();
             if (!d || !d.IsAlive || _hitThisSwing.Contains(d)) continue;
             _hitThisSwing.Add(d);
             d.TakeDamage(dmg, transform.position);
@@ -584,8 +584,8 @@ public class chg_PlayerController : MonoBehaviour
 
         // 카메라 정면에 가깝고 가까운 대상 우선
         Vector3 camFwd = cameraTransform ? Flat(cameraTransform.forward).normalized : transform.forward;
-        chg_Damageable best = null; float bestScore = float.MaxValue;
-        foreach (var d in FindObjectsByType<chg_Damageable>())
+        NGH_Damageable best = null; float bestScore = float.MaxValue;
+        foreach (var d in FindObjectsByType<NGH_Damageable>())
         {
             if (!d.IsAlive) continue;
             Vector3 to = Flat(d.transform.position - transform.position);
@@ -625,16 +625,16 @@ public class chg_PlayerController : MonoBehaviour
         if (!lockTarget.isActiveAndEnabled || !lockTarget.IsAlive || tooFar || !IsMeleeEquipped() || sheathedNoDraw) SetLockTarget(null);
     }
 
-    void SetLockTarget(chg_Damageable t)
+    void SetLockTarget(NGH_Damageable t)
     {
         if (lockTarget) lockTarget.SetLocked(false);
         lockTarget = t;
         if (lockTarget) lockTarget.SetLocked(true);
     }
 
-    // ================================================================ 시간 역행 연동 (NGH_TimeRewind)
+    // ================================================================ 시간 역행 연동 (CHG_TimeRewind)
     // NGH(남귀훈) 추가: 시간 역행이 플레이어 내부 상태를 기록/복원할 수 있도록 하는 통로.
-    // 위치·회전·애니메이터는 NGH_TimeRewind가 직접 기록/복원하고, 여기서는 이 스크립트 안의 상태만 다룬다.
+    // 위치·회전·애니메이터는 CHG_TimeRewind가 직접 기록/복원하고, 여기서는 이 스크립트 안의 상태만 다룬다.
 
     /// <summary>시간 역행용 플레이어 상태 (체력, 행동, 발도·납도, 무기 칸 등)</summary>
     [System.Serializable]
@@ -653,7 +653,7 @@ public class chg_PlayerController : MonoBehaviour
         public string locoState;
         public float spawnInvincibleRemaining;
         public float deadTimeAgo;
-        public chg_Damageable lockTarget;
+        public NGH_Damageable lockTarget;
     }
 
     /// <summary>외부 시스템이 무적을 켜고 끔. 켠 쪽(source)별로 관리하며, 모두 끄면 해제된다.</summary>
@@ -715,7 +715,7 @@ public class chg_PlayerController : MonoBehaviour
         DeadTime = Time.time - s.deadTimeAgo;
 
         // 락온: 대상이 아직 살아 있고, 발도 상태에서 근접 무기를 들고 있을 때만 되살림
-        chg_Damageable lt = s.lockTarget;
+        NGH_Damageable lt = s.lockTarget;
         if (lt && lt.isActiveAndEnabled && lt.IsAlive && drawn && IsMeleeEquipped()) SetLockTarget(lt);
     }
 

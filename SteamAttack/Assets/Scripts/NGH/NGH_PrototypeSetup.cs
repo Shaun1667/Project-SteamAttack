@@ -13,11 +13,11 @@ using UnityEngine;
 ///  - chg_Prototype.unity 생성: 플레이어(환도/테스트 둔기/테스트 총), 3인칭 카메라, 허수아비 3개
 /// </summary>
 [InitializeOnLoad]
-public static class chg_PrototypeSetup
+public static class NGH_PrototypeSetup
 {
     // 씬 자동 생성은 꺼 두었음 (팀원 컴퓨터에서 실행되지 않도록). 메뉴 CHG > Build Prototype Scene 으로만 실행.
     // 아래는 프리팹 저장을 한 번만 자동 실행 — 이 씬을 만들어 본 적 있는 컴퓨터(작성자)에서만 동작
-    static chg_PrototypeSetup()
+    static NGH_PrototypeSetup()
     {
         EditorApplication.delayCall += () =>
         {
@@ -29,52 +29,52 @@ public static class chg_PrototypeSetup
                 EditorPrefs.SetBool("chg_PrefabsSaved_v1", true);
                 SavePrefabsAndTest();
             }
-            if (!EditorPrefs.GetBool("chg_Migrated_v19", false) && File.Exists(PrefabDir + "chg_Player.prefab"))
+            if (!EditorPrefs.GetBool("chg_Migrated_v19", false) && File.Exists(PrefabDir + "NGH_Player.prefab"))
             {
                 EditorPrefs.SetBool("chg_Migrated_v19", true);
                 MigrateHpUpdate();
             }
-            if (!EditorPrefs.GetBool("chg_Migrated_v20", false) && File.Exists(PrefabDir + "chg_Player.prefab"))
+            if (!EditorPrefs.GetBool("chg_Migrated_v20", false) && File.Exists(PrefabDir + "NGH_Player.prefab"))
             {
                 EditorPrefs.SetBool("chg_Migrated_v20", true);
                 MigrateDeathStandup();
             }
-            if (!EditorPrefs.GetBool("chg_Migrated_v21", false) && File.Exists(PrefabDir + "chg_Player.prefab"))
+            if (!EditorPrefs.GetBool("chg_Migrated_v21", false) && File.Exists(PrefabDir + "NGH_Player.prefab"))
             {
                 EditorPrefs.SetBool("chg_Migrated_v21", true);
                 ApplyStandupTuning();
             }
-            if (!EditorPrefs.GetBool("chg_Migrated_v23", false) && File.Exists(PrefabDir + "chg_Player.prefab"))
+            if (!EditorPrefs.GetBool("chg_Migrated_v23", false) && File.Exists(PrefabDir + "NGH_Player.prefab"))
             {
                 // 피드백 반영: 공격 판정 범위 1.3배, 납도 상태에서 공격하면 발도 동작 먼저
                 EditorPrefs.SetBool("chg_Migrated_v23", true);
-                string pp23 = PrefabDir + "chg_Player.prefab";
+                string pp23 = PrefabDir + "NGH_Player.prefab";
                 var r23 = PrefabUtility.LoadPrefabContents(pp23);
                 var log = new System.Text.StringBuilder("[CHG][검증] 공격 판정 1.3배:");
-                foreach (var w in r23.GetComponentsInChildren<chg_Weapon>(true))
+                foreach (var w in r23.GetComponentsInChildren<NGH_Weapon>(true))
                 {
                     if (!w.isMelee) continue;
                     float r0 = w.reach, h0 = w.hitRadius;
                     w.reach = r0 * 1.3f; w.hitRadius = h0 * 1.3f;
                     log.Append($" {w.weaponName} 거리 {r0:0.##}→{w.reach:0.##}, 반경 {h0:0.##}→{w.hitRadius:0.##};");
                 }
-                var pc23 = r23.GetComponent<chg_PlayerController>();
+                var pc23 = r23.GetComponent<NGH_PlayerController>();
                 if (pc23) pc23.instantDrawOnAttack = false;
                 PrefabUtility.SaveAsPrefabAsset(r23, pp23);
                 PrefabUtility.UnloadPrefabContents(r23);
-                var chk23 = AssetDatabase.LoadAssetAtPath<GameObject>(pp23).GetComponent<chg_PlayerController>();
+                var chk23 = AssetDatabase.LoadAssetAtPath<GameObject>(pp23).GetComponent<NGH_PlayerController>();
                 Debug.Log(log.ToString() + " / 납도 공격 시 발도 먼저: " + (chk23 && !chk23.instantDrawOnAttack ? "OK" : "실패"));
             }
-            if (!EditorPrefs.GetBool("chg_Migrated_v22", false) && File.Exists(PrefabDir + "chg_Player.prefab"))
+            if (!EditorPrefs.GetBool("chg_Migrated_v22", false) && File.Exists(PrefabDir + "NGH_Player.prefab"))
             {
                 EditorPrefs.SetBool("chg_Migrated_v22", true);
-                string pp = PrefabDir + "chg_Player.prefab";
+                string pp = PrefabDir + "NGH_Player.prefab";
                 var root = PrefabUtility.LoadPrefabContents(pp);
-                var pc = root.GetComponent<chg_PlayerController>();
+                var pc = root.GetComponent<NGH_PlayerController>();
                 if (pc) pc.lightCombo2.hitOncePerAction = false;
                 PrefabUtility.SaveAsPrefabAsset(root, pp);
                 PrefabUtility.UnloadPrefabContents(root);
-                var chk = AssetDatabase.LoadAssetAtPath<GameObject>(pp).GetComponent<chg_PlayerController>();
+                var chk = AssetDatabase.LoadAssetAtPath<GameObject>(pp).GetComponent<NGH_PlayerController>();
                 Debug.Log("[CHG][검증] 약공격 2타 판정 2번: " + (!chk.lightCombo2.hitOncePerAction ? "OK" : "실패"));
             }
         };
@@ -106,13 +106,13 @@ public static class chg_PrototypeSetup
         if (File.Exists(ScenePath))
         {
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-            var oldPc = Object.FindFirstObjectByType<chg_PlayerController>();
+            var oldPc = Object.FindFirstObjectByType<NGH_PlayerController>();
             if (oldPc) savedPlayer = EditorJsonUtility.ToJson(oldPc);
-            var oldCam = Object.FindFirstObjectByType<chg_ThirdPersonCamera>();
+            var oldCam = Object.FindFirstObjectByType<NGH_ThirdPersonCamera>();
             if (oldCam) savedCamera = EditorJsonUtility.ToJson(oldCam);
-            var oldGc = Object.FindFirstObjectByType<chg_GroundClamp>();
+            var oldGc = Object.FindFirstObjectByType<NGH_GroundClamp>();
             if (oldGc) savedGround = EditorJsonUtility.ToJson(oldGc);
-            foreach (var w in Object.FindObjectsByType<chg_Weapon>(FindObjectsInactive.Include))
+            foreach (var w in Object.FindObjectsByType<NGH_Weapon>(FindObjectsInactive.Include))
                 savedWeapons[w.gameObject.name] = EditorJsonUtility.ToJson(w);
         }
 
@@ -131,7 +131,7 @@ public static class chg_PrototypeSetup
         if (groundMat) ground.GetComponent<Renderer>().sharedMaterial = groundMat;
 
         // ---------- 플레이어
-        var player = new GameObject("chg_Player");
+        var player = new GameObject("NGH_Player");
         var cc = player.AddComponent<CharacterController>();
         cc.height = 1.0f; cc.radius = 0.2f; cc.center = new Vector3(0, 0.5f, 0);
         cc.stepOffset = 0.2f; cc.skinWidth = 0.02f;
@@ -144,7 +144,7 @@ public static class chg_PrototypeSetup
         anim.runtimeAnimatorController = controller;
         anim.applyRootMotion = false;
         anim.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-        var groundClamp = model.AddComponent<chg_GroundClamp>();   // 어떤 동작이든 땅 아래로 내려가지 않게
+        var groundClamp = model.AddComponent<NGH_GroundClamp>();   // 어떤 동작이든 땅 아래로 내려가지 않게
         if (savedGround != null) { EditorJsonUtility.FromJsonOverwrite(savedGround, groundClamp); groundClamp.groundReference = null; groundClamp.boneRoot = null; }
 
         // 모델 정면을 플레이어 정면(+Z)에 맞춤: 발 → 발끝 방향을 정면으로 봄
@@ -167,7 +167,7 @@ public static class chg_PrototypeSetup
         if (hand == null) Debug.LogWarning("[CHG] RightHand 뼈를 찾지 못했습니다.");
 
         // ---------- 무기 3종 (환도는 모델 안에서 이미 오른손 뼈에 붙어 있음)
-        var holder = player.AddComponent<chg_WeaponHolder>();
+        var holder = player.AddComponent<NGH_WeaponHolder>();
         var swordT = model.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "chg_sword");
         if (swordT == null) { Debug.LogError("[CHG] 모델 안에서 chg_sword를 찾지 못했습니다."); return; }
         var sword = swordT.gameObject;
@@ -196,15 +196,15 @@ public static class chg_PrototypeSetup
         Tint(gun, new Color(0.15f, 0.15f, 0.18f));
         AddWeapon(gun, "테스트 원거리(락온 불가 확인용)", false, 0f, 0f, 0f, 0f);
 
-        holder.slots = new List<chg_Weapon>
+        holder.slots = new List<NGH_Weapon>
         {
-            sword.GetComponent<chg_Weapon>(), club.GetComponent<chg_Weapon>(), gun.GetComponent<chg_Weapon>()
+            sword.GetComponent<NGH_Weapon>(), club.GetComponent<NGH_Weapon>(), gun.GetComponent<NGH_Weapon>()
         };
         foreach (var w in holder.slots)
             if (w && savedWeapons.TryGetValue(w.gameObject.name, out var wj)) EditorJsonUtility.FromJsonOverwrite(wj, w);
 
         // ---------- 컨트롤러
-        var pc = player.AddComponent<chg_PlayerController>();
+        var pc = player.AddComponent<NGH_PlayerController>();
         if (savedPlayer != null) EditorJsonUtility.FromJsonOverwrite(savedPlayer, pc);   // 조절해 둔 값 복원
         if (prevVersion < 9)
         {
@@ -266,7 +266,7 @@ public static class chg_PrototypeSetup
         if (cam)
         {
             pc.cameraTransform = cam.transform;
-            var tpc = cam.gameObject.AddComponent<chg_ThirdPersonCamera>();
+            var tpc = cam.gameObject.AddComponent<NGH_ThirdPersonCamera>();
             if (savedCamera != null) EditorJsonUtility.FromJsonOverwrite(savedCamera, tpc);
             tpc.target = player.transform;
             tpc.player = pc;
@@ -275,14 +275,14 @@ public static class chg_PrototypeSetup
         }
 
         // ---------- ESC 조작키 안내
-        var ui = new GameObject("chg_ControlsGuide");
-        var overlay = ui.AddComponent<chg_ControlsOverlay>();
+        var ui = new GameObject("NGH_ControlsGuide");
+        var overlay = ui.AddComponent<NGH_ControlsOverlay>();
         overlay.guide = PrepareGuideTexture();
 
         // ---------- 허수아비
-        MakeDummy("chg_Dummy_1", new Vector3(0f, 0f, 4f));
-        MakeDummy("chg_Dummy_2", new Vector3(3f, 0f, 6f));
-        MakeDummy("chg_Dummy_3", new Vector3(-3.5f, 0f, 5f));
+        MakeDummy("NGH_Dummy_1", new Vector3(0f, 0f, 4f));
+        MakeDummy("NGH_Dummy_2", new Vector3(3f, 0f, 6f));
+        MakeDummy("NGH_Dummy_3", new Vector3(-3.5f, 0f, 5f));
 
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorPrefs.SetInt("chg_ProtoBuiltVersion", BuildVersion);
@@ -396,7 +396,7 @@ public static class chg_PrototypeSetup
 
     static void AddWeapon(GameObject go, string name, bool melee, float light, float heavy, float reach, float radius)
     {
-        var w = go.AddComponent<chg_Weapon>();
+        var w = go.AddComponent<NGH_Weapon>();
         w.weaponName = name; w.isMelee = melee;
         w.lightDamage = light; w.heavyDamage = heavy; w.reach = reach; w.hitRadius = radius;
     }
@@ -407,7 +407,7 @@ public static class chg_PrototypeSetup
         var sh = Shader.Find("Universal Render Pipeline/Lit");
         if (!r || !sh) return;
         // 프리팹에서도 깨지지 않도록 재질을 파일로 저장해서 사용
-        string path = MatDir + "chg_mat_" + go.name.Replace("chg_", "") + ".mat";
+        string path = MatDir + "chg_mat_" + go.name.Replace("chg_", "").Replace("NGH_", "") + ".mat";
         var m = AssetDatabase.LoadAssetAtPath<Material>(path);
         if (m == null) { m = new Material(sh); AssetDatabase.CreateAsset(m, path); }
         m.color = c;
@@ -420,7 +420,7 @@ public static class chg_PrototypeSetup
     // 플레이어에 HP 관련 구성 추가 — Build와 프리팹 마이그레이션에서 같이 사용
     static void ConfigurePlayerExtras(GameObject player, Dictionary<string, AnimationClip> clips)
     {
-        var pc = player.GetComponent<chg_PlayerController>();
+        var pc = player.GetComponent<NGH_PlayerController>();
         if (!pc) return;
         pc.maxHp = 3;
         pc.lightCombo2.hitOncePerAction = false;       // 2타는 두 번 베는 동작 → 베기마다 1 데미지 (판정 2번)
@@ -431,12 +431,12 @@ public static class chg_PrototypeSetup
         if (clips != null && clips.TryGetValue("standup", out var su)) pc.standupClipLength = su.length;
 
         // 무기 데미지: 좌클릭 1, 강공격 3
-        foreach (var w in player.GetComponentsInChildren<chg_Weapon>(true))
+        foreach (var w in player.GetComponentsInChildren<NGH_Weapon>(true))
             if (w.isMelee) { w.lightDamage = 1f; w.heavyDamage = 3f; }
 
         // HP에 따라 채도
         var model = pc.animator ? pc.animator.gameObject : player;
-        if (!model.GetComponent<chg_HpTint>()) model.AddComponent<chg_HpTint>();
+        if (!model.GetComponent<NGH_HpTint>()) model.AddComponent<NGH_HpTint>();
 
         // 피격 범위
         var hb = player.transform.Find("chg_Hurtbox");
@@ -446,14 +446,14 @@ public static class chg_PrototypeSetup
             go.transform.SetParent(player.transform, false);
             var cap = go.AddComponent<CapsuleCollider>();
             cap.isTrigger = true; cap.center = new Vector3(0f, 0.5f, 0f); cap.radius = 0.25f; cap.height = 1.0f;
-            go.AddComponent<chg_PlayerHurtbox>();
+            go.AddComponent<NGH_PlayerHurtbox>();
             hb = go.transform;
         }
-        hb.GetComponent<chg_PlayerHurtbox>().player = pc;
+        hb.GetComponent<NGH_PlayerHurtbox>().player = pc;
 
         // Game Over 화면
-        var go2 = player.GetComponent<chg_GameOverScreen>();
-        if (!go2) go2 = player.AddComponent<chg_GameOverScreen>();
+        var go2 = player.GetComponent<NGH_GameOverScreen>();
+        if (!go2) go2 = player.AddComponent<NGH_GameOverScreen>();
         go2.player = pc;
         go2.image = PrepareUiTexture(TexDir + "chg_gameover.png");
     }
@@ -492,7 +492,7 @@ public static class chg_PrototypeSetup
         }
 
         // 플레이어 프리팹
-        string pp = PrefabDir + "chg_Player.prefab";
+        string pp = PrefabDir + "NGH_Player.prefab";
         var root = PrefabUtility.LoadPrefabContents(pp);
         ConfigurePlayerExtras(root, clips);
         PrefabUtility.SaveAsPrefabAsset(root, pp);
@@ -500,11 +500,11 @@ public static class chg_PrototypeSetup
         Debug.Log("[CHG] HP 업데이트 적용: " + pp);
 
         // 허수아비 프리팹: HP 5, 5초 뒤 부활
-        string dp = PrefabDir + "chg_Dummy.prefab";
+        string dp = PrefabDir + "NGH_Dummy.prefab";
         if (File.Exists(dp))
         {
             var d = PrefabUtility.LoadPrefabContents(dp);
-            var dmg = d.GetComponent<chg_Damageable>();
+            var dmg = d.GetComponent<NGH_Damageable>();
             if (dmg) { dmg.maxHp = 5f; dmg.respawnDelay = 5f; }
             PrefabUtility.SaveAsPrefabAsset(d, dp);
             PrefabUtility.UnloadPrefabContents(d);
@@ -515,7 +515,7 @@ public static class chg_PrototypeSetup
         {
             if (!File.Exists(path)) continue;
             var sc = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
-            foreach (var dmg in Object.FindObjectsByType<chg_Damageable>(FindObjectsInactive.Include))
+            foreach (var dmg in Object.FindObjectsByType<NGH_Damageable>(FindObjectsInactive.Include))
             { dmg.maxHp = 5f; dmg.respawnDelay = 5f; EditorUtility.SetDirty(dmg); }
             EditorSceneManager.SaveScene(sc);
         }
@@ -524,21 +524,21 @@ public static class chg_PrototypeSetup
         // 검증
         var player = AssetDatabase.LoadAssetAtPath<GameObject>(pp);
         int fail = 0;
-        var pc = player.GetComponent<chg_PlayerController>();
+        var pc = player.GetComponent<NGH_PlayerController>();
         Check(pc && pc.maxHp == 3, "플레이어 최대 HP 3", ref fail);
-        var sword = player.GetComponentsInChildren<chg_Weapon>(true).FirstOrDefault(w => w.isMelee);
+        var sword = player.GetComponentsInChildren<NGH_Weapon>(true).FirstOrDefault(w => w.isMelee);
         Check(sword && Mathf.Approximately(sword.lightDamage, 1f) && Mathf.Approximately(sword.heavyDamage, 3f), "데미지: 좌클릭 1 / 강공격 3", ref fail);
         Check(pc && !pc.lightCombo2.hitOncePerAction, "2타는 베기마다 맞음 (판정 2번)", ref fail);
-        Check(player.GetComponentInChildren<chg_HpTint>(true), "HP 채도 효과(chg_HpTint)", ref fail);
-        var hurt = player.GetComponentInChildren<chg_PlayerHurtbox>(true);
+        Check(player.GetComponentInChildren<NGH_HpTint>(true), "HP 채도 효과(NGH_HpTint)", ref fail);
+        var hurt = player.GetComponentInChildren<NGH_PlayerHurtbox>(true);
         Check(hurt && hurt.GetComponent<CapsuleCollider>() && hurt.GetComponent<CapsuleCollider>().isTrigger, "피격 범위(chg_Hurtbox, Trigger 캡슐)", ref fail);
-        var gos = player.GetComponent<chg_GameOverScreen>();
+        var gos = player.GetComponent<NGH_GameOverScreen>();
         Check(gos && gos.image, "Game Over 화면과 이미지", ref fail);
         var bodyMat = AssetDatabase.LoadAssetAtPath<Material>(MatDir + "chg_mat_body.mat");
         Check(bodyMat && bodyMat.shader && bodyMat.shader.name == "CHG/CharacterDesaturate" && bodyMat.shader.isSupported, "캐릭터 재질이 채도 셰이더 사용 (셰이더 컴파일 정상)", ref fail);
         Check(ctrl && ctrl.layers[0].stateMachine.states.Any(cs => cs.state.name == "Death" && cs.state.motion), "애니메이터 Death 상태", ref fail);
         var dummy = AssetDatabase.LoadAssetAtPath<GameObject>(dp);
-        var dd = dummy ? dummy.GetComponent<chg_Damageable>() : null;
+        var dd = dummy ? dummy.GetComponent<NGH_Damageable>() : null;
         Check(dd && Mathf.Approximately(dd.maxHp, 5f) && Mathf.Approximately(dd.respawnDelay, 5f), "허수아비 HP 5, 5초 뒤 부활", ref fail);
         Debug.Log(fail == 0 ? "[CHG][검증] HP 업데이트 전체 통과" : "[CHG][검증] HP 업데이트 실패 " + fail + "건");
     }
@@ -560,17 +560,17 @@ public static class chg_PrototypeSetup
             if (!sm.states.Any(cs => cs.state.name == "StandUp")) AddState(sm, "StandUp", clips, "standup");
             EditorUtility.SetDirty(ctrl); AssetDatabase.SaveAssets();
         }
-        string pp = PrefabDir + "chg_Player.prefab";
+        string pp = PrefabDir + "NGH_Player.prefab";
         var root = PrefabUtility.LoadPrefabContents(pp);
         ConfigurePlayerExtras(root, clips);
-        var gos = root.GetComponent<chg_GameOverScreen>();
+        var gos = root.GetComponent<NGH_GameOverScreen>();
         if (gos) gos.showDelay = 0.3f;
         PrefabUtility.SaveAsPrefabAsset(root, pp);
         PrefabUtility.UnloadPrefabContents(root);
 
         int fail = 0;
         var player = AssetDatabase.LoadAssetAtPath<GameObject>(pp);
-        var pc = player.GetComponent<chg_PlayerController>();
+        var pc = player.GetComponent<NGH_PlayerController>();
         Check(clips.ContainsKey("death") && clips.ContainsKey("standup"), "down/standup 동작 파일 불러옴", ref fail);
         Check(ctrl && clips.ContainsKey("death") && ctrl.layers[0].stateMachine.states.Any(cs => cs.state.name == "Death" && cs.state.motion == clips["death"]), "Death 상태 = 쓰러짐(down) 동작", ref fail);
         Check(ctrl && ctrl.layers[0].stateMachine.states.Any(cs => cs.state.name == "StandUp" && cs.state.motion), "StandUp 상태 = 일어남(standup) 동작", ref fail);
@@ -583,9 +583,9 @@ public static class chg_PrototypeSetup
     static void ApplyStandupTuning()
     {
         var clips = LoadClips();
-        string pp = PrefabDir + "chg_Player.prefab";
+        string pp = PrefabDir + "NGH_Player.prefab";
         var root = PrefabUtility.LoadPrefabContents(pp);
-        var pc = root.GetComponent<chg_PlayerController>();
+        var pc = root.GetComponent<NGH_PlayerController>();
         if (pc)
         {
             pc.standupPlaySpeed = 1.5f;
@@ -593,13 +593,13 @@ public static class chg_PrototypeSetup
         }
         PrefabUtility.SaveAsPrefabAsset(root, pp);
         PrefabUtility.UnloadPrefabContents(root);
-        var p2 = AssetDatabase.LoadAssetAtPath<GameObject>(pp).GetComponent<chg_PlayerController>();
+        var p2 = AssetDatabase.LoadAssetAtPath<GameObject>(pp).GetComponent<NGH_PlayerController>();
         Debug.Log($"[CHG][검증] 일어남 동작: 길이 {p2.standupClipLength:0.##}초, {p2.standupPlaySpeed}배속 → 실제 {p2.standupClipLength / p2.standupPlaySpeed:0.##}초 (+1초 무적)");
     }
 
     // ================================================================ 프리팹 저장 + 테스트 씬
 
-    const string PrefabDir = "Assets/Prefabs/CHG/";
+    const string PrefabDir = "Assets/Prefabs/NGH/";
     const string TestScenePath = "Assets/Scenes/CHG/chg_PrefabTest.unity";
 
     [MenuItem("CHG/Save Prefabs + Test Scene")]
@@ -609,28 +609,28 @@ public static class chg_PrototypeSetup
         if (!File.Exists(ScenePath)) { Debug.LogError("[CHG] 먼저 CHG > Build Prototype Scene 을 실행하세요."); return; }
         var proto = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
-        var pc = Object.FindFirstObjectByType<chg_PlayerController>();
-        var cam = Object.FindFirstObjectByType<chg_ThirdPersonCamera>();
-        var guide = Object.FindFirstObjectByType<chg_ControlsOverlay>();
-        var dummy = Object.FindObjectsByType<chg_Damageable>(FindObjectsInactive.Include)
+        var pc = Object.FindFirstObjectByType<NGH_PlayerController>();
+        var cam = Object.FindFirstObjectByType<NGH_ThirdPersonCamera>();
+        var guide = Object.FindFirstObjectByType<NGH_ControlsOverlay>();
+        var dummy = Object.FindObjectsByType<NGH_Damageable>(FindObjectsInactive.Include)
                           .OrderBy(d => d.name).FirstOrDefault();
-        if (!pc) { Debug.LogError("[CHG] 씬에서 chg_Player를 찾지 못했습니다."); return; }
+        if (!pc) { Debug.LogError("[CHG] 씬에서 NGH_Player를 찾지 못했습니다."); return; }
 
         // 씬 안에만 있는 재질(파일이 아닌 것)은 프리팹에서 깨지므로 파일로 저장
         foreach (var root in new[] { pc ? pc.gameObject : null, dummy ? dummy.gameObject : null })
             if (root) PersistMaterials(root);
 
-        var playerPrefab = SavePrefab(pc.gameObject, "chg_Player");
+        var playerPrefab = SavePrefab(pc.gameObject, "NGH_Player");
         GameObject camPrefab = null, guidePrefab = null, dummyPrefab = null;
         if (cam)
         {
             var t = cam.target; var p = cam.player;
             cam.target = null; cam.player = null;            // 씬 오브젝트 참조는 프리팹에 넣지 않음 (실행 시 자동으로 찾음)
-            camPrefab = SavePrefab(cam.gameObject, "chg_PlayerCamera");
+            camPrefab = SavePrefab(cam.gameObject, "NGH_PlayerCamera");
             cam.target = t; cam.player = p;
         }
-        if (guide) guidePrefab = SavePrefab(guide.gameObject, "chg_ControlsGuide");
-        if (dummy) dummyPrefab = SavePrefab(dummy.gameObject, "chg_Dummy");
+        if (guide) guidePrefab = SavePrefab(guide.gameObject, "NGH_ControlsGuide");
+        if (dummy) dummyPrefab = SavePrefab(dummy.gameObject, "NGH_Dummy");
         EditorSceneManager.SaveScene(proto);
 
         // ---------- 테스트 씬: 프리팹만으로 구성
@@ -655,7 +655,7 @@ public static class chg_PrototypeSetup
             for (int i = 0; i < ps.Length; i++)
             {
                 var d = (GameObject)PrefabUtility.InstantiatePrefab(dummyPrefab);
-                d.name = "chg_Dummy_" + (i + 1);
+                d.name = "NGH_Dummy_" + (i + 1);
                 d.transform.position = ps[i];
             }
         }
@@ -687,7 +687,7 @@ public static class chg_PrototypeSetup
             {
                 var m = mats[i];
                 if (m == null || EditorUtility.IsPersistent(m)) continue;
-                string path = MatDir + "chg_mat_" + r.gameObject.name.Replace("chg_", "") + (i > 0 ? "_" + i : "") + ".mat";
+                string path = MatDir + "chg_mat_" + r.gameObject.name.Replace("chg_", "").Replace("NGH_", "") + (i > 0 ? "_" + i : "") + ".mat";
                 var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
                 if (existing) { existing.CopyPropertiesFromMaterial(m); EditorUtility.SetDirty(existing); mats[i] = existing; }
                 else { AssetDatabase.CreateAsset(m, path); }
@@ -703,20 +703,20 @@ public static class chg_PrototypeSetup
     {
         int fail = 0;
 
-        var pc = player ? player.GetComponent<chg_PlayerController>() : null;
-        Check(pc, "chg_Player 프리팹에 chg_PlayerController 있음", ref fail);
+        var pc = player ? player.GetComponent<NGH_PlayerController>() : null;
+        Check(pc, "NGH_Player 프리팹에 NGH_PlayerController 있음", ref fail);
         Check(pc && pc.animator && pc.animator.runtimeAnimatorController, "애니메이터와 컨트롤러 연결됨", ref fail);
         Check(player && player.GetComponent<CharacterController>(), "CharacterController 있음", ref fail);
         var holder = pc ? pc.weapons : null;
         Check(holder && holder.slots.Count == 3 && holder.slots.All(w => w), "무기 3칸 모두 연결됨", ref fail);
-        Check(player && player.GetComponentInChildren<chg_GroundClamp>(true), "땅 뚫림 방지(chg_GroundClamp) 있음", ref fail);
+        Check(player && player.GetComponentInChildren<NGH_GroundClamp>(true), "땅 뚫림 방지(NGH_GroundClamp) 있음", ref fail);
         bool matsOk = player && player.GetComponentsInChildren<Renderer>(true)
             .SelectMany(r => r.sharedMaterials).All(m => m && EditorUtility.IsPersistent(m));
         Check(matsOk, "플레이어의 모든 재질이 파일로 저장돼 있음 (분홍색으로 안 깨짐)", ref fail);
         Check(pc && pc.lightAttack.clipLength > 0f && pc.heavyAttack.clipLength > 0f, "공격 동작 길이 입력됨", ref fail);
-        Check(camPrefab && camPrefab.GetComponent<chg_ThirdPersonCamera>() && camPrefab.CompareTag("MainCamera"), "카메라 프리팹 (MainCamera 태그)", ref fail);
-        Check(guidePrefab && guidePrefab.GetComponent<chg_ControlsOverlay>().guide, "ESC 안내 프리팹과 이미지 연결됨", ref fail);
-        Check(dummyPrefab && dummyPrefab.GetComponent<chg_Damageable>() && dummyPrefab.GetComponent<Collider>(), "허수아비 프리팹 (피격/락온 대상)", ref fail);
+        Check(camPrefab && camPrefab.GetComponent<NGH_ThirdPersonCamera>() && camPrefab.CompareTag("MainCamera"), "카메라 프리팹 (MainCamera 태그)", ref fail);
+        Check(guidePrefab && guidePrefab.GetComponent<NGH_ControlsOverlay>().guide, "ESC 안내 프리팹과 이미지 연결됨", ref fail);
+        Check(dummyPrefab && dummyPrefab.GetComponent<NGH_Damageable>() && dummyPrefab.GetComponent<Collider>(), "허수아비 프리팹 (피격/락온 대상)", ref fail);
         Debug.Log(fail == 0 ? "[CHG][검증] 전체 통과 — " + TestScenePath + " 에서 Play로 확인하세요."
                             : "[CHG][검증] 실패 " + fail + "건");
     }
@@ -728,7 +728,7 @@ public static class chg_PrototypeSetup
         d.transform.localScale = new Vector3(0.45f, 0.55f, 0.45f);   // 높이 약 1.1m
         d.transform.position = pos + Vector3.up * 0.55f;
         Tint(d, new Color(0.75f, 0.6f, 0.4f));
-        var dmg = d.AddComponent<chg_Damageable>();
+        var dmg = d.AddComponent<NGH_Damageable>();
         dmg.markerHeight = 0.75f;
     }
 

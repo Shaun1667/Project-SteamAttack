@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 2492786358339704474}
   - component: {fileID: 6996952451374426056}
   m_Layer: 0
-  m_Name: chg_Dummy
+  m_Name: NGH_Dummy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

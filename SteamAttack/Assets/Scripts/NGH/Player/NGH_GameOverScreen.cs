@@ -2,9 +2,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>쓰러지는 동작이 끝나면 Game Over 이미지를 보여 주고, 아무 키나 클릭하면 그 자리에서 일어나 다시 시작합니다.</summary>
-public class chg_GameOverScreen : MonoBehaviour
+public class NGH_GameOverScreen : MonoBehaviour
 {
-    public chg_PlayerController player;
+    public NGH_PlayerController player;
     public Texture2D image;
     [Tooltip("쓰러지는 동작이 끝난 뒤 화면이 뜰 때까지 추가 시간(초)")]
     public float showDelay = 0.3f;
@@ -17,7 +17,7 @@ public class chg_GameOverScreen : MonoBehaviour
 
     void Awake()
     {
-        if (!player) player = GetComponentInParent<chg_PlayerController>();
+        if (!player) player = GetComponentInParent<NGH_PlayerController>();
         IsShowing = false;
     }
 

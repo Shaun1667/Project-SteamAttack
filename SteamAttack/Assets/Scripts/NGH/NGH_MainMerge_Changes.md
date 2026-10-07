@@ -25,7 +25,7 @@
 - NMJ 임시 플레이어 `Capsule`, 카메라 `Main Camera (전경)`: **비활성화** (삭제 안 함)
 - 각 시험 씬의 바닥·조명·카메라·임시 플레이어: 가져오지 않음
 - YPH `Boss_Target`(Boss 태그 표적): 실제 보스와 태그가 겹쳐 가져오지 않음
-- `YPH_CombatTestInput`: 요청서대로 Main에는 넣지 않음 (`NGH_CombatBridge`가 대체)
+- `YPH_CombatTestInput`: 요청서대로 Main에는 넣지 않음 (`CHG_CombatBridge`가 대체)
 - CHG `chg_TestClub`: 무기 칸에서 빼고 비활성화
 
 ---
@@ -49,15 +49,15 @@
 ## 3. 다른 파트 스크립트 수정 사항
 
 ### BHS — `Scripts/BHS/Boss/BHS_BossFSM.cs` (팀장 지시)
-- `DamagePlayer(float)` 수정: Player 태그 대상만 공격하고, 실제 플레이어(`chg_PlayerController`)의 `TakeHit(int, Vector3)`로 피해를 줌 (데미지는 반올림, 최소 1)
+- `DamagePlayer(float)` 수정: Player 태그 대상만 공격하고, 실제 플레이어(`NGH_PlayerController`)의 `TakeHit(int, Vector3)`로 피해를 줌 (데미지는 반올림, 최소 1)
 - 보스 시험 씬용 `BHS_PlayerHitTeleport` / `BHS_PlayerHealth`는 **있을 때만** 호출 (없으면 에러 없이 넘어감)
 
-### CHG — `Scripts/CHG/chg_PlayerController.cs` (YPH 요청서 CHG전투연결 / 조준배율)
-- `event Action<chg_Damageable> OnHitLanded` 추가 — 근접 공격이 살아 있던 대상을 실제로 맞힌 직후 호출 (`DoHit`의 `TakeDamage` 바로 다음)
-- `event Action<chg_Weapon> ShotStarted` 추가 — 원거리 장비(isMelee = false)로 사격 동작이 시작될 때 호출 (실제 발사·투척은 구독하는 쪽이 처리)
+### CHG — `Scripts/CHG/NGH_PlayerController.cs` (YPH 요청서 CHG전투연결 / 조준배율)
+- `event Action<NGH_Damageable> OnHitLanded` 추가 — 근접 공격이 살아 있던 대상을 실제로 맞힌 직후 호출 (`DoHit`의 `TakeDamage` 바로 다음)
+- `event Action<NGH_Weapon> ShotStarted` 추가 — 원거리 장비(isMelee = false)로 사격 동작이 시작될 때 호출 (실제 발사·투척은 구독하는 쪽이 처리)
 - `public float MoveSpeedMultiplier = 1f` 추가 — 일반 이동 속도에만 곱함 (구르기·공격 이동·중력 제외)
 
-### CHG — `Scripts/CHG/chg_ThirdPersonCamera.cs` (YPH 요청서 조준배율)
+### CHG — `Scripts/CHG/NGH_ThirdPersonCamera.cs` (YPH 요청서 조준배율)
 - `public float SensitivityMultiplier = 1f` 추가 — 마우스 회전량에 곱함
 
 기본값이 모두 1이고 이벤트는 구독자가 없으면 아무 일도 하지 않으므로, 기존 CHG 씬 동작은 그대로입니다.
@@ -80,15 +80,15 @@
 
 | 파일 | 내용 |
 |---|---|
-| `Scripts/NGH/NGH_EnemyHealth.cs` (신규) | 적 HP·피해 API (`IsAlive`, `TakeDamage(float, Vector3)`, `Damaged`/`Died`/`Revived` 이벤트). 기본 HP 5, 쓰러지면 AI 정지 → 0.15초 뒤 숨김 → 5초 뒤 스폰 지점에서 부활. 풀에서 다시 꺼낼 때도 초기화 |
-| `Scripts/NGH/NGH_EnemyDamageRelay.cs` (신규, 병합용) | YPH 총·수류탄 피해(`YPH_IDamageable`) → NGH_EnemyHealth. CHG 근접은 같은 오브젝트의 `chg_Damageable`을 수신용으로 써서 깎인 만큼 옮김(락온 표시도 이걸로 동작) |
-| `Scripts/NGH/NGH_CombatBridge.cs` (신규, 병합용) | CHG 입력·무기 칸 ↔ YPH 총·수류탄·조준 연결 (`YPH_CombatTestInput` 대체). 근접 명중 → 증기 회복 |
-| `Scripts/NGH/NGH_EnemyAI.cs` | `StopForDeath()`, `ReviveAtHome()` 추가 |
-| `Scripts/NGH/NGH_EnemyAttackHitbox.cs` | 명중한 플레이어의 `chg_PlayerController.TakeHit(데미지, Enemy 위치)` 호출 추가 (구르기·피격 무적이면 피해 없음). `Apply Damage To Player`로 끌 수 있음 |
-| `Scripts/NGH/NGH_TimeRewind.cs` | 복원할 때 구르기·발도/납도·피격 중이던 기록도 공격처럼 대기 상태로 바꿈 (역행 후 자동 구르기 수정) |
+| `Scripts/NGH/CHG_EnemyHealth.cs` (신규) | 적 HP·피해 API (`IsAlive`, `TakeDamage(float, Vector3)`, `Damaged`/`Died`/`Revived` 이벤트). 기본 HP 5, 쓰러지면 AI 정지 → 0.15초 뒤 숨김 → 5초 뒤 스폰 지점에서 부활. 풀에서 다시 꺼낼 때도 초기화 |
+| `Scripts/NGH/CHG_EnemyDamageRelay.cs` (신규, 병합용) | YPH 총·수류탄 피해(`YPH_IDamageable`) → CHG_EnemyHealth. CHG 근접은 같은 오브젝트의 `NGH_Damageable`을 수신용으로 써서 깎인 만큼 옮김(락온 표시도 이걸로 동작) |
+| `Scripts/NGH/CHG_CombatBridge.cs` (신규, 병합용) | CHG 입력·무기 칸 ↔ YPH 총·수류탄·조준 연결 (`YPH_CombatTestInput` 대체). 근접 명중 → 증기 회복 |
+| `Scripts/NGH/CHG_EnemyAI.cs` | `StopForDeath()`, `ReviveAtHome()` 추가 |
+| `Scripts/NGH/CHG_EnemyAttackHitbox.cs` | 명중한 플레이어의 `NGH_PlayerController.TakeHit(데미지, Enemy 위치)` 호출 추가 (구르기·피격 무적이면 피해 없음). `Apply Damage To Player`로 끌 수 있음 |
+| `Scripts/NGH/CHG_TimeRewind.cs` | 복원할 때 구르기·발도/납도·피격 중이던 기록도 공격처럼 대기 상태로 바꿈 (역행 후 자동 구르기 수정) |
 
 - CHG 더미 3개: 근접 명중 시 증기가 회복되도록 Main 씬 인스턴스만 `Enemy` 태그로 변경
-- YPH 총 효과(`BulletTrail`, `ImpactEnemy`, `ImpactSurface`)를 오른손 뼈 밑에서 씬 루트의 `NGH_GunFx`로 옮김. 이를 위해 Main 씬의 `YPH_SteamGunProxy` 프리팹 인스턴스만 풀었음(프리팹 원본은 그대로). CHG `chg_GroundClamp`가 손 뼈 밑의 효과까지 뼈로 보고 모델을 띄우던 문제 수정
+- YPH 총 효과(`BulletTrail`, `ImpactEnemy`, `ImpactSurface`)를 오른손 뼈 밑에서 씬 루트의 `NGH_GunFx`로 옮김. 이를 위해 Main 씬의 `YPH_SteamGunProxy` 프리팹 인스턴스만 풀었음(프리팹 원본은 그대로). CHG `NGH_GroundClamp`가 손 뼈 밑의 효과까지 뼈로 보고 모델을 띄우던 문제 수정
 
 ---
 

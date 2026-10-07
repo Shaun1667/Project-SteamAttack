@@ -12,7 +12,7 @@ using UnityEngine;
 ///   전진 중 플레이어가 다가와 막히면 그 자리에서 전진을 끝낸다.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
-public class NGH_EnemyAI : MonoBehaviour
+public class CHG_EnemyAI : MonoBehaviour
 {
     public enum State
     {
@@ -56,7 +56,7 @@ public class NGH_EnemyAI : MonoBehaviour
     [SerializeField] private float attackCooldown = 1.2f;
     [SerializeField] private int attackDamage = 1;
     [Tooltip("공격 판정용 히트박스 프리팹 (오브젝트 풀로 재사용)")]
-    [SerializeField] private NGH_EnemyAttackHitbox attackHitboxPrefab;
+    [SerializeField] private CHG_EnemyAttackHitbox attackHitboxPrefab;
     [Tooltip("적 기준 히트박스 생성 위치 (로컬)")]
     [SerializeField] private Vector3 attackHitboxOffset = new Vector3(0f, 0f, 1.1f);
     [SerializeField] private Vector3 attackHitboxSize = new Vector3(1.2f, 1.5f, 1.2f);
@@ -124,7 +124,7 @@ public class NGH_EnemyAI : MonoBehaviour
 
         if (attackHitboxPrefab != null)
         {
-            NGH_ObjectPool.Prewarm(attackHitboxPrefab.gameObject, attackHitboxPrewarm);
+            CHG_ObjectPool.Prewarm(attackHitboxPrefab.gameObject, attackHitboxPrewarm);
         }
     }
 
@@ -181,9 +181,9 @@ public class NGH_EnemyAI : MonoBehaviour
         }
     }
 
-    #region Death (NGH_EnemyHealth 연동)
+    #region Death (CHG_EnemyHealth 연동)
 
-    /// <summary>쓰러졌을 때 NGH_EnemyHealth가 호출한다. 공격·전진·이동을 즉시 멈추고 AI를 끈다.</summary>
+    /// <summary>쓰러졌을 때 CHG_EnemyHealth가 호출한다. 공격·전진·이동을 즉시 멈추고 AI를 끈다.</summary>
     public void StopForDeath()
     {
         StopAllCoroutines();
@@ -201,7 +201,7 @@ public class NGH_EnemyAI : MonoBehaviour
         enabled = false;
     }
 
-    /// <summary>부활할 때 NGH_EnemyHealth가 호출한다. 스폰 지점으로 돌아가 배회부터 다시 시작한다.</summary>
+    /// <summary>부활할 때 CHG_EnemyHealth가 호출한다. 스폰 지점으로 돌아가 배회부터 다시 시작한다.</summary>
     public void ReviveAtHome()
     {
         if (hasHome)
@@ -414,14 +414,14 @@ public class NGH_EnemyAI : MonoBehaviour
     {
         if (attackHitboxPrefab == null)
         {
-            Debug.LogWarning("[NGH_EnemyAI:" + name + "] attackHitboxPrefab이 비어 있어 공격 판정을 만들 수 없습니다.", this);
+            Debug.LogWarning("[CHG_EnemyAI:" + name + "] attackHitboxPrefab이 비어 있어 공격 판정을 만들 수 없습니다.", this);
             return;
         }
 
         Vector3 position = transform.TransformPoint(attackHitboxOffset);
         Quaternion rotation = transform.rotation;
 
-        NGH_EnemyAttackHitbox hitbox = NGH_ObjectPool.Spawn(attackHitboxPrefab, position, rotation);
+        CHG_EnemyAttackHitbox hitbox = CHG_ObjectPool.Spawn(attackHitboxPrefab, position, rotation);
         if (hitbox != null)
         {
             // 전진하는 동안 히트박스가 적을 따라오도록 follow 지정
@@ -590,7 +590,7 @@ public class NGH_EnemyAI : MonoBehaviour
     {
         if (logStateChanges)
         {
-            Debug.Log("[NGH_EnemyAI:" + name + "] " + message, this);
+            Debug.Log("[CHG_EnemyAI:" + name + "] " + message, this);
         }
     }
 

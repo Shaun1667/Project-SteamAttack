@@ -4,19 +4,19 @@ using UnityEngine;
 
 /// <summary>
 /// 적 근접 공격 판정용 히트박스 (NGH)
-/// - NGH_ObjectPool로 꺼내서 쓰고, 지정된 시간이 지나면 풀에 반납된다.
+/// - CHG_ObjectPool로 꺼내서 쓰고, 지정된 시간이 지나면 풀에 반납된다.
 /// - 태그는 EnemyAttack. 플레이어 쪽에서는 이 태그로 피격을 판단한다.
 /// - Kinematic Rigidbody가 붙어 있어 상대에게 Rigidbody가 없어도 트리거 이벤트가 발생한다.
 /// - followTarget을 지정하면 공격 중 적이 전진해도 히트박스가 따라간다.
 /// </summary>
 [RequireComponent(typeof(BoxCollider))]
 [RequireComponent(typeof(Rigidbody))]
-public class NGH_EnemyAttackHitbox : MonoBehaviour, NGH_IPoolable
+public class CHG_EnemyAttackHitbox : MonoBehaviour, CHG_IPoolable
 {
     public const string AttackTag = "EnemyAttack";
 
     /// <summary>대상에게 명중했을 때 (히트박스, 맞은 대상)</summary>
-    public static event Action<NGH_EnemyAttackHitbox, GameObject> OnHit;
+    public static event Action<CHG_EnemyAttackHitbox, GameObject> OnHit;
 
     [Tooltip("명중 대상 태그")]
     [SerializeField] private string targetTag = "Player";
@@ -66,7 +66,7 @@ public class NGH_EnemyAttackHitbox : MonoBehaviour, NGH_IPoolable
         followLocalOffset = localOffset;
 
         hitTargets.Clear();
-        NGH_ObjectPool.Despawn(gameObject, Mathf.Max(0.01f, lifetime));
+        CHG_ObjectPool.Despawn(gameObject, Mathf.Max(0.01f, lifetime));
         CheckOverlapNow();
     }
 
@@ -151,7 +151,7 @@ public class NGH_EnemyAttackHitbox : MonoBehaviour, NGH_IPoolable
         {
             string ownerName = Owner != null ? Owner.name : "Unknown";
             string resultText = applyDamageToPlayer && !damaged ? " - 피해 없음 (무적 상태)" : "";
-            Debug.Log("[NGH_EnemyAttackHitbox] " + ownerName + " → " + target.name + " 명중 (데미지 " + Damage + ")" + resultText, target);
+            Debug.Log("[CHG_EnemyAttackHitbox] " + ownerName + " → " + target.name + " 명중 (데미지 " + Damage + ")" + resultText, target);
         }
 
         OnHit?.Invoke(this, target);
@@ -160,7 +160,7 @@ public class NGH_EnemyAttackHitbox : MonoBehaviour, NGH_IPoolable
     // 맞은 대상의 플레이어 피격 함수를 호출한다. 실제로 피해가 들어갔으면 true (구르기·피격 중 무적이면 false)
     private bool ApplyDamage(GameObject target)
     {
-        chg_PlayerController playerController = target.GetComponentInParent<chg_PlayerController>();
+        NGH_PlayerController playerController = target.GetComponentInParent<NGH_PlayerController>();
         if (playerController == null)
         {
             return false;

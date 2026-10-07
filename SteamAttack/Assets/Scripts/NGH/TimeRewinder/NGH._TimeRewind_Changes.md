@@ -27,7 +27,7 @@
 | 증기 게이지 | 등에 붙은 `YPH_SteamTank`의 압력 |
 | 애니메이션 | 레이어별 재생 중인 동작과 진행 지점, 파라미터, 재생 속도 |
 | 무기·행동 | 납도/발도 상태, 현재 무기 칸, 진행 중인 행동(공격·구르기·피격 등) |
-| 화면 방향 | 마우스로 돌린 카메라의 좌우·상하 각도 (`chg_ThirdPersonCamera`) |
+| 화면 방향 | 마우스로 돌린 카메라의 좌우·상하 각도 (`NGH_ThirdPersonCamera`) |
 | 락온 | 락온 여부와 대상 |
 
 ### 발동 흐름
@@ -70,11 +70,11 @@
 
 | 파일 | 내용 |
 |---|---|
-| `Scripts/NGH/NGH_TimeRewind.cs` | 시간 역행 본체. 플레이어 루트에 붙임 |
-| `Scripts/NGH/NGH_TimeRewindTester.cs` | TimeTest 씬 전용 테스트 입력 (증기 소비/회복 키) |
+| `Scripts/NGH/CHG_TimeRewind.cs` | 시간 역행 본체. 플레이어 루트에 붙임 |
+| `Scripts/NGH/CHG_TimeRewindTester.cs` | TimeTest 씬 전용 테스트 입력 (증기 소비/회복 키) |
 | `Scripts/NGH/NGH_TimeRewind_Changes.md` | 이 문서 |
 
-### Inspector 설정 (`NGH_TimeRewind`)
+### Inspector 설정 (`CHG_TimeRewind`)
 | 항목 | 기본값 | 설명 |
 |---|---|---|
 | Player / Character Controller / Animator / Steam Tank / Player Camera | 자동 | 비워 두면 알아서 찾음 |
@@ -88,7 +88,7 @@
 | Log Rewind | ✔ | 역행·차단 시 콘솔에 로그 출력 |
 
 ### 연출 넣는 방법
-`NGH_TimeRewind.RewindEffectRoutine(Snapshot target)` 안에 작성합니다.
+`CHG_TimeRewind.RewindEffectRoutine(Snapshot target)` 안에 작성합니다.
 `target`에 되돌아갈 시점의 위치 등이 들어 있어 연출에 활용할 수 있습니다.
 이 코루틴이 도는 동안은 자동으로 무적이고, 끝나는 순간 복원됩니다.
 다른 스크립트에서 반응하려면 `RewindStarted` / `RewindFinished` 이벤트를 구독하면 됩니다.
@@ -97,7 +97,7 @@
 
 ## 5. 다른 파트 수정 사항 (머지 시 확인 부탁)
 
-### CHG — `Scripts/CHG/chg_PlayerController.cs` (채희강)
+### CHG — `Scripts/CHG/NGH_PlayerController.cs` (채희강)
 - `IsInvincible` 조건에 `|| _externalInvincible.Count > 0` 추가
 - 필드 추가: `_externalInvincible` (외부에서 켠 무적 목록)
 - 맨 아래 "유틸" 위에 **시간 역행 연동** 영역 추가
@@ -106,10 +106,10 @@
   - `CaptureRewindState()` / `RestoreRewindState(RewindState)` — 상태 기록/복원
   - `AttackDataFor(ActionState)` — 복원용 헬퍼 (private)
 
-### CHG — `Scripts/CHG/chg_WeaponHolder.cs` (채희강)
+### CHG — `Scripts/CHG/NGH_WeaponHolder.cs` (채희강)
 - `RestoreState(int index, bool drawn)` 추가 — 교체 연출을 멈추고 무기 칸·발도 표시를 즉시 맞춤
 
-### CHG — `Scripts/CHG/chg_ThirdPersonCamera.cs` (채희강)
+### CHG — `Scripts/CHG/NGH_ThirdPersonCamera.cs` (채희강)
 - `ViewAngles` (현재 yaw/pitch 읽기), `SetViewAngles(yaw, pitch)` (즉시 지정) 추가 — 카메라 방향을 기록/복원하는 용도. 카메라가 움직이는 방식은 그대로
 
 ### YPH — `Scripts/YPH/SteamGauge/YPH_SteamTank.cs` (윤평화)
@@ -119,11 +119,11 @@
 ---
 
 ## 6. TimeTest 씬 구성 (`Scenes/NGH/TimeTest.unity`)
-- `chg_Player` 프리팹 배치 (태그 **Player**) + `NGH_TimeRewind` 추가
+- `chg_Player` 프리팹 배치 (태그 **Player**) + `CHG_TimeRewind` 추가
 - `YPH_SteamBackpack` 프리팹을 플레이어 **Spine2 뼈**에 붙여 등 뒤에 부착 (크기 0.36배)
   - 캐릭터 모델에 이미 증기통 장식이 있어서 그 바로 뒤에 붙였습니다. 위치·크기는 씬에서 조절 가능
 - `chg_PlayerCamera` 배치, 기존 `Main Camera`는 비활성화
-- 공격·회복 테스트용 `chg_Dummy` 1개, `NGH_TimeRewindTester` 오브젝트
+- 공격·회복 테스트용 `chg_Dummy` 1개, `CHG_TimeRewindTester` 오브젝트
 - 프리팹 원본(chg_Player, YPH_SteamBackpack)은 수정하지 않았고, 모두 씬 안에서만 구성했습니다.
 
 ### 테스트 키

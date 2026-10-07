@@ -1,11 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// chg_ObjectPool 이 만든 오브젝트에 자동으로 붙는 표식입니다. 직접 붙일 필요 없습니다.
+/// NGH_ObjectPool 이 만든 오브젝트에 자동으로 붙는 표식입니다. 직접 붙일 필요 없습니다.
 /// 어느 풀 출신인지, 지금 풀 안에 있는지를 기억합니다.
 /// </summary>
 [DisallowMultipleComponent]
-public class chg_PooledObject : MonoBehaviour
+public class NGH_PooledObject : MonoBehaviour
 {
     internal object poolKey;
     internal bool inPool;
@@ -15,5 +15,5 @@ public class chg_PooledObject : MonoBehaviour
     public bool InPool => inPool;
 
     /// <summary>자기 자신을 풀로 반납 (delay 초 뒤)</summary>
-    public void Despawn(float delay = 0f) => chg_ObjectPool.Despawn(gameObject, delay);
+    public void Despawn(float delay = 0f) => NGH_ObjectPool.Despawn(gameObject, delay);
 }

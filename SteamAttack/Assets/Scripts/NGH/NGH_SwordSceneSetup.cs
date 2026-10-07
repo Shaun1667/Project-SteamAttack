@@ -13,7 +13,7 @@ using UnityEngine;
 /// 2) chg_CharAnimator.controller 생성 (모든 chg_char 클립을 상태로 등록, 트리거로 전환)
 /// 3) 캐릭터 + 칼(오른손에 부착)을 배치한 chg_SwordScene.unity 생성
 /// </summary>
-public static class chg_SwordSceneSetup
+public static class NGH_SwordSceneSetup
 {
     const string AnimDir = "Assets/Animations/CHG";
     const string CharPath = AnimDir + "/chg_char,t-pose.fbx";   // T-포즈 모델에 칼을 맞춘 뒤 애니메이터로 동작 재생

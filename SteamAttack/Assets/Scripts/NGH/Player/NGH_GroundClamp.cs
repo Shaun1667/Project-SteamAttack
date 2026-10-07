@@ -7,7 +7,7 @@ using UnityEngine;
 /// → 구르기 등 어떤 동작이든 땅을 뚫고 들어가지 않음. 캐릭터 모델(Animator가 있는 오브젝트)에 붙입니다.
 /// </summary>
 [DefaultExecutionOrder(1000)]
-public class chg_GroundClamp : MonoBehaviour
+public class NGH_GroundClamp : MonoBehaviour
 {
     [Tooltip("바닥 높이 기준 (비우면 부모 = 플레이어 발 위치)")]
     public Transform groundReference;

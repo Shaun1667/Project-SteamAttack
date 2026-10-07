@@ -131,7 +131,7 @@ public class YPH_SteamTank : MonoBehaviour
     }
 
     /// <summary>
-    /// 시간 역행(NGH_TimeRewind) 등으로 저장해 둔 압력으로 되돌립니다. — NGH(남귀훈) 추가
+    /// 시간 역행(CHG_TimeRewind) 등으로 저장해 둔 압력으로 되돌립니다. — NGH(남귀훈) 추가
     /// 소비가 아니므로 배출구 분출(OnConsumed)·실패 이벤트 없이 압력 변경 알림만 보냅니다. 0~최대 압력으로 제한합니다.
     /// </summary>
     public void RestorePressure(float pressure)
