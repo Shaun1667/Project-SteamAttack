@@ -114,8 +114,13 @@ public class NGH_PlayerController : MonoBehaviour
     public AttackData lightCombo4 = new AttackData { playSpeed = 1f, endAt = 0.6f, hitWindows = new[] { new Vector2(0.16f, 0.33f) }, lungeDistance = 0.2f };
     [Tooltip("약공격 5타(마무리): 4타 중 좌클릭")]
     public AttackData lightCombo5 = new AttackData { playSpeed = 1f, endAt = 0.85f, hitWindows = new[] { new Vector2(0.25f, 0.35f) }, lungeDistance = 0.35f };
+    [Header("콤보 입력")]
     [Tooltip("약공격이 이 비율(0~1) 이상 진행된 뒤 누른 좌클릭은 다음 타로 이어짐")]
     [Range(0, 1)] public float comboInputFrom = 0.2f;
+    [Tooltip("약공격이 끝나 대기 자세로 돌아간 뒤에도 이 시간(초) 안에 좌클릭하면 1타가 아니라 다음 타로 이어짐")]
+    [Min(0)] public float comboGraceTime = 0.35f;
+    [Tooltip("유예 시간 안에 이어 붙일 때 섞는 시간(초). 이미 대기 자세로 돌아가는 중이라 바로 이어질 때보다 조금 길게")]
+    [Min(0)] public float comboResumeBlend = 0.12f;
     [Tooltip("좌클릭과 우클릭을 이 시간(초) 안에 함께 누르면 강공격. 좌클릭 약공격은 이 시간만큼 늦게 시작됨")]
     public float bothClickWindow = 0.08f;
     [Tooltip("판정 구간보다 이만큼(클립 기준 0~1) 먼저 전진을 시작")]
@@ -197,6 +202,9 @@ public class NGH_PlayerController : MonoBehaviour
     string _locoState = "Locomotion";
     Vector3 _rollDir;
     ActionState _buffered;
+    ActionState _comboLast;          // 이어지지 않고 끝난 마지막 약공격 타 (유예 시간 동안 다음 타로 이어 붙임)
+    float _comboEndAt = -999f;
+    float _blendOverride = -1f;
     float _leftClickAt = -1f, _rightClickAt = -1f;   // 동시 클릭 판정용 (-1 = 대기 중인 클릭 없음)
     readonly HashSet<NGH_Damageable> _hitThisSwing = new HashSet<NGH_Damageable>();
     readonly HashSet<object> _externalInvincible = new HashSet<object>();   // 외부에서 켠 무적 (켠 쪽별로 관리)
@@ -416,7 +424,14 @@ public class NGH_PlayerController : MonoBehaviour
     void Request(ActionState a)
     {
         if (IsHitReacting || IsDead || IsStandingUp) return;   // 피격·사망·부활 중에는 입력 무시
-        if (action == ActionState.None) { StartAction(a); return; }
+        if (action == ActionState.None)
+        {
+            // 약공격이 끝난 직후(유예 시간 안)의 좌클릭은 끊긴 콤보의 다음 타로 이어 붙임
+            var resume = a == ActionState.LightAttack && Time.time - _comboEndAt <= comboGraceTime ? NextLightCombo(_comboLast) : ActionState.None;
+            if (resume != ActionState.None) { _blendOverride = comboResumeBlend; StartAction(resume); }
+            else StartAction(a);
+            return;
+        }
         // 약공격 중 좌클릭 → 다음 타를 예약 (1타 → 2타 → … → 5타)
         if (a == ActionState.LightAttack && NextLightCombo(action) != ActionState.None
             && _actionTime >= _actionDuration * comboInputFrom)
@@ -430,6 +445,8 @@ public class NGH_PlayerController : MonoBehaviour
 
     void StartAction(ActionState a)
     {
+        float blend = _blendOverride;
+        _blendOverride = -1f;
         bool isHit = a == ActionState.HitSmall || a == ActionState.HitLarge;
         if (!isHit && weapons && weapons.IsSwapping && a != ActionState.Roll) return;
         if (a == ActionState.Draw && drawn) return;
@@ -448,6 +465,7 @@ public class NGH_PlayerController : MonoBehaviour
         action = a;
         _actionTime = 0f;
         _buffered = ActionState.None;
+        _comboLast = ActionState.None;
         _hitThisSwing.Clear();
         _hitWindowIndex = -1;
         _healedThisAction = false;
@@ -482,7 +500,7 @@ public class NGH_PlayerController : MonoBehaviour
         {
             animator.SetFloat(AnimSpeedHash, 1f);
             animator.speed = _actionPlaySpeed;
-            animator.CrossFadeInFixedTime(state, _attack != null ? _attack.blendIn : 0.08f);
+            animator.CrossFadeInFixedTime(state, blend >= 0f ? blend : _attack != null ? _attack.blendIn : 0.08f);
         }
     }
 
@@ -531,11 +549,16 @@ public class NGH_PlayerController : MonoBehaviour
         if (_actionTime >= (chaining ? _attack.ChainTime : _actionDuration))
         {
             var next = _buffered;
+            var finished = action;
             action = ActionState.None;
             _attack = null;
             if (animator) animator.speed = 1f;
             if (next != ActionState.None) StartAction(next);
-            else if (animator) animator.CrossFadeInFixedTime(locomotionState, 0.2f);
+            else
+            {
+                if (IsLightChain(finished)) { _comboLast = finished; _comboEndAt = Time.time; }
+                if (animator) animator.CrossFadeInFixedTime(locomotionState, 0.2f);
+            }
             _locoState = locomotionState;
         }
     }
@@ -719,6 +742,8 @@ public class NGH_PlayerController : MonoBehaviour
         public ActionState action;
         public float actionTime, actionDuration, actionPlaySpeed;
         public ActionState buffered;
+        public ActionState comboLast;
+        public float comboEndAgo;
         public int hitWindowIndex;
         public bool visualSwitched, healedThisAction;
         public Vector3 rollDir;
@@ -750,6 +775,8 @@ public class NGH_PlayerController : MonoBehaviour
             actionDuration = _actionDuration,
             actionPlaySpeed = _actionPlaySpeed,
             buffered = _buffered,
+            comboLast = _comboLast,
+            comboEndAgo = Time.time - _comboEndAt,
             hitWindowIndex = _hitWindowIndex,
             visualSwitched = _visualSwitched,
             healedThisAction = _healedThisAction,
@@ -778,6 +805,8 @@ public class NGH_PlayerController : MonoBehaviour
         _actionDuration = s.actionDuration;
         _actionPlaySpeed = s.actionPlaySpeed;
         _buffered = s.buffered;
+        _comboLast = s.comboLast;
+        _comboEndAt = Time.time - s.comboEndAgo;
         _hitWindowIndex = s.hitWindowIndex;
         _visualSwitched = s.visualSwitched;
         _healedThisAction = s.healedThisAction;
