@@ -40,6 +40,10 @@ public static class NGH_MocapComboBuilder
         public ArmKey[] arm;       // 없으면 원본 그대로
         // 연결 구간(휴머노이드 원본만): 앞 타 원본의 leadFrame 자세에서 시작해 leadTime(초) 동안 이 타의 동작으로 섞어 들어감
         public string leadFrom; public float leadFrame, leadTime;
+        // 다음 타가 예약돼 있으면 넘겨주는 원본 프레임 (프리팹 chainAt). 공격 후 다시 일어서기 전 지점
+        public float chainFrame;
+        // 파지 보정(도): 팔뚝 축으로 손을 돌려 칼이 나오는 방향을 바꿈 (시작·끝에서 서서히). 0 = 원본 그대로
+        public float gripTwist;
         public float Length => retime[retime.Length - 1].y + hold;
     }
 
@@ -49,27 +53,47 @@ public static class NGH_MocapComboBuilder
     const string TemplateClip = "Assets/Animations/CHG/chg_anim_swordslash.fbx";   // 플레이어 뼈 커브 목록
     const string ChgAvatarPath = OutDir + "NGH_ChgHumanAvatar.asset";
 
-    static Segment Slash(string outName, string clip, int frames, float speed, float hold) => new Segment
+    public const float Speed = 0.85f;      // 전체 재생 속도 (원본 = 1)
+    public const float LeadTime = 0.25f;   // 앞 타 자세에서 섞어 들어가는 시간(초)
+
+    static Segment Slash(string outName, string clip, int frames, float chainFrame, float hold) => new Segment
     {
-        outName = outName, source = SlashDir + clip + ".anim", hold = hold,
-        retime = new[] { new Vector2(0, 0f), new Vector2(frames, frames / SrcFps / speed) },
+        outName = outName, source = SlashDir + clip + ".anim", hold = hold, chainFrame = chainFrame,
+        retime = new[] { new Vector2(0, 0f), new Vector2(frames, frames / SrcFps / Speed) },
     };
 
-    static Segment Lead(Segment s, string fromClip, float fromFrame, float time)
-    { s.leadFrom = SlashDir + fromClip + ".anim"; s.leadFrame = fromFrame; s.leadTime = time; return s; }
-
-    // 3→4, 4→5는 원본끼리 자세 차이가 커서, 앞 타가 넘겨주는 지점(프리팹 chainAt) 자세에서 섞어 들어가는 연결 구간을 넣음
-    //  넘겨주는 지점 = ChainFrameCombo3/4 (원본 프레임). 결과 클립 시간은 OutputTimeOf로 환산
-    public static readonly Segment[] Segments =
+    // 원본끼리 자세 차이가 커서, 2타부터는 앞 타가 넘겨주는 지점(chainFrame) 자세에서 섞어 들어가는 연결 구간을 넣음
+    public static readonly Segment[] Segments = WithLeads(new[]
     {
-        Slash("NGH_Anim_LightAttack", "slash1", 18, 1.0f, 0.05f),
-        Slash("NGH_Anim_Combo2",      "slash4", 22, 1.0f, 0.05f),
-        Slash("NGH_Anim_Combo3",      "slash6", 35, 1.0f, 0.05f),
-        Lead(Slash("NGH_Anim_Combo4", "slash7", 38, 1.0f, 0.05f), "slash6", ChainFrameCombo3, 0.22f),
-        Lead(Slash("NGH_Anim_Combo5", "slash3", 32, 1.0f, 0.10f), "slash7", ChainFrameCombo4, 0.25f),
-    };
-    public const float ChainFrameCombo3 = 27f;   // slash6에서 공격 후 일어서기 전
-    public const float ChainFrameCombo4 = 33f;   // slash7에서 공격 후 일어서기 전
+        Slash("NGH_Anim_LightAttack", "slash1", 18, 18, 0.05f),   // 대각선 내려베기 (끝 자세가 낮아서 끝까지 재생 후 넘김)
+        Slash("NGH_Anim_Combo2",      "slash4", 22, 22, 0.05f),   // 몸을 돌리며 가로베기
+        Slash("NGH_Anim_Combo3",      "slash7", 38, 27, 0.05f),   // 앞으로 깊게 찌르듯 베기
+        Slash("NGH_Anim_Combo4",      "slash6", 35, 27, 0.05f),   // 돌려차기에 이어 베기
+        // 마무리: 크게 휩쓸어 베기. 원본 그대로면 칼이 팔뚝 둘레로 다른 타보다 약 70~100° 틀어져 역수처럼 보여서 보정
+        Grip(Slash("NGH_Anim_Combo5", "slash3", 32, 32, 0.10f), -100f),
+    });
+
+    static Segment Grip(Segment s, float twist) { s.gripTwist = twist; return s; }
+    const float GripOutTime = 0.35f;   // 끝에서 원래 파지로 돌아가는 시간(초)
+
+    static Segment[] WithLeads(Segment[] segs)
+    {
+        for (int i = 1; i < segs.Length; i++)
+        {
+            segs[i].leadFrom = segs[i - 1].source;
+            segs[i].leadFrame = segs[i - 1].chainFrame;
+            segs[i].leadTime = LeadTime;
+        }
+        return segs;
+    }
+
+    /// <summary>프리팹 chainAt 값 (클립 기준 0~1)</summary>
+    public static float ChainAt(Segment s)
+    {
+        float end = s.retime[s.retime.Length - 1].x;
+        float clipLength = Mathf.Round(s.Length * OutFps) / OutFps;   // 구운 클립 길이 (60fps 프레임 단위)
+        return s.chainFrame >= end ? 1f : OutputTimeOf(s, s.chainFrame) / clipLength;
+    }
 
     [MenuItem("Tools/NGH/Build Light Combo Clips (Mocap)")]
     public static void BuildAll()
@@ -160,6 +184,12 @@ public static class NGH_MocapComboBuilder
                 float srcT = map.Evaluate(Mathf.Min(t, s.retime[s.retime.Length - 1].y));
                 pose(srcT, t);
                 if (s.arm != null) ApplyArmLayer(bones, s.arm, srcT * SrcFps);
+                if (Mathf.Abs(s.gripTwist) > 0.01f)
+                {
+                    float lead = s.leadTime > 0f ? s.leadTime : 0.15f;
+                    float w = Mathf.SmoothStep(0f, 1f, t / lead) * Mathf.SmoothStep(0f, 1f, (s.Length - t) / GripOutTime);
+                    TwistGrip(bones, s.gripTwist * w);
+                }
 
                 var rotCache = new Dictionary<Transform, Quaternion>();
                 for (int i = 0; i < bindings.Length; i++)
@@ -212,6 +242,15 @@ public static class NGH_MocapComboBuilder
             return clip;
         }
         finally { EditorSceneManager.ClosePreviewScene(scene); }
+    }
+
+    /// <summary>팔뚝 축(팔꿈치→손목)으로 손을 angle만큼 돌림. 팔뚝·손에 절반씩 나눠 손목이 비틀려 보이지 않게</summary>
+    static void TwistGrip(Dictionary<string, Transform> b, float angle)
+    {
+        Transform fore = b["RightForeArm"], hand = b["RightHand"];
+        Vector3 axis = (hand.position - fore.position).normalized;
+        fore.rotation = Quaternion.AngleAxis(angle * 0.5f, axis) * fore.rotation;
+        hand.rotation = Quaternion.AngleAxis(angle * 0.5f, axis) * hand.rotation;
     }
 
     /// <summary>결과 시간 → 원본 시간. 중간은 일정 속도, 마지막 구간만 감속</summary>

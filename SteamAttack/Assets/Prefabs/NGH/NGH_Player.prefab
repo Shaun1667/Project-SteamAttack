@@ -230,14 +230,14 @@ MonoBehaviour:
   rollAnimSpeed: 1.6
   rollInvincibleTime: 0.5
   lightAttack:
-    clipLength: 0.65
+    clipLength: 0.75
     playSpeed: 1
     endAt: 1
     hitWindows:
-    - {x: 0.43589744, y: 0.61538464}
+    - {x: 0.42222223, y: 0.62222224}
     hitOncePerAction: 0
     lungeDistance: 0.35
-    blendIn: 0.08
+    blendIn: 0.12
     chainAt: 1
   heavyAttack:
     clipLength: 1.6
@@ -250,41 +250,41 @@ MonoBehaviour:
     blendIn: 0.08
     chainAt: 1
   lightCombo2:
-    clipLength: 0.78333336
+    clipLength: 0.9166667
     playSpeed: 1
     endAt: 1
     hitWindows:
-    - {x: 0.5106383, y: 0.61702126}
+    - {x: 0.5090909, y: 0.6181818}
     hitOncePerAction: 0
     lungeDistance: 0.35
-    blendIn: 0.1
+    blendIn: 0.04
     chainAt: 1
   lightCombo3:
-    clipLength: 1.2166667
+    clipLength: 1.5333333
     playSpeed: 1
     endAt: 1
     hitWindows:
-    - {x: 0.28767124, y: 0.39726028}
-    hitOncePerAction: 0
-    lungeDistance: 0.35
-    blendIn: 0.1
-    chainAt: 0.59926534
-  lightCombo4:
-    clipLength: 1.3166667
-    playSpeed: 1
-    endAt: 1
-    hitWindows:
-    - {x: 0.29113925, y: 0.35443038}
+    - {x: 0.29347825, y: 0.35869566}
     hitOncePerAction: 0
     lungeDistance: 0.3
     blendIn: 0.04
-    chainAt: 0.69623
-  lightCombo5:
-    clipLength: 1.1666666
+    chainAt: 0.5546478
+  lightCombo4:
+    clipLength: 1.4166666
     playSpeed: 1
     endAt: 1
     hitWindows:
-    - {x: 0.24285714, y: 0.35714287}
+    - {x: 0.29411766, y: 0.3882353}
+    hitOncePerAction: 0
+    lungeDistance: 0.35
+    blendIn: 0.04
+    chainAt: 0.60548615
+  lightCombo5:
+    clipLength: 1.35
+    playSpeed: 1
+    endAt: 1
+    hitWindows:
+    - {x: 0.24691358, y: 0.3580247}
     hitOncePerAction: 0
     lungeDistance: 0.5
     blendIn: 0.04
