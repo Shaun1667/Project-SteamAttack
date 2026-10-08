@@ -250,41 +250,41 @@ MonoBehaviour:
     blendIn: 0.08
     chainAt: 1
   lightCombo2:
-    clipLength: 0.9166667
+    clipLength: 0.56666666
     playSpeed: 1
     endAt: 1
     hitWindows:
-    - {x: 0.5090909, y: 0.6181818}
+    - {x: 0.7058824, y: 0.9117647}
     hitOncePerAction: 0
     lungeDistance: 0.35
     blendIn: 0.04
     chainAt: 1
   lightCombo3:
-    clipLength: 1.5333333
+    clipLength: 0.85
     playSpeed: 1
     endAt: 1
     hitWindows:
-    - {x: 0.29347825, y: 0.35869566}
+    - {x: 0.26338926, y: 0.30320105}
     hitOncePerAction: 0
     lungeDistance: 0.3
     blendIn: 0.04
-    chainAt: 0.5546478
+    chainAt: 0.5394892
   lightCombo4:
-    clipLength: 1.4166666
+    clipLength: 1.4
     playSpeed: 1
     endAt: 1
     hitWindows:
-    - {x: 0.29411766, y: 0.3882353}
+    - {x: 0.29645187, y: 0.3734827}
     hitOncePerAction: 0
     lungeDistance: 0.35
     blendIn: 0.04
-    chainAt: 0.60548615
+    chainAt: 0.6648044
   lightCombo5:
-    clipLength: 1.35
+    clipLength: 1.4666667
     playSpeed: 1
     endAt: 1
     hitWindows:
-    - {x: 0.24691358, y: 0.3580247}
+    - {x: 0.19686817, y: 0.29318175}
     hitOncePerAction: 0
     lungeDistance: 0.5
     blendIn: 0.04
