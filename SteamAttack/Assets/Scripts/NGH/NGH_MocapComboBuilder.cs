@@ -45,6 +45,12 @@ public static class NGH_MocapComboBuilder
         // 파지 보정(도): 팔뚝 축으로 손을 돌려 칼이 나오는 방향을 바꿈 (시작·끝에서 서서히). 0 = 원본 그대로
         public float gripTwist;
         public ArmReach reach;     // 베고 난 뒤 오른팔을 뻗는 자세 덧씌우기 (없으면 null)
+        // 칼날 평면 보정: 결과 클립 시간(0~1, 컨트롤러 판정 구간과 같은 기준) (시작, 끝) 동안 손과 칼날을 한 평면 위에 맞춰
+        // 칼이 비틀리지 않고 매끈한 호를 그리게 함. 앞뒤 planeBlend(0~1) 동안 원래 동작과 섞음. (0,0) = 사용 안 함
+        public Vector2 planeFix;
+        public float planeBlend = 1f;
+        // 시간 배치 구간 경계에서 속도가 갑자기 바뀌지 않게 이어 붙임 (끄면 구간마다 일정 속도)
+        public bool smoothRetime;
         public float Length => retime[retime.Length - 1].y + hold;
     }
 
@@ -97,7 +103,9 @@ public static class NGH_MocapComboBuilder
     // 원본끼리 자세 차이가 커서, 2타부터는 앞 타가 넘겨주는 지점(chainFrame) 자세에서 섞어 들어가는 연결 구간을 넣음
     public static readonly Segment[] Segments = WithLeads(new[]
     {
-        Slash("NGH_Anim_LightAttack", "slash1", 18, 18, 0.05f),   // 대각선 내려베기 (끝 자세가 낮아서 끝까지 재생 후 넘김)
+        // 대각선 내려베기 (끝 자세가 낮아서 끝까지 재생 후 넘김)
+        //  원본은 베는 동안(클립 0.47~0.59) 손목이 비틀려 칼끝이 S자로 휘므로 칼날 평면 보정
+        FlatSwing(Slash("NGH_Anim_LightAttack", "slash1", 18, 18, 0.05f), 0.47f, 0.59f, 0.08f),
         // 몸을 돌리며 가로베기: 준비(0~12) 짧게, 베기(12~17) 1.1배, 회수(17~22) 2.5배로 후딜 짧게
         Paced("NGH_Anim_Combo2", "slash4", 22, 0.02f, (12, 1.6f), (17, 1.1f), (22, 2.5f)),
         // 앞으로 깊게 찌르듯 베기: 준비(0~11) 짧게, 찌르기(11~18) 빠르게(약 0.11초),
@@ -109,11 +117,36 @@ public static class NGH_MocapComboBuilder
         //  원본은 28프레임에서 움직임이 멈추므로 거기서 끝냄 (멈춘 뒤에 조작이 막혀 있지 않게)
         //  원본 그대로면 칼이 팔뚝 둘레로 다른 타보다 약 70~100° 틀어져 역수처럼 보여서 파지 보정
         //  베고 난 뒤(13~23)에는 오른팔을 몸 오른쪽 뒤로 크게 벌려 쭉 펴고 칼을 팔 연장선으로 눕힘
-        Reach(Grip(Timed("NGH_Anim_Combo5", "slash3", 28, 0f, (8, 0.248f), (13, 0.097f), (16, 0.170f), (23, 0.502f), (28, 0.452f)), -100f),
-              new ArmReach { armYaw = 120f, armPitch = 0f, bladeYaw = 115f, bladePitch = -3f, inFrom = 13f, inTo = 16f, outFrom = 23f, outTo = 27f }),
+        //  베기 → 팔 뻗기 경계(13프레임)에서 속도가 1/3로 뚝 떨어지고 팔 뻗기가 정면에서 섞이기 시작해 궤적이 꺾였으므로
+        //  시간 배치를 매끄럽게 잇고, 팔 뻗기는 칼이 정면을 지난 뒤(14프레임)부터 섞음
+        //  베는 동안 칼날이 79°→11° 굴러 궤적이 가운데서 접혀 보이므로 칼날 평면 보정 (클립 0.20~0.31)
+        FlatSwing(Smooth(Reach(Grip(Timed("NGH_Anim_Combo5", "slash3", 28, 0f, (8, 0.248f), (13, 0.097f), (16, 0.170f), (23, 0.502f), (28, 0.452f)), -100f),
+              new ArmReach { armYaw = 120f, armPitch = 0f, bladeYaw = 115f, bladePitch = -3f, inFrom = 14f, inTo = 17f, outFrom = 23f, outTo = 27f })),
+              0.211f, 0.39f, 0.013f),   // 원본 칼날이 수직(0.18초 부근)에서 눕기 시작한 뒤에 섞음. 팔을 뻗으며 마저 도는 0.39까지
     });
 
     static Segment Reach(Segment s, ArmReach r) { s.reach = r; return s; }
+
+    static Segment Smooth(Segment s) { s.smoothRetime = true; return s; }
+
+    static Segment FlatSwing(Segment s, float from, float to, float blend) { s.planeFix = new Vector2(from, to); s.planeBlend = blend; return s; }
+
+    /// <summary>구운 클립 길이 (60fps 프레임 단위)</summary>
+    static float ClipLength(Segment s) => Mathf.Round(s.Length * OutFps) / OutFps;
+
+    /// <summary>결과 시간 t(초)의 칼날 평면 보정 비율 (0~1)</summary>
+    static float PlaneWeight(Segment s, float t)
+    {
+        float u = t / ClipLength(s);
+        return Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(s.planeFix.x - s.planeBlend, s.planeFix.x, u))
+             * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(s.planeFix.y, s.planeFix.y + s.planeBlend, u)));
+    }
+
+    static bool InPlaneWindow(Segment s, float t, bool withBlend)
+    {
+        float u = t / ClipLength(s), pad = withBlend ? s.planeBlend : 0f;
+        return u >= s.planeFix.x - pad && u <= s.planeFix.y + pad;
+    }
 
     static Segment Grip(Segment s, float twist) { s.gripTwist = twist; return s; }
     const float GripOutTime = 0.35f;   // 끝에서 원래 파지로 돌아가는 시간(초)
@@ -221,10 +254,8 @@ public static class NGH_MocapComboBuilder
             var prevRot = new Dictionary<Transform, Quaternion>();
 
             int frames = Mathf.RoundToInt(s.Length * OutFps);
-            for (int f = 0; f <= frames; f++)
+            System.Action<float, float> layered = (srcT, t) =>
             {
-                float t = f / OutFps;
-                float srcT = map.Evaluate(Mathf.Min(t, s.retime[s.retime.Length - 1].y));
                 pose(srcT, t);
                 if (s.arm != null) ApplyArmLayer(bones, s.arm, srcT * SrcFps);
                 if (Mathf.Abs(s.gripTwist) > 0.01f)
@@ -234,6 +265,29 @@ public static class NGH_MocapComboBuilder
                     TwistGrip(bones, s.gripTwist * w);
                 }
                 if (s.reach != null) ApplyReach(bones, s.reach, s.reach.Weight(srcT * SrcFps));
+            };
+
+            // 칼날 평면 보정: 보정 구간의 손·칼끝 위치로 베는 평면을 먼저 구함
+            bool flat = s.planeFix.y > s.planeFix.x;
+            Vector3 planePoint = Vector3.zero, planeNormal = Vector3.up, planePivot = Vector3.zero;
+            if (flat) FitSwingPlane(s, map, frames, layered, bones, out planePoint, out planeNormal, out planePivot);
+
+            // 키를 찍을 시간: 기본 60fps. 칼날 평면 보정 구간은 빠르게 휘두르므로 촘촘히 찍어
+            // 키 사이 관절 보간으로 칼 경로가 다시 휘지 않게 함
+            var times = new List<float>();
+            for (int f = 0; f <= frames; f++)
+            {
+                float t0 = f / OutFps;
+                times.Add(t0);
+                if (!flat || f == frames || !InPlaneWindow(s, t0 + 0.5f / OutFps, true)) continue;
+                for (int k = 1; k < FlatKeySub; k++) times.Add(t0 + k / (OutFps * FlatKeySub));
+            }
+
+            foreach (float t in times)
+            {
+                float srcT = map.Evaluate(Mathf.Min(t, s.retime[s.retime.Length - 1].y));
+                layered(srcT, t);
+                if (flat) ApplyFlatSwing(bones, planePoint, planeNormal, planePivot, PlaneWeight(s, t));
 
                 var rotCache = new Dictionary<Transform, Quaternion>();
                 for (int i = 0; i < bindings.Length; i++)
@@ -310,6 +364,96 @@ public static class NGH_MocapComboBuilder
         hand.localRotation = Quaternion.Slerp(h0, hand.localRotation, weight);
     }
 
+    static readonly Vector3 TipLocal = new Vector3(0.492f, 0.014f, 0.039f);   // 오른손 기준 칼끝 위치
+    const int FlatKeySub = 4;   // 칼날 평면 보정 구간은 60fps × 4 = 240fps 로 키를 찍음
+
+    /// <summary>보정 구간 동안 칼끝이 그리는 호의 평면 (칼끝이 도는 방향 기준 법선, 칼끝·손 위치의 중심)</summary>
+    static void FitSwingPlane(Segment s, AnimationCurve map, int frames, System.Action<float, float> layered,
+                              Dictionary<string, Transform> b, out Vector3 point, out Vector3 normal, out Vector3 pivot)
+    {
+        var tips = new List<Vector3>();
+        var hands = new List<Vector3>();
+        var hand = b["RightHand"];
+        for (int f = 0; f <= frames * FlatKeySub; f++)
+        {
+            float t = f / (OutFps * FlatKeySub);
+            float srcT = map.Evaluate(Mathf.Min(t, s.retime[s.retime.Length - 1].y));
+            if (!InPlaneWindow(s, t, false)) continue;
+            layered(srcT, t);
+            hands.Add(hand.position);
+            tips.Add(hand.TransformPoint(TipLocal));
+        }
+        // 칼끝·손 모두에 가장 가까운 평면 (손을 조금만 옮기도록) — 공분산의 가장 작은 고유벡터
+        var all = new List<Vector3>(tips);
+        all.AddRange(hands);
+        point = Vector3.zero;
+        foreach (var p in all) point += p;
+        point /= Mathf.Max(1, all.Count);
+        float xx = 0, xy = 0, xz = 0, yy = 0, yz = 0, zz = 0;
+        foreach (var p in all)
+        {
+            var d = p - point;
+            xx += d.x * d.x; xy += d.x * d.y; xz += d.x * d.z; yy += d.y * d.y; yz += d.y * d.z; zz += d.z * d.z;
+        }
+        float tr = xx + yy + zz;
+        // (tr·I − C) 의 가장 큰 고유벡터 = C 의 가장 작은 고유벡터 (거듭제곱법)
+        Vector3 v = Vector3.one.normalized;
+        for (int it = 0; it < 64; it++)
+        {
+            var nv = new Vector3((tr - xx) * v.x - xy * v.y - xz * v.z,
+                                 -xy * v.x + (tr - yy) * v.y - yz * v.z,
+                                 -xz * v.x - yz * v.y + (tr - zz) * v.z);
+            if (nv.sqrMagnitude < 1e-12f) break;
+            v = nv.normalized;
+        }
+        // 방향은 칼끝이 도는 방향(오른손 법칙)에 맞춤
+        Vector3 c = Vector3.zero;
+        foreach (var p in tips) c += p;
+        c /= Mathf.Max(1, tips.Count);
+        Vector3 turn = Vector3.zero;
+        for (int i = 0; i < tips.Count - 1; i++) turn += Vector3.Cross(tips[i] - c, tips[i + 1] - c);
+        normal = Vector3.Dot(v, turn) < 0f ? -v : v;
+        // 회전 중심: 손이 그리는 원의 중심 ≈ 손 위치들의 평균 (평면 위로)
+        pivot = Vector3.zero;
+        foreach (var p in hands) pivot += p;
+        pivot /= Mathf.Max(1, hands.Count);
+        pivot -= normal * Vector3.Dot(pivot - point, normal);
+        Debug.Log($"[NGH] {s.outName} 칼날 평면 보정: 법선 {normal:F2}, 기준점 {point:F2} ({tips.Count}프레임)");
+    }
+
+    /// <summary>손을 평면 위로 옮기고(IK) 칼날을 평면 안으로 눕힘. 양손으로 잡고 있으면 왼손도 같이. weight 만큼만 섞음</summary>
+    const float OutwardBias = 0.35f;   // 칼날을 몸 바깥쪽으로 기울이는 정도 (칼날이 평면에 거의 수직일 때의 기준)
+
+    static void ApplyFlatSwing(Dictionary<string, Transform> b, Vector3 point, Vector3 normal, Vector3 pivot, float weight)
+    {
+        if (weight < 1e-3f) return;
+        Transform rArm = b["RightArm"], rFore = b["RightForeArm"], rHand = b["RightHand"];
+        Transform lArm = b["LeftArm"], lFore = b["LeftForeArm"], lHand = b["LeftHand"];
+        Vector3 handPos = rHand.position, lPos = lHand.position;
+        Quaternion handRot = rHand.rotation, lRot = lHand.rotation;
+
+        Vector3 blade = handRot * BladeLocal;
+        Vector3 newHand = handPos - normal * (Vector3.Dot(handPos - point, normal) * weight);
+        // 평면 위 칼날 방향 = 칼날을 평면에 눕힌 방향 + 몸 바깥쪽(회전 중심 → 손) 방향.
+        // 칼날이 평면과 거의 수직이면 눕힌 방향이 거의 0 이라 매 프레임 뒤집히는데, 바깥쪽 방향이 그 순간의 기준이 되어 줌
+        Vector3 flatBlade = Vector3.ProjectOnPlane(blade, normal);
+        Vector3 outward = Vector3.ProjectOnPlane(newHand - pivot, normal);
+        if (outward.sqrMagnitude > 1e-6f) flatBlade += outward.normalized * OutwardBias;
+        Quaternion delta = flatBlade.sqrMagnitude < 1e-6f ? Quaternion.identity
+            : Quaternion.Slerp(Quaternion.identity, Quaternion.FromToRotation(blade, flatBlade.normalized), weight);
+
+        bool twoHanded = (lPos - handPos).magnitude < 0.15f;
+        Vector3 rPole = rFore.position - (rArm.position + handPos) * 0.5f;
+        Vector3 lPole = lFore.position - (lArm.position + lPos) * 0.5f;
+        NGH_AttackClipBuilder.TwoBoneIK(rArm, rFore, rHand, newHand, rPole);
+        rHand.rotation = delta * handRot;
+        if (twoHanded)
+        {
+            NGH_AttackClipBuilder.TwoBoneIK(lArm, lFore, lHand, newHand + delta * (lPos - handPos), lPole);
+            lHand.rotation = delta * lRot;
+        }
+    }
+
     /// <summary>팔뚝 축(팔꿈치→손목)으로 손을 angle만큼 돌림. 팔뚝·손에 절반씩 나눠 손목이 비틀려 보이지 않게</summary>
     static void TwistGrip(Dictionary<string, Transform> b, float angle)
     {
@@ -326,8 +470,10 @@ public static class NGH_MocapComboBuilder
         foreach (var p in s.retime) map.AddKey(new Keyframe(p.y, p.x / SrcFps));
         for (int i = 0; i < map.length; i++)
         {
-            AnimationUtility.SetKeyLeftTangentMode(map, i, AnimationUtility.TangentMode.Linear);
-            AnimationUtility.SetKeyRightTangentMode(map, i, AnimationUtility.TangentMode.Linear);
+            // 매끄럽게: 가운데 키는 앞뒤 속도의 중간으로 이어 붙임 (ClampedAuto = 넘치지 않음 → 시간이 거꾸로 가지 않음)
+            var mode = s.smoothRetime && i > 0 && i < map.length - 1 ? AnimationUtility.TangentMode.ClampedAuto : AnimationUtility.TangentMode.Linear;
+            AnimationUtility.SetKeyLeftTangentMode(map, i, mode);
+            AnimationUtility.SetKeyRightTangentMode(map, i, mode);
         }
         var last = map[map.length - 1]; last.inTangent = 0f;
         AnimationUtility.SetKeyLeftTangentMode(map, map.length - 1, AnimationUtility.TangentMode.Free);

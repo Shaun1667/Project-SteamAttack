@@ -20,6 +20,7 @@ public static class NGH_AttackClipBuilder
     const float ModelYaw = 17.53f;      // NGH_Player 프리팹의 chg_Model 회전과 같게
     const float Fps = 30f;
     const float GripSpacing = 0.075f;   // 오른손과 왼손 사이 손잡이 간격(m)
+    const int DenseSub = 8;             // 촘촘한 구간: 30fps × 8 = 240fps
 
     public enum Ease { Linear, In, Out, InOut }
 
@@ -63,25 +64,75 @@ public static class NGH_AttackClipBuilder
         var raised = K(0.35f, g, Ease.Out, k => { k.hand = new Vector3(0.05f, 0.80f, -0.02f); k.tip = new Vector3(0.1f, 0.25f, -1f); k.edge = new Vector3(0f, 1f, 0.2f);
                                                   k.elbow = new Vector3(0.9f, 0.1f, 0.2f); k.lElbow = new Vector3(-0.9f, 0.1f, 0.2f);
                                                   k.spineYaw = 12f; k.hipsYaw = 5f; k.spinePitch = -14f; k.hips = new Vector3(0f, 0.01f, -0.04f); });
-        return new List<Key>
+        // 예비동작 유지 (상대가 보고 반응할 수 있는 구간)
+        var hold = K(0.55f, raised, Ease.InOut, k => { k.hand = new Vector3(0.05f, 0.82f, -0.05f); k.tip = new Vector3(0.1f, 0.1f, -1f); k.spinePitch = -17f; k.hips = new Vector3(0f, 0.015f, -0.05f); });
+        var keys = new List<Key>
         {
             K(0.00f, g, Ease.Linear, null),
             K(0.12f, g, Ease.Out, k => { k.hand = new Vector3(0.06f, 0.50f, 0.12f); k.tip = new Vector3(0.1f, 0.9f, 0.3f); k.edge = new Vector3(0f, 0f, 1f); k.spineYaw = 6f; k.hips = new Vector3(0f, -0.01f, -0.01f); }),
             raised,
-            // 예비동작 유지 (상대가 보고 반응할 수 있는 구간)
-            K(0.55f, raised, Ease.InOut, k => { k.hand = new Vector3(0.05f, 0.82f, -0.05f); k.tip = new Vector3(0.1f, 0.1f, -1f); k.spinePitch = -17f; k.hips = new Vector3(0f, 0.015f, -0.05f); }),
-            // 내려찍기 + 앞발 내딛기
-            K(0.63f, g, Ease.In, k => { k.hand = new Vector3(0.03f, 0.68f, 0.30f); k.tip = new Vector3(0f, 0.7f, 0.7f); k.edge = new Vector3(0f, -0.3f, 1f);
-                                         k.elbow = new Vector3(0.9f, -0.2f, 0.1f); k.lElbow = new Vector3(-0.9f, -0.2f, 0.1f);
-                                         k.spineYaw = 4f; k.spinePitch = 8f; k.hips = new Vector3(0f, -0.02f, 0.05f); k.rFoot = new Vector3(0f, 0f, 0.08f); }),
-            K(0.70f, g, Ease.Linear, k => { k.hand = new Vector3(0f, 0.38f, 0.34f); k.tip = new Vector3(0f, -0.35f, 1f); k.edge = new Vector3(0f, -1f, -0.3f);
-                                             k.spinePitch = 30f; k.hips = new Vector3(0f, -0.06f, 0.09f); k.rFoot = new Vector3(0f, 0f, 0.1f); }),
-            K(0.80f, g, Ease.Out, k => { k.hand = new Vector3(-0.04f, 0.30f, 0.25f); k.tip = new Vector3(-0.1f, -0.42f, 0.9f); k.edge = new Vector3(0f, -1f, -0.4f);
+            hold,
+        };
+        // 내려찍기 + 앞발 내딛기: 손은 어깨 앞 중심으로 원을 그리고 칼날은 끊김 없이 돌며 계속 빨라짐.
+        // (키 두 개를 따로 보간하면 0.63초에서 속도가 1/3로 떨어지고 칼끝이 정면에서 꺾여 수직으로 떨어졌음)
+        var impact = K(0.70f, g, Ease.Linear, k => { k.hand = new Vector3(0f, 0.38f, 0.34f); k.tip = new Vector3(0f, -0.35f, 1f); k.edge = new Vector3(0f, -1f, -0.3f);
+                                                      k.elbow = new Vector3(0.9f, -0.2f, 0.1f); k.lElbow = new Vector3(-0.9f, -0.2f, 0.1f);
+                                                      k.spinePitch = 30f; k.hips = new Vector3(0f, -0.06f, 0.09f); k.rFoot = new Vector3(0f, 0f, 0.1f); });
+        keys.AddRange(ArcSwing(hold, impact, HeavyPivot, 12));
+        keys.AddRange(new List<Key>
+        {
+            // 칼끝이 몸 쪽으로 말려 들어오지 않게 같은 원을 따라 조금 더 내려간 뒤 멈춤
+            K(0.80f, g, Ease.Out, k => { k.hand = new Vector3(-0.04f, 0.30f, 0.28f); k.tip = new Vector3(-0.06f, -0.47f, 0.88f); k.edge = new Vector3(0f, -1f, -0.4f);
                                           k.spinePitch = 36f; k.hips = new Vector3(0f, -0.075f, 0.09f); k.rFoot = new Vector3(0f, 0f, 0.1f); }),
             K(1.05f, g, Ease.Out, k => { k.hand = new Vector3(-0.04f, 0.31f, 0.25f); k.tip = new Vector3(-0.1f, -0.38f, 0.9f); k.edge = new Vector3(0f, -1f, -0.4f);
                                           k.spinePitch = 32f; k.hips = new Vector3(0f, -0.07f, 0.08f); k.rFoot = new Vector3(0f, 0f, 0.1f); }),
             K(1.60f, g, Ease.InOut, null),
-        };
+        });
+        return keys;
+    }
+
+    // 내려찍기 원의 중심 (플레이어 기준, 오른 어깨 앞 아래)
+    static readonly Vector3 HeavyPivot = new Vector3(0.02f, 0.52f, 0.02f);
+
+    /// <summary>
+    /// from → to 사이를 원호 운동으로 잇는 키들 (from 다음부터 to 까지, steps 개).
+    ///  - 손: pivot 을 중심으로 옆에서 본 평면(YZ)에서 각도·반지름을 함께 보간 → 원을 그림
+    ///  - 칼끝: 옆에서 본 각도를 보간 → 칼날이 끊김 없이 돎. 날 방향은 움직이는 쪽
+    ///  - 진행: s = x³ (원래 Ease.In 처럼 계속 빨라져 내려찍는 순간 가장 빠름). 키 사이는 Linear 로 이어 속도가 끊기지 않게
+    /// </summary>
+    static List<Key> ArcSwing(Key from, Key to, Vector3 pivot, int steps)
+    {
+        var list = new List<Key>();
+        Vector3 h0 = from.hand - pivot, h1 = to.hand - pivot;
+        float a0 = Mathf.Atan2(h0.y, h0.z), a1 = Mathf.Atan2(h1.y, h1.z);
+        float r0 = new Vector2(h0.y, h0.z).magnitude, r1 = new Vector2(h1.y, h1.z).magnitude;
+        float p0 = Mathf.Atan2(from.tip.y, from.tip.z), p1 = Mathf.Atan2(to.tip.y, to.tip.z);   // 칼끝 각도 (옆에서 봄)
+        if (a1 > a0) a1 -= 2f * Mathf.PI;   // 위 → 앞 → 아래 (각도가 줄어드는 쪽)
+        if (p1 > p0) p1 -= 2f * Mathf.PI;
+        for (int i = 1; i <= steps; i++)
+        {
+            float x = i / (float)steps, s = x * x * x;
+            var k = to.Clone();
+            k.t = Mathf.Lerp(from.t, to.t, x);
+            k.ease = Ease.Linear;
+            float a = Mathf.Lerp(a0, a1, s), r = Mathf.Lerp(r0, r1, s), p = Mathf.Lerp(p0, p1, s);
+            k.hand = pivot + new Vector3(Mathf.Lerp(h0.x, h1.x, s), Mathf.Sin(a) * r, Mathf.Cos(a) * r);
+            float side = Mathf.Lerp(from.tip.normalized.x, to.tip.normalized.x, s);
+            k.tip = new Vector3(side, Mathf.Sin(p), Mathf.Cos(p));
+            k.edge = new Vector3(0f, -Mathf.Cos(p), Mathf.Sin(p));   // 날은 칼이 움직이는 쪽(각도가 줄어드는 쪽)
+            k.elbow = Vector3.Slerp(from.elbow.normalized, to.elbow.normalized, s);
+            k.lElbow = Vector3.Slerp(from.lElbow.normalized, to.lElbow.normalized, s);
+            k.twoHand = Mathf.Lerp(from.twoHand, to.twoHand, s);
+            k.hips = Vector3.Lerp(from.hips, to.hips, s);
+            k.hipsYaw = Mathf.Lerp(from.hipsYaw, to.hipsYaw, s);
+            k.spineYaw = Mathf.Lerp(from.spineYaw, to.spineYaw, s);
+            k.spinePitch = Mathf.Lerp(from.spinePitch, to.spinePitch, s);
+            k.spineRoll = Mathf.Lerp(from.spineRoll, to.spineRoll, s);
+            k.lFoot = Vector3.Lerp(from.lFoot, to.lFoot, s);
+            k.rFoot = Vector3.Lerp(from.rFoot, to.rFoot, s);
+            list.Add(k);
+        }
+        return list;
     }
 
     // ================================================================ 메뉴
@@ -90,7 +141,7 @@ public static class NGH_AttackClipBuilder
     [MenuItem("Tools/NGH/Build Heavy Attack Clip")]
     public static void BuildAll()
     {
-        Build("NGH_Anim_HeavyAttack", HeavyKeys());
+        Build("NGH_Anim_HeavyAttack", HeavyKeys(), 0.53f, 0.85f);   // 내려찍는 구간은 촘촘히
         AssetDatabase.SaveAssets();
     }
 
@@ -247,7 +298,8 @@ public static class NGH_AttackClipBuilder
         return (2f * u3 - 3f * u2 + 1f) * p1 + (u3 - 2f * u2 + u) * m1 + (-2f * u3 + 3f * u2) * p2 + (u3 - u2) * m2;
     }
 
-    public static AnimationClip Build(string name, List<Key> keys)
+    /// <summary>denseFrom~denseTo(초) 구간은 Fps × DenseSub 로 키를 찍음 (빠른 동작에서 키 사이 관절 보간으로 칼 경로가 휘지 않게)</summary>
+    public static AnimationClip Build(string name, List<Key> keys, float denseFrom = -1f, float denseTo = -1f)
     {
         var r = CreateRig();
         try
@@ -264,9 +316,17 @@ public static class NGH_AttackClipBuilder
             }
             var prevRot = new Dictionary<Transform, Quaternion>();
 
+            var times = new List<float>();
             for (int f = 0; f <= frames; f++)
             {
-                float t = f / Fps;
+                float t0 = f / Fps;
+                times.Add(t0);
+                if (f == frames || t0 + 1f / Fps <= denseFrom || t0 >= denseTo) continue;
+                for (int s = 1; s < DenseSub; s++) times.Add(t0 + s / (Fps * DenseSub));
+            }
+
+            foreach (float t in times)
+            {
                 ApplyPose(r, Sample(keys, t));
                 // 쿼터니언 부호를 이전 프레임과 맞춰 보간 시 뒤집힘 방지
                 var rotCache = new Dictionary<Transform, Quaternion>();

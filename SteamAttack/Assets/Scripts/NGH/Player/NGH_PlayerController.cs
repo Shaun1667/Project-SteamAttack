@@ -190,6 +190,10 @@ public class NGH_PlayerController : MonoBehaviour
                                 || _externalInvincible.Count > 0;   // 외부 무적 (예: 시간 역행 연출, CHG_TimeRewind)
     public NGH_Damageable LockTarget => lockTarget;
     public ActionState CurrentAction => action;
+    /// <summary>현재 동작의 클립 기준 진행도 (0~1). 클립 기준 동작(공격·발도 등)이 아니면 0</summary>
+    public float ActionClipProgress => _attack != null ? _actionTime * _actionPlaySpeed / Mathf.Max(0.01f, _attack.clipLength) : 0f;
+    /// <summary>동작이 새로 시작될 때마다 1씩 증가. 같은 동작이 다시 시작된 것도 구분 (NGH_AttackFx 용)</summary>
+    public int ActionSerial { get; private set; }
 
     CharacterController _cc;
     float _vy;
@@ -463,6 +467,7 @@ public class NGH_PlayerController : MonoBehaviour
 
         Vector3 moveDir = CameraRelative(ReadMoveInput());
         action = a;
+        ActionSerial++;
         _actionTime = 0f;
         _buffered = ActionState.None;
         _comboLast = ActionState.None;
