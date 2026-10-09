@@ -26,6 +26,13 @@ public class NGH_AttackFx : MonoBehaviour
         public GameObject prefab;
         [Tooltip("클립 진행도(0~1)가 이 값에 닿으면 이펙트 생성")]
         [Range(0, 1)] public float spawnAt;
+        [Header("소리 (이펙트가 나오는 순간 재생)")]
+        public AudioClip sound;
+        [Range(0, 1)] public float soundVolume = 1f;
+        [Tooltip("소리 시점 보정(초). 이펙트가 나오는 순간 기준: 음수 = 더 일찍(예: -0.1), 양수 = 더 늦게")]
+        public float soundOffset;
+        [Tooltip("재생 높낮이를 매번 이 범위에서 무작위로 (같은 소리가 반복돼도 덜 단조롭게). 둘 다 1이면 고정")]
+        public Vector2 soundPitch = new Vector2(0.96f, 1.04f);
         [Tooltip("칼 궤적 계산에 쓸 클립 구간(0~1). 휘두르기 시작 ~ 끝")]
         public Vector2 swingRange;
         [Header("자동 계산 값 (플레이어 기준, 직접 고쳐도 됨)")]
@@ -87,9 +94,22 @@ public class NGH_AttackFx : MonoBehaviour
     readonly List<Entry> _pending = new List<Entry>();
     static readonly List<ParticleSystem> _psBuffer = new List<ParticleSystem>();
 
+    AudioSource _audio;
+
     void Awake()
     {
         if (!player) player = GetComponent<NGH_PlayerController>();
+        _audio = gameObject.AddComponent<AudioSource>();
+        _audio.playOnAwake = false;
+        _audio.spatialBlend = 0f;   // 2D: 플레이어 자신의 소리라 카메라 거리와 상관없이 같은 크기
+    }
+
+    void PlaySound(Entry e)
+    {
+        if (!e.sound || !_audio) return;
+        // 연타하면 앞 소리 위에 겹쳐 재생 (PlayOneShot). 높낮이를 조금씩 흔듦
+        _audio.pitch = Random.Range(Mathf.Min(e.soundPitch.x, e.soundPitch.y), Mathf.Max(e.soundPitch.x, e.soundPitch.y));
+        _audio.PlayOneShot(e.sound, e.soundVolume);
     }
 
     void Update()
@@ -99,10 +119,14 @@ public class NGH_AttackFx : MonoBehaviour
         {
             _serial = player.ActionSerial;
             _pending.Clear();
+            _pendingSound.Clear();
             foreach (var e in entries)
-                if (e != null && e.prefab && e.action == player.CurrentAction) _pending.Add(e);
+            {
+                if (e == null || e.action != player.CurrentAction) continue;
+                if (e.prefab) _pending.Add(e);
+                if (e.sound) _pendingSound.Add(e);
+            }
         }
-        if (_pending.Count == 0) return;
         float t = player.ActionClipProgress;
         for (int i = _pending.Count - 1; i >= 0; i--)
         {
@@ -110,12 +134,24 @@ public class NGH_AttackFx : MonoBehaviour
             if (player.CurrentAction != e.action) { _pending.RemoveAt(i); continue; }   // 동작이 끊김
             if (t >= e.spawnAt) { Spawn(e); _pending.RemoveAt(i); }
         }
+        // 소리는 이펙트와 따로: 이펙트 시점 + 보정(초)을 클립 진행도로 바꿔서 비교
+        float secondsPerClip = player.ActionClipSeconds;
+        for (int i = _pendingSound.Count - 1; i >= 0; i--)
+        {
+            var e = _pendingSound[i];
+            if (player.CurrentAction != e.action) { _pendingSound.RemoveAt(i); continue; }
+            float at = e.spawnAt + (secondsPerClip > 0.001f ? e.soundOffset / secondsPerClip : 0f);
+            if (t >= at) { PlaySound(e); _pendingSound.RemoveAt(i); }
+        }
     }
+
+    readonly List<Entry> _pendingSound = new List<Entry>();
 
     /// <summary>항목 하나의 이펙트를 지금 플레이어 위치 기준으로 재생</summary>
     public GameObject Spawn(Entry e)
     {
         var t = player ? player.transform : transform;
+        if (!e.prefab) return null;
         // 플레이어 아래에 붙여서 공격 중 앞으로 나가는 이동(Lunge)을 따라가게 함
         var go = NGH_ObjectPool.Spawn(e.prefab, t.TransformPoint(e.localPosition), t.rotation * Quaternion.Euler(e.localEuler), followPlayer ? t : null);
         if (!go) return null;

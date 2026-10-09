@@ -20,7 +20,7 @@ public class NGH_TimeRewindTester : MonoBehaviour
         if (!steamTank) steamTank = FindAnyObjectByType<YPH_SteamTank>();
         if (!steamTank)
         {
-            Debug.LogWarning("[CHG_TimeRewindTester] YPH_SteamTank를 찾지 못했습니다.", this);
+            Debug.LogWarning("[NGH_TimeRewindTester] YPH_SteamTank를 찾지 못했습니다.", this);
             enabled = false;
         }
     }
@@ -33,12 +33,12 @@ public class NGH_TimeRewindTester : MonoBehaviour
         if (keyboard[consumeKey].wasPressedThisFrame)
         {
             bool ok = steamTank.TryConsume(consumeAmount);
-            Debug.Log($"[CHG_TimeRewindTester] 증기 소비 {consumeAmount} → {(ok ? "성공" : "부족")}, {steamTank.CurrentPressure:0.#}/{steamTank.MaxPressure:0}", this);
+            Debug.Log($"[NGH_TimeRewindTester] 증기 소비 {consumeAmount} → {(ok ? "성공" : "부족")}, {steamTank.CurrentPressure:0.#}/{steamTank.MaxPressure:0}", this);
         }
         if (keyboard[refillKey].wasPressedThisFrame)
         {
             steamTank.Refill(refillAmount);
-            Debug.Log($"[CHG_TimeRewindTester] 증기 회복 {refillAmount} → {steamTank.CurrentPressure:0.#}/{steamTank.MaxPressure:0}", this);
+            Debug.Log($"[NGH_TimeRewindTester] 증기 회복 {refillAmount} → {steamTank.CurrentPressure:0.#}/{steamTank.MaxPressure:0}", this);
         }
     }
 }

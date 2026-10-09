@@ -192,6 +192,8 @@ public class NGH_PlayerController : MonoBehaviour
     public ActionState CurrentAction => action;
     /// <summary>현재 동작의 클립 기준 진행도 (0~1). 클립 기준 동작(공격·발도 등)이 아니면 0</summary>
     public float ActionClipProgress => _attack != null ? _actionTime * _actionPlaySpeed / Mathf.Max(0.01f, _attack.clipLength) : 0f;
+    /// <summary>클립 진행도 1(전체)이 실제로 걸리는 시간(초) = 클립 길이 / 재생 속도. 클립 기준 동작이 아니면 0</summary>
+    public float ActionClipSeconds => _attack != null ? _attack.clipLength / Mathf.Max(0.01f, _actionPlaySpeed) : 0f;
     /// <summary>동작이 새로 시작될 때마다 1씩 증가. 같은 동작이 다시 시작된 것도 구분 (NGH_AttackFx 용)</summary>
     public int ActionSerial { get; private set; }
 

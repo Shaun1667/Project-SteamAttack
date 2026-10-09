@@ -5,9 +5,10 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// 시간 역행 (NGH)
-/// - 최근 N초(기본 5초) 동안 플레이어의 위치·회전, 체력, 증기 게이지, 애니메이션, 발도/납도·무기 상태를 계속 기록한다.
+/// - 최근 N초(기본 3초, 통합 기획서 6장 기준) 동안 플레이어의 위치·회전, 체력, 증기 게이지, 애니메이션, 발도/납도·무기 상태를 계속 기록한다.
 /// - N초보다 오래된 기록은 폐기한다.
-/// - 발동하면 연출(RewindEffectRoutine, 지금은 비어 있음)을 먼저 재생한 뒤 N초 전 상태로 모두 되돌린다.
+/// - 발동하면 증기를 소모(기본 70)하고, 연출(RewindEffectRoutine, 지금은 비어 있음)을 먼저 재생한 뒤 N초 전 상태로 모두 되돌린다.
+/// - 증기가 부족하면 발동할 수 없다.
 /// - 연출이 재생되는 동안 플레이어는 무적이다.
 /// 플레이어 루트(NGH_PlayerController가 있는 오브젝트)에 붙인다.
 /// </summary>
@@ -51,13 +52,17 @@ public class NGH_TimeRewind : MonoBehaviour
 
     [Header("기록")]
     [Tooltip("되돌아갈 시간(초). 이보다 오래된 기록은 폐기한다")]
-    [SerializeField, Min(0.1f)] private float rewindSeconds = 5f;
+    [SerializeField, Min(0.1f)] private float rewindSeconds = 3f;
     [Tooltip("기록 간격(초). 0이면 매 프레임 기록")]
     [SerializeField, Min(0f)] private float recordInterval = 0.02f;
 
     [Header("발동")]
     [Tooltip("시간 역행 키")]
-    [SerializeField] private Key rewindKey = Key.R;
+    [SerializeField] private Key rewindKey = Key.Q;
+    [Tooltip("발동 시 소모하는 증기량 (통합 기획서 기준 70). 증기가 부족하면 발동할 수 없다")]
+    [SerializeField, Min(0f)] private float steamCost = 70f;
+    [Tooltip("체크하면 증기를 소모한다. 되돌린 증기 값에서 비용을 뺀다 (복원값 - 비용, 최소 0)")]
+    [SerializeField] private bool consumeSteam = true;
     [Tooltip("연출 중에는 플레이어 조작(이동·공격 입력)을 막는다")]
     [SerializeField] private bool lockControlDuringEffect = true;
     [Tooltip("사망 상태에서도 사용할 수 있게 한다")]
@@ -173,12 +178,24 @@ public class NGH_TimeRewind : MonoBehaviour
         string blockedBy = GetBlockingAction();
         if (blockedBy != null)
         {
-            if (logRewind) Debug.Log($"[CHG_TimeRewind] {blockedBy} 중에는 시간 역행을 사용할 수 없습니다.", this);
+            if (logRewind) Debug.Log($"[NGH_TimeRewind] {blockedBy} 중에는 시간 역행을 사용할 수 없습니다.", this);
+            return false;
+        }
+        if (!HasEnoughSteam())
+        {
+            if (logRewind) Debug.Log($"[NGH_TimeRewind] 증기가 부족합니다 (필요 {steamCost:0.#}, 현재 {(steamTank ? steamTank.CurrentPressure.ToString("0.#") : "-")}).", this);
             return false;
         }
 
         rewindRoutine = StartCoroutine(RewindRoutine());
         return true;
+    }
+
+    /// <summary>비용을 낼 증기가 충분한지 (증기 소모를 끄거나 스팀탱크가 없으면 항상 true)</summary>
+    public bool HasEnoughSteam()
+    {
+        if (!consumeSteam || steamCost <= 0f || steamTank == null) return true;
+        return steamTank.CanConsume(steamCost);
     }
 
     /// <summary>공격 동작(약·강공격, 2타, 사격) 중인지</summary>
@@ -275,7 +292,7 @@ public class NGH_TimeRewind : MonoBehaviour
 
         if (logRewind)
         {
-            Debug.Log($"[CHG_TimeRewind] {rewoundSeconds:0.00}초 전으로 되돌림 → HP {player.Hp}, 증기 {(steamTank ? steamTank.CurrentPressure.ToString("0.#") : "-")}, {(player.IsDrawn ? "발도" : "납도")}", this);
+            Debug.Log($"[NGH_TimeRewind] {rewoundSeconds:0.00}초 전으로 되돌림 → HP {player.Hp}, 증기 {(steamTank ? steamTank.CurrentPressure.ToString("0.#") : "-")}, {(player.IsDrawn ? "발도" : "납도")}", this);
         }
         RewindFinished?.Invoke();
     }
@@ -381,10 +398,16 @@ public class NGH_TimeRewind : MonoBehaviour
         ps.buffered = NGH_PlayerController.ActionState.None;
         player.RestoreRewindState(ps);
 
-        // 증기 게이지
+        // 증기 게이지: 기록된 값으로 되돌린 뒤 발동 비용을 뺀다 (기록 값이 비용보다 작으면 0)
         if (steamTank && s.hasSteam)
         {
-            steamTank.RestorePressure(s.steamPressure);
+            float restored = s.steamPressure;
+            if (consumeSteam && steamCost > 0f) restored = Mathf.Max(0f, restored - steamCost);
+            steamTank.RestorePressure(restored);
+        }
+        else if (steamTank && consumeSteam && steamCost > 0f)
+        {
+            steamTank.TryConsume(steamCost);
         }
 
         // 카메라 방향 (위치는 카메라가 다음 LateUpdate에서 플레이어 기준으로 다시 계산)

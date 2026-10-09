@@ -580,6 +580,8 @@ MonoBehaviour:
   rewindSeconds: 5
   recordInterval: 0.02
   rewindKey: 32
+  steamCost: 70
+  consumeSteam: 1
   lockControlDuringEffect: 1
   allowWhileDead: 0
   blockWhileAttacking: 1
@@ -618,6 +620,10 @@ MonoBehaviour:
     kind: 0
     prefab: {fileID: 5800457299881518954, guid: 4daffeae8b02cb441a8908feb2d54322, type: 3}
     spawnAt: 0.47
+    sound: {fileID: 8300000, guid: 0eb6c52663412a04b8cf91afa742fdf2, type: 3}
+    soundVolume: 1
+    soundOffset: -0.15
+    soundPitch: {x: 0.96, y: 1.04}
     swingRange: {x: 0.47, y: 0.59}
     localPosition: {x: 0.077715226, y: 0.54859066, z: 0.16070983}
     localEuler: {x: 59.10847, y: 107.77133, z: 105.37866}
@@ -1365,6 +1371,10 @@ MonoBehaviour:
     kind: 0
     prefab: {fileID: 5800457299881518954, guid: 4daffeae8b02cb441a8908feb2d54322, type: 3}
     spawnAt: 0.71
+    sound: {fileID: 8300000, guid: 34e8c6de3920c5544a633f5fbf58aea3, type: 3}
+    soundVolume: 1
+    soundOffset: -0.1
+    soundPitch: {x: 0.96, y: 1.04}
     swingRange: {x: 0.71, y: 0.91}
     localPosition: {x: 0.035200022, y: 0.80004287, z: 0.037178777}
     localEuler: {x: 74.04776, y: 114.33821, z: 113.50432}
@@ -2112,6 +2122,10 @@ MonoBehaviour:
     kind: 1
     prefab: {fileID: 1195272098834074375, guid: a4432b16471f66c4ea9815a53a351e7c, type: 3}
     spawnAt: 0.24
+    sound: {fileID: 8300000, guid: 2e833888408f808458b98b0c34069306, type: 3}
+    soundVolume: 1
+    soundOffset: 0
+    soundPitch: {x: 0.96, y: 1.04}
     swingRange: {x: 0.24, y: 0.31}
     localPosition: {x: 0.05450406, y: 0.61787665, z: -0.123718664}
     localEuler: {x: 4.5833545, y: 8.15228, z: 0.000000026766022}
@@ -2137,6 +2151,10 @@ MonoBehaviour:
     kind: 0
     prefab: {fileID: 5800457299881518954, guid: 4daffeae8b02cb441a8908feb2d54322, type: 3}
     spawnAt: 0.3
+    sound: {fileID: 8300000, guid: 93f8c4b981b52c0418f4e4a9e6be157e, type: 3}
+    soundVolume: 1
+    soundOffset: 0
+    soundPitch: {x: 0.96, y: 1.04}
     swingRange: {x: 0.3, y: 0.45}
     localPosition: {x: -0.20942461, y: 0.68413824, z: 0.01886272}
     localEuler: {x: 27.325613, y: 108.17006, z: 98.56781}
@@ -2884,6 +2902,10 @@ MonoBehaviour:
     kind: 0
     prefab: {fileID: 5800457299881518954, guid: 4daffeae8b02cb441a8908feb2d54322, type: 3}
     spawnAt: 0.211
+    sound: {fileID: 8300000, guid: 60f640411a456b94e9afe78fd824bf7b, type: 3}
+    soundVolume: 1
+    soundOffset: 0
+    soundPitch: {x: 0.96, y: 1.04}
     swingRange: {x: 0.211, y: 0.39}
     localPosition: {x: 0.06475893, y: 0.47923592, z: 0.01694911}
     localEuler: {x: 294.55756, y: 214.05618, z: 323.38177}
@@ -3647,6 +3669,10 @@ MonoBehaviour:
     kind: 0
     prefab: {fileID: 5800457299881518954, guid: 4daffeae8b02cb441a8908feb2d54322, type: 3}
     spawnAt: 0.36
+    sound: {fileID: 8300000, guid: 67076fb0580a4174284f652545275157, type: 3}
+    soundVolume: 1
+    soundOffset: 0
+    soundPitch: {x: 0.96, y: 1.04}
     swingRange: {x: 0.36, y: 0.47}
     localPosition: {x: 0.004123117, y: 0.5194005, z: 0.12627615}
     localEuler: {x: 4.143794, y: 85.369316, z: 89.664665}
@@ -4607,6 +4633,10 @@ PrefabInstance:
     - target: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
       propertyPath: m_Name
       value: basicslash
+      objectReference: {fileID: 0}
+    - target: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
