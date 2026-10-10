@@ -5,9 +5,9 @@ public class YPH_GunImpactView : MonoBehaviour
 {
     [SerializeField, Tooltip("충돌 이벤트를 받을 총입니다. 아무것도 맞지 않은 발사에는 이벤트가 오지 않습니다.")]
     private YPH_SteamGun _gun;
-    [SerializeField, Tooltip("살아 있는 적·보스에게 피해를 준 자리에서 재생할 백·황 이펙트입니다.")]
+    [SerializeField, Tooltip("살아 있는 적·보스에게 피해를 준 자리에서 재생할 금속 스파크입니다. 비워 두면 연결 오류로 이 뷰가 꺼집니다.")]
     private ParticleSystem _enemyImpact;
-    [SerializeField, Tooltip("바닥·벽 등 그 밖의 충돌에서 재생할 불똥·먼지 이펙트입니다.")]
+    [SerializeField, Tooltip("바닥·벽 등 그 밖의 충돌에서 재생할 금속 스파크입니다. 비워 두면 연결 오류로 이 뷰가 꺼집니다.")]
     private ParticleSystem _surfaceImpact;
 
     /// <summary>총과 두 종류의 명중 표시가 모두 있어야 이벤트를 받도록 연결을 검사합니다.</summary>
