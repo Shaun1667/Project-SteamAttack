@@ -1,11 +1,8 @@
-using SteamAttack.InventorySystem;
-using SteamAttack.Items;
-using SteamAttack.PlayerControl;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-namespace SteamAttack.EditorTools
+namespace NMJ
 {
     /// <summary>
     /// 지금 열려 있는 씬에 조작 가능한 플레이어 캡슐과 주울 수 있는 필드 아이템을 깐다.

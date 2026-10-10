@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SteamAttack.Quests
+namespace NMJ
 {
     /// <summary>퀘스트 원본 데이터(ScriptableObject).</summary>
     [CreateAssetMenu(fileName = "Quest_", menuName = "SteamAttack/Quest Data", order = 10)]

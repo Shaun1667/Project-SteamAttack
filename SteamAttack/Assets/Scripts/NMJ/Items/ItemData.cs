@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace SteamAttack.Items
+namespace NMJ
 {
     /// <summary>
     /// 아이템 원본 데이터(ScriptableObject).

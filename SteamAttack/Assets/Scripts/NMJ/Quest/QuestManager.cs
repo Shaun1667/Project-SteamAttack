@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using SteamAttack.InventorySystem;
-using SteamAttack.Items;
 using UnityEngine;
 
-namespace SteamAttack.Quests
+namespace NMJ
 {
     /// <summary>
     /// 퀘스트 수락 / 진행 보고 / 완료와 보상 지급을 담당한다.

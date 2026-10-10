@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace SteamAttack.PlayerControl
+namespace NMJ
 {
     /// <summary>필드에 떨어진 아이템이 눈에 띄도록 천천히 돌고 떠다니게 한다.</summary>
     public class PickupBob : MonoBehaviour

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace SteamAttack.Items
+namespace NMJ
 {
     /// <summary>인벤토리 한 칸의 내용물. 비어 있으면 Item 이 null 이다.</summary>
     [Serializable]

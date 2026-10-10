@@ -1,11 +1,9 @@
 using System.Collections.Generic;
 using System.IO;
-using SteamAttack.Items;
-using SteamAttack.Quests;
 using UnityEditor;
 using UnityEngine;
 
-namespace SteamAttack.EditorTools
+namespace NMJ
 {
     /// <summary>
     /// 메인 퀘스트 "고종의 어명을 받아 현무를 토벌한다" 한 줄기와

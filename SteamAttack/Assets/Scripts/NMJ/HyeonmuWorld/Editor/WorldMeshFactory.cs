@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SteamAttack.EditorTools
+namespace NMJ
 {
     /// <summary>
     /// 기본 도형으로 안 되는 메시를 코드로 만든다.

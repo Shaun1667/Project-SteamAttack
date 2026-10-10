@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace SteamAttack.PlayerControl
+namespace NMJ
 {
     /// <summary>
     /// 플레이어를 뒤에서 따라다니는 카메라. 씬에 원래 있던 카메라에 붙여 쓴다.

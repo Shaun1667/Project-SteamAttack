@@ -1,9 +1,8 @@
 using System.Text;
-using SteamAttack.Quests;
 using TMPro;
 using UnityEngine;
 
-namespace SteamAttack.UI
+namespace NMJ
 {
     /// <summary>
     /// HUD 한쪽에 추적 중인 퀘스트(기본값: 진행 중인 메인 퀘스트)의

@@ -1,17 +1,20 @@
 using UnityEngine;
 
-public class BHS_PlayerHealth : MonoBehaviour
+namespace BHS
 {
-    public float hp = 5f;
-
-    public void TakeDamage(float damage)
+    public class PlayerHealth : MonoBehaviour
     {
-        if (hp <= 0f) return;
+        public float hp = 5f;
 
-        hp = Mathf.Max(0f, hp - damage);
-        Debug.Log($"플레이어 체력: {hp}", this);
+        public void TakeDamage(float damage)
+        {
+            if (hp <= 0f) return;
 
-        if (hp <= 0f)
-            Debug.Log("플레이어 사망", this);
+            hp = Mathf.Max(0f, hp - damage);
+            Debug.Log($"플레이어 체력: {hp}", this);
+
+            if (hp <= 0f)
+                Debug.Log("플레이어 사망", this);
+        }
     }
 }

@@ -1,9 +1,5 @@
 using System.Collections.Generic;
 using System.IO;
-using SteamAttack.InventorySystem;
-using SteamAttack.Items;
-using SteamAttack.Quests;
-using SteamAttack.UI;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -12,7 +8,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
-namespace SteamAttack.EditorTools
+namespace NMJ
 {
     /// <summary>
     /// 지금 열려 있는 씬에 인벤토리 / 퀘스트를 통째로 설치한다.

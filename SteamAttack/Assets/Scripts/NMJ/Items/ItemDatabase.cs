@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SteamAttack.Items
+namespace NMJ
 {
     /// <summary>
     /// itemId -> ItemData 조회용 테이블.

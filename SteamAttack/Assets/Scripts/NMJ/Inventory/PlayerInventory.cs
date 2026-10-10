@@ -1,10 +1,9 @@
-using SteamAttack.Items;
 using UnityEngine;
 
 // 인스펙터에서만 채우는 직렬화 필드라 "할당된 적 없음" 경고는 의미가 없다.
 #pragma warning disable CS0649
 
-namespace SteamAttack.InventorySystem
+namespace NMJ
 {
     /// <summary>
     /// 플레이어가 들고 다니는 인벤토리. 씬에 하나 두고 <see cref="Instance"/> 로 접근한다.

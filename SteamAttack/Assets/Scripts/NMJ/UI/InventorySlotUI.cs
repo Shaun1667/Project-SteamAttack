@@ -1,10 +1,9 @@
-using SteamAttack.Items;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace SteamAttack.UI
+namespace NMJ
 {
     /// <summary>인벤토리 칸 한 개의 UI. 드래그로 자리 이동/스택 합치기를 지원한다.</summary>
     public class InventorySlotUI : MonoBehaviour,

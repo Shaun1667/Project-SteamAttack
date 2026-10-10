@@ -1,12 +1,10 @@
 using System.Collections.Generic;
-using SteamAttack.InventorySystem;
-using SteamAttack.Items;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-namespace SteamAttack.UI
+namespace NMJ
 {
     /// <summary>
     /// 인벤토리 창. 칸 수만큼 슬롯을 만들고, 칸 사용량(12/20)을 보여준다.

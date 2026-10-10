@@ -1,8 +1,7 @@
 using System;
-using SteamAttack.Items;
 using UnityEngine;
 
-namespace SteamAttack.Quests
+namespace NMJ
 {
     /// <summary>퀘스트 분류. 메인 퀘스트는 포기할 수 없다.</summary>
     public enum QuestCategory

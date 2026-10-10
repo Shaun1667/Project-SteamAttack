@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace SteamAttack.Quests
+namespace NMJ
 {
     /// <summary>퀘스트 하나의 실행 중 상태(목표별 달성 수치 + 진행 단계).</summary>
     [Serializable]

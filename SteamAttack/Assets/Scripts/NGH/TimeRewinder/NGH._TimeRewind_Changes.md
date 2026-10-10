@@ -127,6 +127,31 @@
 - 플레이어 카메라의 Post Processing 이 꺼져 있어서, 연출 동안만 켰다가 끝나면 다시 끔 (켜져 있는 동안 URP 기본 Volume 설정도 함께 적용되어 하늘색이 아주 조금 달라짐)
 - Inspector `Tint Color` / `Saturation` / `Exposure` / `Vignette Color` / `Vignette Intensity` / `Fade In` / `Fade Out`
 
+### 먹선 궤적 (2026-10-10) — `Scripts/NGH/TimeRewinder/NGH_InkTrail.cs`
+- 최근 5초 이동 경로를 검은 먹선으로 표현 (경로 = `NGH_TimeRewind` 기록 그대로 → 끝점이 실제로 돌아가는 위치). 바닥에 붙여 그림
+- 평상시: 지나간 자리에 가늘고 반투명한 먹선(폭 0.12m, 불투명도 0.35)이 짧게 남고 0.4초부터 옅어져 1.6초에 사라짐
+- 발동 시 (되감기 이동 시간 1초 동안):
+  1. 0~30%: 5초 궤도가 짙은 먹색(폭 0.32m)으로 드러나며 **현재 위치 → 과거 방향으로 번짐**. 현재 위치에는 먹물이 튀며 플레이어가 사라짐
+  2. 30~100%: 현재 쪽 끝부터 **5초 전 위치로 빠르게 빨려 들어감** (끝이 굵게 부풀어 오름), 5초 전 위치에는 먹물 웅덩이가 점점 커짐
+  3. 끝: 플레이어가 그 자리에 나타나고(같은 순간 5초 전 상태로 복원), 웅덩이가 0.5초 동안 퍼지며 사라짐
+- 플레이어 숨김은 Inspector `Hide Player During Rewind` (끄면 기존처럼 공중에 뜬 동작으로 날아가는 모습이 보임)
+- 먹 무늬(들쭉날쭉한 가장자리·붓결, 먹물 웅덩이)는 코드로 생성. 셰이더 `Shaders/NGH/NGH_Ink.shader`, 머티리얼 `Materials/NGH/NGH_Ink.mat`
+- `NGH_TimeRewind`에 연출용 API 추가: `GetRecordedPath(positions, times)`, `RewindTargetPosition`
+- NGH_AnimationTest 씬의 NGH_Player 에 컴포넌트 추가 (프리팹에는 아직 미적용)
+- (2026-10-10 변경 — 에코 잔상 스타일)
+  - 먹선이 바닥이 아니라 **몸통(척추 뼈 `Spine1`, 발에서 약 0.63m)** 에서 뻗어 나옴. 항상 카메라를 향하는 띠라 어느 각도에서도 굵게 보임
+  - 더 크고 진하게: 폭 0.3m(역행 0.42m), 3초 동안 남음 (1초부터 사라지기 시작)
+  - **붓 질감**: 꽉 찬 먹 + 가장자리로 갈수록 끊어지는 붓결 + 안쪽 흰 붓결 틈. 사라질 때는 반투명해지는 대신 옅은 붓결부터 깎여 마른 붓 끝처럼 갈라짐 (셰이더 `_Sharp`)
+  - 회전할 때 띠가 깨지던 문제: 경로를 6cm 간격으로 다시 나누고, 앞뒤 점으로 방향을 부드럽게 계산, 띠가 꼬이지 않게 이웃과 방향을 맞춤
+  - 카메라 바로 앞(0.5~1.6m)의 먹은 지워 화면을 가리지 않게
+- **시간 역행 이동이 먹선을 따라감** (`NGH_TimeRewind` `Follow Recorded Path`): 되돌아갈 위치로 곧장 가지 않고 지나온 경로를 거꾸로 따라 이동 (동작은 다시 재생하지 않고 공중에 뜬 동작 유지). 테스트: 경로에서 벗어난 거리 0m, 도착 오차 0m
+  - 카메라는 가는 방향(남은 먹선)을 바라보고 따라가다 끝부분(70%~)에서 5초 전 카메라 각도로 돌아감 (`Camera Look Along Path`, `Path Look Ahead`, `Travel Camera Pitch` 30°)
+  - 먹선은 플레이어가 지나간 만큼 빨려 들어감 (`RewindTravelProgress`)
+- (싱크) 먹선 길이 = 시간 역행 기록 길이 (`Match Rewind Length`): 꼬리 끝이 항상 가장 오래된 기록 = **시간 역행으로 돌아가는 위치**. 2초부터 옅어지지만 꼬리 끝까지 먹이 남음(`Tail Ink` 0.45). 테스트: 꼬리 끝 ↔ 실제 도착 위치 차이 0m
+- (2026-10-10 프리팹 적용) `Prefabs/NGH/NGH_Player.prefab`에 TimeRewind·AttackFx·RewindGearFx·RewindScreenTint·InkTrail, `Prefabs/NGH/NGH_PlayerCamera.prefab`에 CameraShake 추가 (NGH_AnimationTest 씬 설정 그대로)
+  - **Main 씬(`Scenes/Common/Main.unity`) 수정 — 사용자 승인**: 플레이어·카메라에 따로 붙어 있던 예전 복사본(TimeRewind·AttackFx·GearFx·ScreenTint·CameraShake)이 프리팹과 겹쳐 삭제. 이제 프리팹 설정을 그대로 씀 (예전 Main 값: 증기 소모 0 → 프리팹 값 70)
+- 시간 역행 중 캐릭터가 사라지던 것 → 기본값 `Hide Player During Rewind` 끔 (캐릭터가 먹선을 따라 날아가는 모습이 보임)
+
 ### 연출 넣는 방법
 `CHG_TimeRewind.RewindEffectRoutine(Snapshot target)` 안에 작성합니다.
 `target`에 되돌아갈 시점의 위치 등이 들어 있어 연출에 활용할 수 있습니다.

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace SteamAttack.Quests
+namespace NMJ
 {
     /// <summary>플레이어가 들어오면 Reach 목표를 채우는 트리거 영역.</summary>
     [RequireComponent(typeof(Collider))]

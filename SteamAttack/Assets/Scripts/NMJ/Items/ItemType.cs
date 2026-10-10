@@ -1,4 +1,4 @@
-namespace SteamAttack.Items
+namespace NMJ
 {
     /// <summary>아이템 분류. 인벤토리 정렬/필터와 퀘스트 판정에 쓰인다.</summary>
     public enum ItemType

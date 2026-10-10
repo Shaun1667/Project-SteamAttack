@@ -7,12 +7,12 @@
   - 플레이어: NGH_AttackFx(칼 궤적 이펙트), NGH_RewindGearFx, NGH_RewindScreenTint, NGH_TimeRewind 포함
   - 카메라: NGH_CameraShake 포함
 - Main에만 있던 병합 요소는 새 플레이어로 옮김 (오브젝트 그대로 이동, 설정 유지)
-  - 오른손: `YPH_SteamGunProxy`, `YPH_GrenadeWeapon`
-  - 루트: `NGH_CombatBridge` (CHG_CombatBridge, YPH_SteamHitRefill, YPH_GrenadeHand)
+  - 오른손: `YPH_SteamGunProxy`
+  - 루트: `NGH_CombatBridge` (CHG_CombatBridge, YPH_SteamHitRefill)
   - 카메라: `YPH_AimEffects`
-- NGH_WeaponHolder 무기 칸은 Main 기준 3칸(환도, 총, 수류탄) 유지
-- 스팀백은 AnimationTest 쪽 `YPH_SteamBackpack`을 사용. 총·수류탄·전투 브리지의 탱크 참조는 새 스팀백으로 재연결(15개, 실패 0)
-- 시간 역행: 키 Q, 3초 (통합 기획서 기준)
+- NGH_WeaponHolder 무기 칸은 2칸(환도, 총). 수류탄은 기획상 우선 제외: 무기 칸, `YPH_GrenadeWeapon`, `YPH_GrenadeHand`, CHG_CombatBridge의 수류탄 참조 3개(grenadeWeapon, thrower, grenadeHandView)를 제거. CombatBridge는 null을 확인하므로 G키 제작·투척만 동작하지 않음
+- 스팀백은 AnimationTest 쪽 `YPH_SteamBackpack`을 사용. 총·전투 브리지의 탱크 참조는 새 스팀백으로 재연결(15개, 실패 0)
+- 시간 역행: 키 Q, 5초
 
 ## 2. 적 배치 (Main)
 - `Merge_TestArea/CHG_SoldierZone`에 chg_Prototype의 `chg_Soldier`(도끼), `chg_Soldier2`(소총)를 오버라이드째 복제
@@ -28,6 +28,17 @@
 
 ## 4. 보스 배치 (Scenes/Common/BossArena_Hyangwonjeong.unity)
 - BHS_BossMk1의 `BHS_HyunMu`를 오버라이드째 복제해 `NMJ_BossSpawn_Hyeonmu` 위치(0, 0.1, 3)에 배치, 입구 쪽을 바라봄
+
+## 5. 보스맵 플레이어 교체 + 체력 이어가기 (2026-10-10)
+- BossArena_Hyangwonjeong에 Main의 플레이어 요소를 오버라이드째 복제: `NGH_Player`(스팀건·스팀백·전투 브리지 포함), `NGH_PlayerCamera`(카메라 쉐이크·조준 효과), `NGH_GunFx`, `chg_PlayerHUD`, `NGH_ControlsGuide`, `EventSystem`
+  - 플레이어 시작 위치 = `NGH_Spawn_FromMain` (0, 0.1, -12)
+  - 기존 NMJ 임시 카메라(`Main Camera`, PlayerFollowCamera)는 끔 (NMJ_Player는 이미 씬에서 빠져 있었음)
+  - 보스(BHS_BossFSM)는 태그 Player로 새 플레이어를 찾아 공격함 (확인)
+  - Main의 `GameSystems`(인벤토리·퀘스트)는 맵 전용이라 옮기지 않음
+- 체력 이어가기: 새 스크립트 `Scripts/NGH/Portal/NGH_PlayerCarryOver.cs`
+  - `NGH_ScenePortal`이 씬 이동 직전에 현재 체력을 저장 → 다음 씬 `NGH_PlayerController.Awake`에서 그대로 적용 (포탈 없이 씬을 바로 실행하면 최대 체력)
+  - 테스트: 보스맵 57 → Main 57, Main 41 → 보스맵 41
+- Main 플레이어 체력 3 → 100 (chg_Prototype과 같게), `chg_PlayerHUD`·`NGH_ControlsGuide` 추가
 
 ## 다른 파트 수정 내역 (머지 시 확인)
 - `Scenes/Common/Main.unity`: 위 1~3

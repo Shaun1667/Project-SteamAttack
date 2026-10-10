@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SteamAttack.Quests
+namespace NMJ
 {
     /// <summary>
     /// 퀘스트를 주고 받는 NPC. 상호작용할 때 <see cref="Interact"/> 를 부르면

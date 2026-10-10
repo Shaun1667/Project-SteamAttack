@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace SteamAttack.PlayerControl
+namespace NMJ
 {
     /// <summary>
     /// 테스트용 플레이어 이동. CharacterController 로 움직이므로

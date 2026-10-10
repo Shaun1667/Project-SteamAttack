@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using SteamAttack.Items;
 using UnityEngine;
 
-namespace SteamAttack.InventorySystem
+namespace NMJ
 {
     /// <summary>
     /// 칸(슬롯) 수로만 제한되는 인벤토리.

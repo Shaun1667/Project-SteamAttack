@@ -1,8 +1,7 @@
-using SteamAttack.Items;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace SteamAttack.InventorySystem
+namespace NMJ
 {
     /// <summary>
     /// 필드에 떨어져 있는 아이템. 플레이어가 닿으면 인벤토리에 들어간다.

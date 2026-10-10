@@ -1,12 +1,10 @@
-using SteamAttack.InventorySystem;
-using SteamAttack.Items;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 // 인스펙터에서만 채우는 직렬화 필드라 "할당된 적 없음" 경고는 의미가 없다.
 #pragma warning disable CS0649
 
-namespace SteamAttack.Quests
+namespace NMJ
 {
     /// <summary>
     /// 플레이어 컨트롤러 없이도 메인 퀘스트 흐름을 확인하기 위한 개발용 테스터.

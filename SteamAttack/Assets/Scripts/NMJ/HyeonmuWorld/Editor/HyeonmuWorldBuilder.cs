@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace SteamAttack.EditorTools
+namespace NMJ
 {
     /// <summary>
     /// 《현무: 역류의 어명》 세계관 메인 씬 생성기.

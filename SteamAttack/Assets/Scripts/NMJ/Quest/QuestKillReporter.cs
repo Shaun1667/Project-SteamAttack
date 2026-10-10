@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace SteamAttack.Quests
+namespace NMJ
 {
     /// <summary>
     /// 적에게 붙여두고, 죽을 때 <see cref="ReportDeath"/> 를 호출하면

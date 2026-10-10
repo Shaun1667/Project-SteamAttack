@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SteamAttack.Quests
+namespace NMJ
 {
     /// <summary>questId -> QuestData 조회 테이블. QuestManager 가 이걸 들고 시작한다.</summary>
     [CreateAssetMenu(fileName = "QuestDatabase", menuName = "SteamAttack/Quest Database", order = 11)]
