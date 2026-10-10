@@ -34,6 +34,24 @@ public class CHG_EnemyAttackHitbox : MonoBehaviour, CHG_IPoolable
     private Transform followTarget;
     private Rigidbody followBody;
     private Vector3 followLocalOffset;
+    private Action drawDebug;
+
+    // 플레이 중 개발용 표시(0 키): 판정이 살아 있는 동안 빨간 상자
+    private void DrawDebugBox()
+    {
+        if (box == null || !box.enabled || !gameObject.activeInHierarchy)
+        {
+            return;
+        }
+        Vector3 center = transform.TransformPoint(box.center);
+        Vector3 size = Vector3.Scale(box.size, transform.lossyScale);
+        chg_DebugView.WireBox(center, transform.rotation, size, Color.red);
+    }
+
+    private void OnDisable()
+    {
+        chg_DebugView.Unregister(drawDebug);
+    }
 
     private void Awake()
     {
@@ -66,6 +84,11 @@ public class CHG_EnemyAttackHitbox : MonoBehaviour, CHG_IPoolable
         followLocalOffset = localOffset;
 
         hitTargets.Clear();
+        if (drawDebug == null)
+        {
+            drawDebug = DrawDebugBox;
+        }
+        chg_DebugView.Register(drawDebug);
         CHG_ObjectPool.Despawn(gameObject, Mathf.Max(0.01f, lifetime));
         CheckOverlapNow();
     }
@@ -77,6 +100,7 @@ public class CHG_EnemyAttackHitbox : MonoBehaviour, CHG_IPoolable
 
     public void OnDespawned()
     {
+        chg_DebugView.Unregister(drawDebug);
         Owner = null;
         followTarget = null;
         followBody = null;
@@ -172,6 +196,12 @@ public class CHG_EnemyAttackHitbox : MonoBehaviour, CHG_IPoolable
 
     private void OnDrawGizmos()
     {
+        // 편집 중에만 Gizmo로 그림 (플레이 중에는 0 키 개발용 표시가 그림)
+        if (!chg_DebugView.ShowGizmos)
+        {
+            return;
+        }
+
         BoxCollider gizmoBox = box != null ? box : GetComponent<BoxCollider>();
         if (gizmoBox == null || !gizmoBox.enabled || !gameObject.activeInHierarchy)
         {
