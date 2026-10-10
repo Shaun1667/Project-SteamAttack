@@ -87,6 +87,46 @@
 | Show Debug GUI | ✔ | 화면 왼쪽 위에 기록 시간·HP·증기·차단 상태 표시 |
 | Log Rewind | ✔ | 역행·차단 시 콘솔에 로그 출력 |
 
+### 되감기 이동 연출 (2026-10-10, 오버워치 트레이서 '역행' 참고)
+- 발동하면 순간이동 대신 **1초 동안** 되돌아갈 위치로 이동합니다. 기본(`Direct`)은 했던 동작을 다시 재생하지 않고, **누른 시점 → 5초 전 위치·방향·카메라로 곧장** 이어지며 애니메이션은 5초 전 동작으로 섞여 넘어갑니다.
+- `ReplayPath`로 바꾸면 기록된 경로·동작·카메라를 거꾸로 재생하며 되돌아갑니다.
+- 이동 중에는 충돌·중력 없이 이동하고(무적, 조작 잠금 유지), 끝나면 기존처럼 그 시점 상태를 모두 복원합니다.
+- Inspector `연출 — 되감기 이동`: `Travel Mode`(Direct/ReplayPath), `Rewind Travel Time`(1초, 0이면 예전처럼 순간이동), `Rewind Travel Curve`(천천히 → 빠르게 → 천천히), `Animation Blend Time`(Direct, 0.5초), `Replay Animation Backward`(ReplayPath), `Rewind Camera Angles`
+- 테스트(Direct): 3초 동안 반원을 그리며 이동 → 역행 시 1.02초 동안 직선(벗어남 0m)으로 출발점에 오차 0m 도착, 방향 180°→0° 부드럽게 회전, 도착 후 Locomotion 상태
+
+### 기어 화면 연출 (2026-10-10) — `Scripts/NGH/TimeRewinder/NGH_RewindGearFx.cs`
+- 시간 역행이 시작되면(`RewindStarted`) 되감기 이동 시간(1초) 동안 재생: 화면 사방 가장자리 바깥에서 기어가 튕기듯 튀어나와 화면 테두리를 둘러싸고 돌다가, 끝날 때 바깥으로 빠져나갑니다.
+- 기어는 카메라 앞 0.8m에 붙어 있어 화면에 고정됩니다(되감기 중 카메라가 움직여도 같은 자리). 화면 가운데는 비워 둡니다. 이웃한 기어끼리 반대 방향으로 돕니다.
+- 모델: `Varco3D/NGH/Gear1~7` (돌아가며 사용). 그림자 끔.
+- Inspector: `Count`(14), `Size Range`(화면 높이 대비 0.22~0.42), `Distance`(0.8m), `Reveal`(화면 안으로 들어오는 정도), `Enter/Exit Portion`, `Stagger`(엇갈림), `Overshoot`(튀어나오는 탄력), `Spin Speed Range`, `Duration Override`
+- 플레이어(`NGH_Player`)에 붙임. 테스트: 발동 후 0.08초 들어오는 중 → 0.16~0.84초 테두리 유지·회전 → 0.96초 빠져나가는 중 → 끝나면 숨김
+
+### 발동 키 변경 (2026-10-10): R → **Q**
+
+### 되돌아가는 동안의 애니메이션 — 공중에 뜬 동작 (2026-10-10)
+- `Animations/NGH/NGH_Anim_RewindFloat.anim` (2초, 반복): `model@Falling.fbx`(Mixamo 떨어지는 모션)를 그대로 쓰지 않고 **똑바로 선 채 공중에 뜬 동작**으로 바꿔 구움
+  - (2026-10-10 최종) 레퍼런스(엎드린 채 떨어지는 자세)의 팔다리 자세를 그대로 살리고(팔 100%, 다리 70%, 몸통 60%) 몸 전체 방향만 똑바로 세움. 팔은 정면 약간 바깥·거의 수평으로 앞으로 뻗도록 값을 직접 지정(`FloatSet`, 좌우 팔 근육 방향이 달라 값이 다름), 다리 벌림은 줄임. 위아래 ±5cm 떠다님
+  - `NGH_TimeRewind` `Travel Lift Height`(0.3m) / `Travel Lift Portion`(0.25): 되돌아가는 동안 실제로 땅에서 0.3m 떠올랐다가 도착하며 내려앉음
+  - (2026-10-10 수정) 팔을 바깥으로 약 37° 더 벌림. 원본의 허우적거림을 살리려고 원본을 **실제 속도**로 재생하고(0.5초부터 2초), 팔은 고정 자세 + 원본의 흔들림(원본 값 − 평균)을 그대로 더함(`ArmFlail`). 마지막 0.4초는 처음 자세로 섞여 끊김 없이 반복
+  - (2026-10-10 레퍼런스 이미지로 변경) **양팔을 옆으로 활짝 벌려 살짝 올리고, 양 무릎을 굽혀 정강이를 뒤로 접은 채** 떠 있는 자세. 팔·다리 기준 값은 뼈 방향을 맞춰 찾아 `FloatSet`에 직접 지정(팔은 원본 비율 `ArmWeight` 0 — 원본의 어깨·비틀림이 섞이면 팔뚝이 위로 꺾임). 원본의 허우적임은 근육마다 정한 비율(`flail`, 팔 0.3~0.5·다리 0.5)로 얹음. 평균은 실제 쓰는 구간 기준
+  - (2026-10-10 추가) 팔꿈치를 약 80° 굽혀 **L자** — 위팔은 옆(살짝 뒤·위), 아래팔은 정면 사선(바깥 약 25°, 살짝 위)을 향함 (`Arm Twist In-Out` 추가)
+  - 주의: 이 클립은 에디터 미리보기 씬에서 샘플링하면 자세가 안 바뀌어서, 원본은 미리보기 씬 밖 임시 오브젝트로 샘플링함
+- 만드는 도구: `Scripts/NGH/TimeRewinder/NGH_RewindFloatBuilder.cs` (메뉴 `Tools/NGH/Build Rewind Float Clip`). 섞는 정도 등은 파일 위쪽 값으로 조절 후 다시 실행
+- `model@Falling.fbx` 가져오기 설정을 **Humanoid**(Create From This Model)로 변경 — Mixamo 뼈를 플레이어 뼈대로 옮기기 위함. 동작 데이터는 그대로
+- `NGH_PlayerAnimator.controller`에 `RewindFloat` 상태 추가 (전환 없음, 코드로 재생)
+- `NGH_TimeRewind` (Direct): 시작하면 0.15초 동안 `RewindFloat`로 섞여 들어가고, 도착 0.35초 전부터 5초 전 동작으로 섞여 넘어감. Inspector `Travel Animation State` / `Travel Animation Blend In` / `Animation Blend Time`
+- 테스트: 0.2~0.7초 뜨는 동작 → 0.7초부터 5초 전 동작으로 넘어감 → 끝난 뒤 대기 상태·조작 정상, 위치 오차 0m
+
+### 시계 소리 (2026-10-10)
+- 발동하면 `Audios/NGH/clock tick.wav` 재생 (2D, 플레이어에 AudioSource 자동 추가). 역행이 끝나면 0.25초 동안 줄어들며 멈춤
+- Inspector `Rewind Sound` / `Rewind Sound Volume` / `Rewind Sound Fade Out` (0 = 끝까지 재생)
+
+### 황금색 화면 필터 (2026-10-10) — `Scripts/NGH/TimeRewinder/NGH_RewindScreenTint.cs`
+- 역행하는 동안 화면에 옅은 황금색 필터: 시작에 0.15초 동안 켜지고, 끝나면 0.3초 동안 꺼짐 (플레이어에 컴포넌트 추가)
+- URP 후처리(Color Adjustments 색 필터·채도·노출 + 황금색 비네트)를 코드로 만든 전역 Volume 으로 적용 — 씬/프로젝트 에셋은 추가·수정하지 않음
+- 플레이어 카메라의 Post Processing 이 꺼져 있어서, 연출 동안만 켰다가 끝나면 다시 끔 (켜져 있는 동안 URP 기본 Volume 설정도 함께 적용되어 하늘색이 아주 조금 달라짐)
+- Inspector `Tint Color` / `Saturation` / `Exposure` / `Vignette Color` / `Vignette Intensity` / `Fade In` / `Fade Out`
+
 ### 연출 넣는 방법
 `CHG_TimeRewind.RewindEffectRoutine(Snapshot target)` 안에 작성합니다.
 `target`에 되돌아갈 시점의 위치 등이 들어 있어 연출에 활용할 수 있습니다.

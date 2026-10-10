@@ -536,6 +536,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1766717810704266006, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 417166764}
+    - targetCorrespondingSourceObject: {fileID: 1766717810704266006, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 417166768}
+    - targetCorrespondingSourceObject: {fileID: 1766717810704266006, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 417166769}
   m_SourcePrefab: {fileID: 100100000, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
 --- !u!114 &417166756 stripped
 MonoBehaviour:
@@ -582,11 +588,47 @@ MonoBehaviour:
   playerCamera: {fileID: 0}
   rewindSeconds: 5
   recordInterval: 0.02
-  rewindKey: 32
-  steamCost: 70
+  rewindKey: 31
+  steamCost: 0
   consumeSteam: 1
   lockControlDuringEffect: 1
   allowWhileDead: 0
+  travelMode: 0
+  rewindTravelTime: 1
+  rewindTravelCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  animationBlendTime: 0.35
+  travelAnimationState: RewindFloat
+  travelAnimationBlendIn: 0.15
+  travelLiftHeight: 0.3
+  travelLiftPortion: 0.25
+  replayAnimationBackward: 1
+  rewindCameraAngles: 1
+  rewindSound: {fileID: 8300000, guid: a8037d4a308fb9146adf8f0bb64053ba, type: 3}
+  rewindSoundVolume: 1
+  rewindSoundFadeOut: 0.25
   blockWhileAttacking: 1
   blockWhileDrawSheath: 1
   blockWhileRolling: 1
@@ -4418,6 +4460,59 @@ MonoBehaviour:
     - {x: -0.06880457, y: 0.23287055, z: 0.35213226}
     - {x: -0.06955576, y: 0.23174247, z: 0.3507247}
     pathPrefix: 0
+--- !u!114 &417166768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 417166759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b72400d0f3de3fd4dbba8f16b364d801, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH_RewindGearFx
+  rewind: {fileID: 417166760}
+  targetCamera: {fileID: 693277045}
+  gearModels:
+  - {fileID: 919132149155446097, guid: 8b84a180fce23384e9f7016210e6acaf, type: 3}
+  - {fileID: 919132149155446097, guid: 97203169b20e3e44d8d6af5d345f13f8, type: 3}
+  - {fileID: 919132149155446097, guid: 528f4bf48472ac244a31e2551a24a622, type: 3}
+  - {fileID: 919132149155446097, guid: 287fdb2f24563464e9adaca1928ae47f, type: 3}
+  - {fileID: 919132149155446097, guid: e27497113a2869b428e10deecc4b8cd8, type: 3}
+  - {fileID: 919132149155446097, guid: df5f37c6af6e2ee49970575610e9466c, type: 3}
+  - {fileID: 919132149155446097, guid: 0d91204e92f0ee7498130f94f5e5f36f, type: 3}
+  count: 14
+  sizeRange: {x: 0.22, y: 0.42}
+  distance: 0.8
+  reveal: 0.55
+  enterPortion: 0.22
+  exitPortion: 0.22
+  stagger: 0.12
+  overshoot: 1.6
+  spinSpeedRange: {x: 240, y: 520}
+  durationOverride: 0
+--- !u!114 &417166769
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 417166759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6672edee582de841b1742b7d66e606b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH_RewindScreenTint
+  rewind: {fileID: 417166760}
+  targetCamera: {fileID: 0}
+  tintColor: {r: 1, g: 0.93, b: 0.75, a: 1}
+  saturation: -10
+  exposure: 0.15
+  vignetteColor: {r: 0.55, g: 0.38, b: 0.1, a: 1}
+  vignetteIntensity: 0.3
+  fadeIn: 0.15
+  fadeOut: 0.3
 --- !u!1 &496942755
 GameObject:
   m_ObjectHideFlags: 0
@@ -4672,6 +4767,11 @@ MonoBehaviour:
   frequency: 26
   decay: 1.79
   kick: 0.36
+--- !u!20 &693277045 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 7084413354084590723, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
+  m_PrefabInstance: {fileID: 335216734}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &928530927
 GameObject:
   m_ObjectHideFlags: 0
