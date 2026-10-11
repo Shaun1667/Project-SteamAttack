@@ -28,6 +28,8 @@ namespace CHG
         [SerializeField] private bool applyDamageToPlayer = true;
 
         public int Damage { get; private set; } = 1;
+        /// <summary>맞은 쪽 경직 단계 (공용 HitStagger). Init에서 공격마다 지정</summary>
+        public HitStagger Stagger { get; private set; } = HitStagger.Light;
         public GameObject Owner { get; private set; }
 
         private readonly HashSet<GameObject> hitTargets = new HashSet<GameObject>();
@@ -75,10 +77,11 @@ namespace CHG
         /// Spawn 직후 호출. 크기/데미지를 설정하고 lifetime 뒤에 풀로 반납된다.
         /// follow를 넘기면 그 대상 기준 localOffset 위치를 계속 따라간다.
         /// </summary>
-        public void Init(GameObject owner, int damage, Vector3 size, float lifetime, Transform follow = null, Vector3 localOffset = default)
+        public void Init(GameObject owner, int damage, Vector3 size, float lifetime, Transform follow = null, Vector3 localOffset = default, HitStagger stagger = HitStagger.Light)
         {
             Owner = owner;
             Damage = damage;
+            Stagger = stagger;
             box.center = Vector3.zero;
             box.size = size;
 
@@ -178,7 +181,7 @@ namespace CHG
             {
                 string ownerName = Owner != null ? Owner.name : "Unknown";
                 string resultText = applyDamageToPlayer && !damaged ? " - 피해 없음 (무적 상태)" : "";
-                Debug.Log("[CHG_EnemyAttackHitbox] " + ownerName + " → " + target.name + " 명중 (데미지 " + Damage + ")" + resultText, target);
+                Debug.Log("[CHG_EnemyAttackHitbox] " + ownerName + " → " + target.name + " 명중 (데미지 " + Damage + ", 경직 " + Stagger + ")" + resultText, target);
             }
 
             OnHit?.Invoke(this, target);
@@ -194,6 +197,7 @@ namespace CHG
             }
 
             Vector3 from = Owner != null ? Owner.transform.position : transform.position;
+            // TODO(경직 단계): PlayerController.TakeHit이 경직 단계를 받게 되면 Stagger를 함께 넘긴다
             return playerController.TakeHit(Damage, from);
         }
 

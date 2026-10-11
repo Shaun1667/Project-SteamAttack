@@ -47,6 +47,8 @@ namespace CHG
             [Tooltip("공격을 고를 때 강공격이 나올 확률 (0.3 = 30%)")]
             [Range(0f, 1f)] public float chance = 0.3f;
             public int damage = 44;
+            [Tooltip("맞은 쪽 경직 단계 (기획: 패링 가능한 강공격 = Heavy)")]
+            public HitStagger stagger = HitStagger.Heavy;
             [Tooltip("이 거리 안이면 강공격 시작 (달려들며 내려찍기)")]
             public float startRange = 4.5f;
             [Tooltip("시작부터 판정이 생길 때까지 시간")]
@@ -76,6 +78,8 @@ namespace CHG
             public Transform firePoint;
             public Vector3 fallbackFireOffset = new Vector3(0f, 1.45f, 0.6f);
             public int damage = 18;
+            [Tooltip("총알에 맞은 쪽 경직 단계 (기획: 총알 = Light)")]
+            public HitStagger stagger = HitStagger.Light;
             [Tooltip("총알 속도 (m/s)")]
             public float bulletSpeed = 15f;
             [Tooltip("총알이 날아가는 최대 거리")]
@@ -111,6 +115,8 @@ namespace CHG
             [Tooltip("이 거리 안이면 킥")]
             public float kickRange = 2.5f;
             public int kickDamage = 25;
+            [Tooltip("킥에 맞은 쪽 경직 단계 (기획: 패링 가능한 강공격 = Heavy)")]
+            public HitStagger kickStagger = HitStagger.Heavy;
             [Tooltip("킥 후 다음 킥까지 시간(초)")]
             public float kickCooldown = 4f;
             [Tooltip("차기 전 준비 자세 시간 (패링 예고)")]
@@ -187,6 +193,8 @@ namespace CHG
         [Tooltip("공격 후딜레이")]
         [SerializeField] private float attackCooldown = 1.2f;
         [SerializeField] private int attackDamage = 22;
+        [Tooltip("일반 공격에 맞은 쪽 경직 단계 (기획: 일반 공격 = Light)")]
+        [SerializeField] private HitStagger attackStagger = HitStagger.Light;
         [Tooltip("공격 판정용 히트박스 프리팹 (오브젝트 풀로 재사용)")]
         [SerializeField] private EnemyAttackHitbox attackHitboxPrefab;
         [Tooltip("적 기준 히트박스 생성 위치 (로컬)")]
@@ -222,6 +230,11 @@ namespace CHG
 
         [Header("Animator (비우면 자식에서 찾음)")]
         [SerializeField] private Animator animator;
+        [Tooltip("켜면 공격 클립에 찍은 타격 이벤트(OnAttackHit) 위치로 판정 시간을 자동 계산한다.\n" +
+                 "이벤트 String 칸: Attack(일반 공격) / HeavyAttack(강공격) / Kick(킥).\n" +
+                 "강공격은 달려드는 시간(Dash Duration)과 후딜레이(Recovery)도 이벤트·클립 길이에 맞춰 자동 계산한다.\n" +
+                 "이벤트가 없는 공격은 인스펙터에 넣은 초 값(Attack Windup, Heavy Windup·Dash Duration·Recovery, Kick Hit Clip Time)을 그대로 쓴다.")]
+        [SerializeField] private bool useClipHitEvents = true;
         [Tooltip("배회 속도일 때 Speed 값 (걷기)")]
         [SerializeField] private float walkAnimSpeedValue = 0.5f;
         [Tooltip("추적 속도일 때 Speed 값 (달리기)")]
@@ -241,6 +254,28 @@ namespace CHG
         public bool IsParryWindowOpen => parryWindowOpen;
         /// <summary>패링 가능한 공격의 판정이 생기는 시각 (Time.time 기준, 경직으로 밀리면 함께 밀림)</summary>
         public float ParryHitTime => parryHitTime;
+
+        // 타격 이벤트에서 읽은 시간(초). 음수 = 이벤트 없음 → 인스펙터 값 사용
+        private float clipAttackHitTime = -1f;
+        private float clipHeavyHitTime = -1f;
+        private float clipHeavyLength = -1f;
+        private float clipKickHitTime = -1f;
+        private float clipKickLength = -1f;
+
+        /// <summary>일반 공격 시작 → 판정까지 시간 (타격 이벤트 우선)</summary>
+        private float AttackWindupTime => clipAttackHitTime >= 0f ? clipAttackHitTime : attackWindup;
+        /// <summary>강공격 시작 → 판정까지 시간 (타격 이벤트 우선)</summary>
+        private float HeavyWindupTime => clipHeavyHitTime >= 0f ? clipHeavyHitTime : heavyAttack.windup;
+        /// <summary>강공격 달려드는 시간: 타격 이벤트가 있으면 판정 순간에 도착하도록 타격 시각과 같게</summary>
+        private float HeavyDashTime => clipHeavyHitTime >= 0f ? clipHeavyHitTime : heavyAttack.dashDuration;
+        /// <summary>강공격 후딜레이: 타격 이벤트가 있으면 클립이 끝날 때까지 남은 시간</summary>
+        private float HeavyRecoveryTime => clipHeavyLength >= 0f
+            ? Mathf.Max(0f, clipHeavyLength - clipHeavyHitTime - heavyAttack.activeTime)
+            : heavyAttack.recovery;
+        /// <summary>킥 클립에서 발이 닿는 시간 (타격 이벤트 우선)</summary>
+        private float KickHitClipTime => clipKickHitTime >= 0f ? clipKickHitTime : rangedAttack.kickHitClipTime;
+        /// <summary>킥 클립 전체 길이 (타격 이벤트가 있으면 그 클립 길이)</summary>
+        private float KickClipLength => clipKickLength >= 0f ? clipKickLength : rangedAttack.kickClipLength;
         /// <summary>동심원이 겹치는 시각 = 패링 타이밍의 한가운데</summary>
         public float ParryOverlapTime => parryHitTime - ParryOverlapLead;
         /// <summary>강공격(도끼 달려들기, 소총 킥) 중이라 패링 외에는 끊기지 않는 상태인지</summary>
@@ -341,6 +376,7 @@ namespace CHG
                 animator = GetComponentInChildren<Animator>();
             }
             CacheAnimatorParams();
+            ReadClipHitEvents();
 
             homePosition = transform.position;
             hasHome = true;
@@ -593,7 +629,9 @@ namespace CHG
         /// 플레이어 패링 판정에서 호출. 패링 가능한 공격 중이면 패링당함 처리 후 true.
         /// (플레이어 쪽 패링 기능이 생기면 여기에 연결)
         /// </summary>
-        public bool TryParry()
+        /// <param name="damage">패링 성공 시 줄 피해 (약점 노출 전에 들어가므로 약점 배율이 붙지 않음)</param>
+        /// <param name="from">패링한 쪽 위치</param>
+        public bool TryParry(float damage = 0f, Vector3 from = default)
         {
             if (!enabled || !parryWindowOpen)
             {
@@ -603,12 +641,12 @@ namespace CHG
             {
                 return false;   // 너무 빠르거나 늦음
             }
-            ForceParried();
+            ForceParried(damage, from);
             return true;
         }
 
         /// <summary>공격 여부와 관계없이 패링당함 상태로 만든다 (테스트용 5 키)</summary>
-        public void ForceParried()
+        public void ForceParried(float damage = 0f, Vector3 from = default)
         {
             if (!enabled || (health != null && !health.IsAlive))
             {
@@ -632,11 +670,22 @@ namespace CHG
             ResetAttackTriggers();
             SetAnimTrigger(ParriedHash);
 
+            // 패링 피해는 약점 노출 "전에" 준다 (먼저 노출하면 이 피해에 약점 배율이 붙고 약점이 바로 풀림)
+            if (damage > 0f && health != null)
+            {
+                health.TakeDamage(damage, from);
+                if (!health.IsAlive)
+                {
+                    Log("패링 피해 " + damage + "로 쓰러짐");
+                    return;
+                }
+            }
+
             if (health != null)
             {
                 health.ExposeWeakness();
             }
-            Log("패링당함 → 약점 노출");
+            Log("패링당함" + (damage > 0f ? " (피해 " + damage + ")" : "") + " → 약점 노출");
             Parried?.Invoke();
         }
 
@@ -883,7 +932,7 @@ namespace CHG
 
             // 1) 선딜레이: 멈춘 채로 플레이어를 바라본다
             float timer = 0f;
-            while (timer < attackWindup)
+            while (timer < AttackWindupTime)
             {
                 FacePlayer();
                 timer += ActiveDeltaTime;
@@ -891,7 +940,7 @@ namespace CHG
             }
 
             // 2) 판정 + 전진: 이 순간에만 EnemyAttack 히트박스를 꺼내고 앞으로 튀어나간다
-            SpawnAttackHitbox(attackDamage, attackHitboxOffset, attackHitboxSize, attackActiveTime, "근접 공격");
+            SpawnAttackHitbox(attackDamage, attackStagger, attackHitboxOffset, attackHitboxSize, attackActiveTime, "근접 공격");
             StartLunge(attackLungeDistance, attackLungeDuration, false);
             yield return WaitActive(attackActiveTime);
 
@@ -916,31 +965,31 @@ namespace CHG
             // 1) 플레이어 쪽으로 방향을 정하고 달려든다 (도착 거리는 시작 순간에 확정)
             FacePlayer();
             lungeDirection = facingDirection.sqrMagnitude > 0.0001f ? facingDirection : Flat(transform.forward).normalized;
-            StartLunge(h.dashDistance, h.dashDuration, true);
+            StartLunge(h.dashDistance, HeavyDashTime, true);
 
             superArmor = true;
             if (h.parryable)
             {
                 parryWindowOpen = true;
-                parryHitTime = Time.time + h.windup;
-                ParryableAttackStarted?.Invoke(this, h.windup);
+                parryHitTime = Time.time + HeavyWindupTime;
+                ParryableAttackStarted?.Invoke(this, HeavyWindupTime);
             }
 
             float timer = 0f;
-            while (timer < h.windup)
+            while (timer < HeavyWindupTime)
             {
                 timer += ActiveDeltaTime;
                 yield return null;
             }
 
             // 2) 내려찍기 판정
-            SpawnAttackHitbox(h.damage, h.hitboxOffset, h.hitboxSize, h.activeTime, "강공격");
+            SpawnAttackHitbox(h.damage, h.stagger, h.hitboxOffset, h.hitboxSize, h.activeTime, "강공격");
             yield return WaitActive(h.activeTime);
             parryWindowOpen = false;
 
             // 3) 후딜레이
             timer = 0f;
-            while (timer < h.recovery)
+            while (timer < HeavyRecoveryTime)
             {
                 timer += ActiveDeltaTime;
                 yield return null;
@@ -970,7 +1019,8 @@ namespace CHG
             SetState(isAware && player != null ? State.Chase : State.Wander);
         }
 
-        private void SpawnAttackHitbox(int damage, Vector3 offset, Vector3 size, float activeTime, string label)
+        // stagger: 맞은 쪽 경직 단계 (HitStagger). 히트박스에 저장되어 명중 시 사용
+        private void SpawnAttackHitbox(int damage, HitStagger stagger, Vector3 offset, Vector3 size, float activeTime, string label)
         {
             if (attackHitboxPrefab == null)
             {
@@ -985,8 +1035,8 @@ namespace CHG
             if (hitbox != null)
             {
                 // 전진하는 동안 히트박스가 적을 따라오도록 follow 지정
-                hitbox.Init(gameObject, damage, size, activeTime, transform, offset);
-                Log(label + " (데미지 " + damage + ")");
+                hitbox.Init(gameObject, damage, size, activeTime, transform, offset, stagger);
+                Log(label + " (데미지 " + damage + ", 경직 " + stagger + ")");
             }
         }
 
@@ -1073,7 +1123,7 @@ namespace CHG
             if (r.kickParryable)
             {
                 parryWindowOpen = true;
-                float untilHit = r.kickPrepTime + Mathf.Max(0f, r.kickHitClipTime - r.kickPrepTime * r.kickPrepAnimSpeed);
+                float untilHit = r.kickPrepTime + Mathf.Max(0f, KickHitClipTime - r.kickPrepTime * r.kickPrepAnimSpeed);
                 parryHitTime = Time.time + untilHit;
                 ParryableAttackStarted?.Invoke(this, untilHit);
             }
@@ -1090,7 +1140,7 @@ namespace CHG
 
             // 2) 차기: 원래 속도로 재생, 발이 닿는 순간 판정
             SetAnimFloat(KickSpeedHash, 1f, false);
-            float windup = Mathf.Max(0f, r.kickHitClipTime - r.kickPrepTime * r.kickPrepAnimSpeed);
+            float windup = Mathf.Max(0f, KickHitClipTime - r.kickPrepTime * r.kickPrepAnimSpeed);
             timer = 0f;
             while (timer < windup)
             {
@@ -1098,13 +1148,13 @@ namespace CHG
                 yield return null;
             }
 
-            SpawnAttackHitbox(r.kickDamage, r.kickHitboxOffset, r.kickHitboxSize, r.kickActiveTime, "킥");
+            SpawnAttackHitbox(r.kickDamage, r.kickStagger, r.kickHitboxOffset, r.kickHitboxSize, r.kickActiveTime, "킥");
             StartLunge(r.kickLungeDistance, 0.12f, false);
             yield return WaitActive(r.kickActiveTime);
             parryWindowOpen = false;
 
             // 3) 남은 동작
-            float recovery = Mathf.Max(0f, r.kickClipLength - r.kickHitClipTime - r.kickActiveTime);
+            float recovery = Mathf.Max(0f, KickClipLength - KickHitClipTime - r.kickActiveTime);
             timer = 0f;
             while (timer < recovery)
             {
@@ -1182,8 +1232,8 @@ namespace CHG
             EnemyBullet bullet = ObjectPool.Spawn(r.bulletPrefab, origin, Quaternion.LookRotation(dir));
             if (bullet != null)
             {
-                bullet.Fire(gameObject, r.damage, dir, r.bulletSpeed, r.bulletRange, r.bulletRadius);
-                Log("사격 (데미지 " + r.damage + ")");
+                bullet.Fire(gameObject, r.damage, dir, r.bulletSpeed, r.bulletRange, r.bulletRadius, r.stagger);
+                Log("사격 (데미지 " + r.damage + ", 경직 " + r.stagger + ")");
             }
         }
 
@@ -1476,6 +1526,78 @@ namespace CHG
             foreach (AnimatorControllerParameter p in animator.parameters)
             {
                 animatorParams.Add(p.nameHash);
+            }
+        }
+
+        // ───────── 타격 이벤트 (애니메이션 클립의 OnAttackHit) ─────────
+        // 클립에 찍은 이벤트 "위치"만 읽어서 판정·패링 시간을 미리 계산한다. (패링 원은 맞기 전에 시간을 알아야 하므로
+        // 이벤트가 울리는 순간에 판정을 만들지 않는다) 공격 상태는 전환이 시작되면 클립 0초부터 재생되므로
+        // 공격 시작 후 경과 시간 = 클립 시간 (상태 Speed 1 기준, 킥은 준비 자세 감속을 따로 계산)
+        public const string HitEventName = "OnAttackHit";
+
+        private void ReadClipHitEvents()
+        {
+            clipAttackHitTime = clipHeavyHitTime = clipHeavyLength = clipKickHitTime = clipKickLength = -1f;
+            if (!useClipHitEvents || animator == null || animator.runtimeAnimatorController == null)
+            {
+                return;
+            }
+
+            bool found = false;
+            foreach (AnimationClip clip in animator.runtimeAnimatorController.animationClips)
+            {
+                if (clip == null)
+                {
+                    continue;
+                }
+                foreach (AnimationEvent ev in clip.events)
+                {
+                    if (ev.functionName != HitEventName)
+                    {
+                        continue;
+                    }
+                    found = true;
+                    switch (ev.stringParameter)
+                    {
+                        case "Attack": clipAttackHitTime = ev.time; break;
+                        case "HeavyAttack": clipHeavyHitTime = ev.time; clipHeavyLength = clip.length; break;
+                        case "Kick": clipKickHitTime = ev.time; clipKickLength = clip.length; break;
+                        default:
+                            Debug.LogWarning("[CHG_EnemyAI:" + name + "] 클립 " + clip.name + "의 " + HitEventName +
+                                             " 이벤트 String 칸이 비었거나 잘못됨 (\"" + ev.stringParameter + "\") — Attack / HeavyAttack / Kick 중 하나로 넣어 주세요.", this);
+                            break;
+                    }
+                    Log("타격 이벤트: " + clip.name + " → " + ev.stringParameter + " " + ev.time.ToString("0.00") + "초");
+                }
+            }
+
+            // 이벤트를 받을 컴포넌트가 없으면 유니티가 "no receiver" 오류를 내므로, Animator 오브젝트에 빈 수신기를 붙인다
+            if (found && animator.GetComponent<HitEventReceiver>() == null)
+            {
+                animator.gameObject.AddComponent<HitEventReceiver>().owner = this;
+            }
+        }
+
+        // 이벤트가 실제로 울린 순간 (개발용: 계산한 판정 시각과 비교 로그)
+        private void OnClipHitEvent(string attackName)
+        {
+            if (DebugView.Enabled)
+            {
+                Log("타격 이벤트 울림: " + attackName);
+            }
+        }
+
+        /// <summary>Animator가 붙은 오브젝트에서 타격 이벤트(OnAttackHit)를 받는 빈 수신기 (판정은 EnemyAI가 미리 계산)</summary>
+        public class HitEventReceiver : MonoBehaviour
+        {
+            [HideInInspector] public EnemyAI owner;
+
+            public void OnAttackHit(string attackName)
+            {
+                if (owner != null)
+                {
+                    owner.OnClipHitEvent(attackName);
+                }
             }
         }
 

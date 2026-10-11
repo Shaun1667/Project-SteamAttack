@@ -9,12 +9,13 @@ namespace CHG
     /// 테스트용 빨리뽑기 패링 (플레이어 동작 없이 판정만). 씬의 플레이어(NGH_Player)에 붙여서 사용.
     /// 플레이어 코드(NGH)는 고치지 않고, 증기는 SteamTank, 적은 CHG_EnemyAI의 공개 함수로 처리한다.
     ///
-    /// - Ctrl 입력 → 증기 10 소비 (성공 여부와 관계없이). 증기가 10 미만이면 패링이 나가지 않음
+    /// - Ctrl 입력 → 증기 20 소비 (성공 여부와 관계없이). 증기가 20 미만이면 패링이 나가지 않음
     /// - 쿨타임 2초 (마구 누르기 방지)
     /// - 근처(Parry Range)의 적 중 패링 가능 공격을 하는 적이 있고,
     ///   동심원이 겹치는 순간(공격 판정 0.15초 전) ±0.15초 안에 눌렀으면 성공
-    /// - 성공: 적 공격 취소 → 비틀거림 + 약점 노출, 증기 +20
+    /// - 성공: 적 공격 취소 → 피해 5(빨리뽑기) → 비틀거림 + 약점 노출, 증기 +20
     /// - 실패: 증기만 쓰고 적의 공격은 그대로 들어옴
+    /// - 입력 제한: 피격·회피(구르기)·공격(약공격 연타·강공격·사격)·사망·일어나는 중에는 Ctrl을 눌러도 무시 (증기·쿨타임 소모 없음)
     /// 나중에 플레이어 담당이 패링 동작을 만들면 이 판정(TryParryNearby)만 가져가서 쓰면 된다.
     /// </summary>
     [DisallowMultipleComponent]
@@ -25,8 +26,12 @@ namespace CHG
         [SerializeField] private bool useCtrl = true;
 
         [Header("증기")]
-        [SerializeField, Min(0f)] private float steamCost = 10f;
+        [SerializeField, Min(0f)] private float steamCost = 20f;
         [SerializeField, Min(0f)] private float steamOnSuccess = 20f;
+
+        [Header("피해")]
+        [Tooltip("패링 성공 시 적에게 주는 피해 (빨리뽑기). 약점 노출 전에 들어가 약점 배율은 붙지 않음")]
+        [SerializeField, Min(0f)] private float parryDamage = 5f;
         [Tooltip("비우면 씬에서 찾음")]
         [SerializeField] private SteamTank steamTank;
 
@@ -72,11 +77,42 @@ namespace CHG
             }
         }
 
+        // 패링을 쓸 수 없는 플레이어 상태 (공개 값만 읽음)
+        private bool IsBlockedByPlayerState(out string reason)
+        {
+            if (player.IsDead) { reason = "사망"; return true; }
+            if (player.IsStandingUp) { reason = "일어나는"; return true; }
+            if (player.IsHitReacting) { reason = "피격"; return true; }
+            if (player.CurrentAction == PlayerController.ActionState.Roll) { reason = "회피"; return true; }
+            if (IsAttackAction(player.CurrentAction)) { reason = "공격"; return true; }
+            reason = null;
+            return false;
+        }
+
+        // 공격 동작 (지금은 패링 모션이 없어 공격을 캔슬할 수 없으므로 공격 중 패링 불가)
+        private static bool IsAttackAction(PlayerController.ActionState a)
+        {
+            switch (a)
+            {
+                case PlayerController.ActionState.LightAttack:
+                case PlayerController.ActionState.LightCombo2:
+                case PlayerController.ActionState.LightCombo3:
+                case PlayerController.ActionState.LightCombo4:
+                case PlayerController.ActionState.LightCombo5:
+                case PlayerController.ActionState.HeavyAttack:
+                case PlayerController.ActionState.Shot:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         /// <summary>패링 시도. 성공하면 true.</summary>
         public bool TryParryNearby()
         {
-            if (player != null && player.IsDead)
+            if (player != null && IsBlockedByPlayerState(out string reason))
             {
+                Log("패링 불가 — " + reason + " 중 (증기·쿨타임 소모 없음)");
                 return false;
             }
             if (Time.time < nextAllowedTime)
@@ -117,14 +153,14 @@ namespace CHG
                 }
             }
 
-            bool success = best != null && best.TryParry();
+            bool success = best != null && best.TryParry(parryDamage, transform.position);
             if (success)
             {
                 if (steamTank != null)
                 {
                     steamTank.Refill(steamOnSuccess);
                 }
-                Log("패링 성공 → " + best.name + " (증기 +" + steamOnSuccess + ")");
+                Log("패링 성공 → " + best.name + " (피해 " + parryDamage + ", 증기 +" + steamOnSuccess + ")");
             }
             else
             {

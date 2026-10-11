@@ -326,9 +326,13 @@ namespace CHG
                 mi.SaveAndReimport();
                 mi = AssetImporter.GetAtPath(path) as ModelImporter;
             }
+            // 이미 찍어 둔 애니메이션 이벤트(타격 이벤트 OnAttackHit 등)는 다시 설정해도 유지
+            var existing = mi.clipAnimations;
+            AnimationEvent[] keptEvents = existing != null && existing.Length > 0 ? existing[0].events : null;
             var defaults = mi.defaultClipAnimations;
             if (defaults == null || defaults.Length == 0) return;
             var c = defaults[0];
+            if (keptEvents != null && keptEvents.Length > 0) c.events = keptEvents;
             float start = c.firstFrame + KickStartOffset;
             c.firstFrame = start;
             c.lastFrame = Mathf.Min(start + KickLength, defaults[0].lastFrame);

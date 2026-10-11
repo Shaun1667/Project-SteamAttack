@@ -463,7 +463,7 @@ MonoBehaviour:
   attackCooldown: 1.2
   attackDamage: 22
   attackHitboxPrefab: {fileID: 7922252720182429100, guid: b5e9f132443b20c44b02f6e45243f479, type: 3}
-  attackHitboxOffset: {x: 0, y: 0, z: 1.1}
+  attackHitboxOffset: {x: 0, y: 0.9, z: 1.1}
   attackHitboxSize: {x: 1.2, y: 1.5, z: 1.2}
   attackHitboxPrewarm: 2
   attackLungeDistance: 1
