@@ -104,7 +104,9 @@ namespace CHG
             public float maxFireDistance = 18f;
             [Tooltip("뒤로 물러나는 속도")]
             public float retreatSpeed = 1.1f;
-            [Tooltip("플레이어 발밑 기준 조준 높이 (가슴)")]
+            [Tooltip("켜면 플레이어 몸 콜라이더의 한가운데를 조준 (플레이어 키·크기가 바뀌어도 맞음). 끄거나 콜라이더가 없으면 아래 Aim Height 사용")]
+            public bool aimAtPlayerBody = true;
+            [Tooltip("플레이어 발밑 기준 조준 높이 (Aim At Player Body가 꺼졌거나 콜라이더가 없을 때만 사용)")]
             public float aimHeight = 1.2f;
             [Tooltip("시야를 막는 레이어 (장애물)")]
             public LayerMask lineOfSightMask = ~0;
@@ -722,6 +724,23 @@ namespace CHG
             }
         }
 
+        /// <summary>사격 조준점: 플레이어 몸 콜라이더 한가운데 (없으면 발밑 + Aim Height)</summary>
+        private Vector3 PlayerAimPoint
+        {
+            get
+            {
+                if (player == null)
+                {
+                    return transform.position + transform.forward;
+                }
+                if (rangedAttack.aimAtPlayerBody && playerCollider != null && playerCollider.enabled)
+                {
+                    return playerCollider.bounds.center;
+                }
+                return player.position + Vector3.up * rangedAttack.aimHeight;
+            }
+        }
+
         /// <summary>플레이어를 인지시킨다. fromDamage면 거리와 관계없이 추적을 시작한다.</summary>
         public void Aggro(bool fromDamage)
         {
@@ -1219,7 +1238,7 @@ namespace CHG
             }
 
             Vector3 origin = GetFirePosition();
-            Vector3 target = player != null ? player.position + Vector3.up * r.aimHeight : origin + transform.forward;
+            Vector3 target = player != null ? PlayerAimPoint : origin + transform.forward;
             Vector3 dir = target - origin;
             if (dir.sqrMagnitude < 0.0001f)
             {
@@ -1252,7 +1271,7 @@ namespace CHG
             }
 
             Vector3 from = GetFirePosition();
-            Vector3 to = player.position + Vector3.up * rangedAttack.aimHeight;
+            Vector3 to = PlayerAimPoint;
             Vector3 dir = to - from;
             float distance = dir.magnitude;
             if (distance < 0.01f)
@@ -1312,7 +1331,7 @@ namespace CHG
 
             Vector3 from = GetFirePosition();
             Vector3 dir = isAiming
-                ? (player.position + Vector3.up * rangedAttack.aimHeight - from)
+                ? (PlayerAimPoint - from)
                 : lastShotDirection;
             if (dir.sqrMagnitude < 0.0001f)
             {
@@ -1357,7 +1376,7 @@ namespace CHG
                 if (isAware && player != null)
                 {
                     Color c = hasLineOfSight ? new Color(1f, 0.9f, 0.2f, 0.8f) : new Color(0.5f, 0.5f, 0.5f, 0.8f);
-                    DebugView.Line(GetFirePosition(), player.position + Vector3.up * rangedAttack.aimHeight, c);
+                    DebugView.Line(GetFirePosition(), PlayerAimPoint, c);
                 }
             }
             else
@@ -2116,7 +2135,7 @@ namespace CHG
             if (Application.isPlaying && player != null)
             {
                 Gizmos.color = hasLineOfSight ? new Color(1f, 0.9f, 0.2f, 0.8f) : new Color(0.5f, 0.5f, 0.5f, 0.8f);
-                Gizmos.DrawLine(from, player.position + Vector3.up * rangedAttack.aimHeight);
+                Gizmos.DrawLine(from, PlayerAimPoint);
             }
         }
 
