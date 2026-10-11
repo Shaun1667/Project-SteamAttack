@@ -235,6 +235,7 @@ MonoBehaviour:
   rollAnimSpeed: 1.6
   rollInvincibleTime: 0.5
   lightAttack:
+    damage: 1
     clipLength: 0.75
     playSpeed: 1
     endAt: 1
@@ -245,6 +246,7 @@ MonoBehaviour:
     blendIn: 0.12
     chainAt: 1
   heavyAttack:
+    damage: 3
     clipLength: 1.6
     playSpeed: 1
     endAt: 0.75
@@ -255,6 +257,7 @@ MonoBehaviour:
     blendIn: 0.08
     chainAt: 1
   lightCombo2:
+    damage: 1
     clipLength: 0.56666666
     playSpeed: 1
     endAt: 1
@@ -265,6 +268,7 @@ MonoBehaviour:
     blendIn: 0.04
     chainAt: 1
   lightCombo3:
+    damage: 1
     clipLength: 0.85
     playSpeed: 1
     endAt: 1
@@ -275,6 +279,7 @@ MonoBehaviour:
     blendIn: 0.04
     chainAt: 0.5394892
   lightCombo4:
+    damage: 1
     clipLength: 1.4
     playSpeed: 1
     endAt: 1
@@ -285,6 +290,7 @@ MonoBehaviour:
     blendIn: 0.04
     chainAt: 0.6648044
   lightCombo5:
+    damage: 1
     clipLength: 1.4666667
     playSpeed: 1
     endAt: 1
@@ -301,6 +307,7 @@ MonoBehaviour:
   lungeLead: 0.04
   lungeStopDistance: 0.6
   shotAttack:
+    damage: 0
     clipLength: 1.8333334
     playSpeed: 1
     endAt: 0.45
@@ -310,6 +317,7 @@ MonoBehaviour:
     blendIn: 0.08
     chainAt: 1
   drawAction:
+    damage: 0
     clipLength: 0.5
     playSpeed: 1
     endAt: 1
@@ -319,6 +327,7 @@ MonoBehaviour:
     blendIn: 0.08
     chainAt: 1
   sheathAction:
+    damage: 0
     clipLength: 0.5
     playSpeed: 1
     endAt: 1
@@ -331,6 +340,7 @@ MonoBehaviour:
   sheathHideAt: 0.75
   instantDrawOnAttack: 0
   hitSmallAction:
+    damage: 0
     clipLength: 1.6333334
     playSpeed: 1
     endAt: 1
@@ -340,6 +350,7 @@ MonoBehaviour:
     blendIn: 0.08
     chainAt: 1
   hitLargeAction:
+    damage: 0
     clipLength: 1.7333333
     playSpeed: 1
     endAt: 1

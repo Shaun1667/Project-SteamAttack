@@ -72,6 +72,8 @@ namespace NGH
         [System.Serializable]
         public class AttackData
         {
+            [Tooltip("이 동작의 공격력: 판정 1번에 맞을 때 주는 데미지 (2타처럼 판정 구간이 2개면 2번 들어감). 0 이하면 무기의 Light/Heavy Damage 사용")]
+            public float damage;
             [Tooltip("클립 원래 길이(초). 0이면 씬 구성 때 입력된 값을 사용")]
             public float clipLength;
             [Tooltip("재생 속도 배율 (1 = 원래 속도, 1.5 = 1.5배 빠르게)")]
@@ -102,20 +104,22 @@ namespace NGH
         [Tooltip("구르기 무적 시간(초). 추후 조정")]
         public float rollInvincibleTime = 0.5f;
 
-        [Header("공격 — 후딜레이는 End At, 빠르기는 Play Speed로 조절")]
+        [Header("공격 — 공격력은 각 항목의 Damage, 후딜레이는 End At, 빠르기는 Play Speed로 조절")]
+        [Tooltip("약공격 1타")]
         public AttackData lightAttack = new AttackData
-            { playSpeed = 2f, endAt = 0.30f, hitWindows = new[] { new Vector2(0.13f, 0.27f) }, lungeDistance = 0.4f };
+            { damage = 1f, playSpeed = 2f, endAt = 0.30f, hitWindows = new[] { new Vector2(0.13f, 0.27f) }, lungeDistance = 0.4f };
+        [Tooltip("강공격 (좌·우클릭 동시)")]
         public AttackData heavyAttack = new AttackData   // 파워슬래시(powerslash): 회전 점프 베기, 판정 1번
-            { playSpeed = 2f, endAt = 0.57f, hitWindows = new[] { new Vector2(0.345f, 0.39f) }, lungeDistance = 0.5f };   // 내려치는 순간(프레임 52~58)
-        [Tooltip("약공격 2타: 1타 중 좌클릭을 한 번 더 누르면 이어짐 (데미지는 약공격 기준)")]
+            { damage = 3f, playSpeed = 2f, endAt = 0.57f, hitWindows = new[] { new Vector2(0.345f, 0.39f) }, lungeDistance = 0.5f };   // 내려치는 순간(프레임 52~58)
+        [Tooltip("약공격 2타: 1타 중 좌클릭을 한 번 더 누르면 이어짐 (두 번 베기 = 판정 2번, 판정마다 Damage)")]
         public AttackData lightCombo2 = new AttackData
-            { playSpeed = 2f, endAt = 0.66f, hitWindows = new[] { new Vector2(0.18f, 0.31f), new Vector2(0.48f, 0.61f) }, lungeDistance = 0.15f, hitOncePerAction = false };   // 두 번 베기 = 판정 2번
+            { damage = 1f, playSpeed = 2f, endAt = 0.66f, hitWindows = new[] { new Vector2(0.18f, 0.31f), new Vector2(0.48f, 0.61f) }, lungeDistance = 0.15f, hitOncePerAction = false };   // 두 번 베기 = 판정 2번
         [Tooltip("약공격 3타: 2타 중 좌클릭")]
-        public AttackData lightCombo3 = new AttackData { playSpeed = 1f, endAt = 0.6f, hitWindows = new[] { new Vector2(0.16f, 0.33f) }, lungeDistance = 0.2f };
+        public AttackData lightCombo3 = new AttackData { damage = 1f, playSpeed = 1f, endAt = 0.6f, hitWindows = new[] { new Vector2(0.16f, 0.33f) }, lungeDistance = 0.2f };
         [Tooltip("약공격 4타: 3타 중 좌클릭")]
-        public AttackData lightCombo4 = new AttackData { playSpeed = 1f, endAt = 0.6f, hitWindows = new[] { new Vector2(0.16f, 0.33f) }, lungeDistance = 0.2f };
+        public AttackData lightCombo4 = new AttackData { damage = 1f, playSpeed = 1f, endAt = 0.6f, hitWindows = new[] { new Vector2(0.16f, 0.33f) }, lungeDistance = 0.2f };
         [Tooltip("약공격 5타(마무리): 4타 중 좌클릭")]
-        public AttackData lightCombo5 = new AttackData { playSpeed = 1f, endAt = 0.85f, hitWindows = new[] { new Vector2(0.25f, 0.35f) }, lungeDistance = 0.35f };
+        public AttackData lightCombo5 = new AttackData { damage = 1f, playSpeed = 1f, endAt = 0.85f, hitWindows = new[] { new Vector2(0.25f, 0.35f) }, lungeDistance = 0.35f };
         [Header("콤보 입력")]
         [Tooltip("약공격이 이 비율(0~1) 이상 진행된 뒤 누른 좌클릭은 다음 타로 이어짐")]
         [Range(0, 1)] public float comboInputFrom = 0.2f;
@@ -595,7 +599,9 @@ namespace NGH
         {
             var w = weapons ? weapons.Current : null;
             float reach = w ? w.reach : 0.9f, radius = w ? w.hitRadius : 0.6f;
-            float dmg = w ? (heavy ? w.heavyDamage : w.lightDamage) : (heavy ? 3f : 1f);
+            // 공격력: 지금 동작(콤보 타)의 Damage, 0 이하면 무기 기본값
+            float dmg = _attack != null && _attack.damage > 0f ? _attack.damage
+                      : w ? (heavy ? w.heavyDamage : w.lightDamage) : (heavy ? 3f : 1f);
             Vector3 center = transform.position + Vector3.up * 0.5f + transform.forward * reach;
             foreach (var col in Physics.OverlapSphere(center, radius, ~0, QueryTriggerInteraction.Collide))
             {

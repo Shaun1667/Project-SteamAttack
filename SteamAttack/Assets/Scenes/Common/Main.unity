@@ -233214,8 +233214,32 @@ PrefabInstance:
       value: 100
       objectReference: {fileID: 0}
     - target: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: healOnHit
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: comboGraceTime
       value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: heavyAttack.damage
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: lightAttack.damage
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: lightCombo3.damage
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: lightCombo4.damage
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: lightCombo5.damage
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 5476164595700723117, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
