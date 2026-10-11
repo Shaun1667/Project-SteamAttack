@@ -156,9 +156,20 @@ namespace CHG
             mi.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
             mi.SaveAndReimport();   // Humanoid 로 바꾼 뒤의 기본 클립 정보를 다시 읽기 위해 먼저 저장
             mi = AssetImporter.GetAtPath(path) as ModelImporter;
+            // 이미 찍어 둔 애니메이션 이벤트(타격 이벤트 OnAttackHit 등)는 다시 설정해도 유지 (클립 이름으로 매칭)
+            var keptEvents = new System.Collections.Generic.Dictionary<string, AnimationEvent[]>();
+            var existing = mi.clipAnimations;
+            if (existing != null)
+            {
+                foreach (var e in existing)
+                {
+                    if (e.events != null && e.events.Length > 0) keptEvents[e.name] = e.events;
+                }
+            }
             var clips = mi.defaultClipAnimations;
             foreach (var c in clips)
             {
+                if (keptEvents.TryGetValue(c.name, out var evs)) c.events = evs;
                 c.loopTime = loop;
                 c.loopPose = loop;
                 c.lockRootRotation = true;        // Root Transform Rotation: Bake Into Pose

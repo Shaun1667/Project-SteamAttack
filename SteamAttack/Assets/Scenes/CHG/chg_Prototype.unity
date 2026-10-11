@@ -244,6 +244,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: chg_Soldier
       objectReference: {fileID: 0}
+    - target: {fileID: 8422566787907967887, guid: 39e9fdbf3f3685d4281ab49fa9174365, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 9198927088368845109, guid: 39e9fdbf3f3685d4281ab49fa9174365, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -552,9 +556,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 50746253645440375, guid: 3dd1474b4e50a2b469a0daf02a8306fa, type: 3}
+      propertyPath: maxHp
+      value: 100
+      objectReference: {fileID: 0}
     - target: {fileID: 6292145528358204832, guid: 3dd1474b4e50a2b469a0daf02a8306fa, type: 3}
       propertyPath: m_Name
       value: chg_Soldier2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6292145528358204832, guid: 3dd1474b4e50a2b469a0daf02a8306fa, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6636583645335924506, guid: 3dd1474b4e50a2b469a0daf02a8306fa, type: 3}
       propertyPath: m_LocalPosition.x
@@ -877,6 +889,7 @@ MonoBehaviour:
   useCtrl: 1
   steamCost: 10
   steamOnSuccess: 20
+  parryDamage: 5
   steamTank: {fileID: 0}
   cooldown: 2
   parryRange: 5
@@ -1241,15 +1254,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1.6894
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1.6894
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_LocalScale.z
-      value: 1.6894
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1290,6 +1303,14 @@ PrefabInstance:
     - target: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3658074112825113857, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: heavyDamage
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 3658074112825113857, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: lightDamage
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: hp

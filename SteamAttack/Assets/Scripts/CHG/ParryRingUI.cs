@@ -67,6 +67,15 @@ namespace CHG
             ringTemplate = null;
             config = null;
             configLoaded = false;
+            applicationQuitting = false;
+        }
+
+        // 플레이 종료 중인지 (종료 때는 모든 오브젝트가 지워지므로 풀 반납을 하지 않는다)
+        private static bool applicationQuitting;
+
+        private static void OnApplicationQuitting()
+        {
+            applicationQuitting = true;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -76,6 +85,8 @@ namespace CHG
             EnemyAI.ParryableAttackStarted += OnParryableAttackStarted;
             PlayerParry.ParryAttempted -= OnParryAttempted;
             PlayerParry.ParryAttempted += OnParryAttempted;
+            Application.quitting -= OnApplicationQuitting;
+            Application.quitting += OnApplicationQuitting;
         }
 
         private static ParryRingConfig Config
@@ -128,11 +139,13 @@ namespace CHG
 
         private void OnDisable()
         {
+            // 캔버스가 꺼지는 도중에는 자식 오브젝트의 부모를 바꿀 수 없어서(유니티 제한),
+            // 떠 있던 원은 바로 반납하지 않고 다음 프레임에 반납한다. 플레이 종료 중이면 반납하지 않는다.
             foreach (Entry e in entries)
             {
-                if (e.root != null)
+                if (e.root != null && !applicationQuitting)
                 {
-                    ObjectPool.Despawn(e.root.gameObject);
+                    ObjectPool.Despawn(e.root.gameObject, 0.01f);
                 }
             }
             entries.Clear();

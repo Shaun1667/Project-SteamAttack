@@ -27,6 +27,7 @@ namespace CHG
         private Vector3 origin;
         private Vector3 direction;
         private int damage;
+        private HitStagger stagger = HitStagger.Light;   // 맞은 쪽 경직 단계 (공용 HitStagger)
         private float speed;
         private float range;
         private float radius;
@@ -51,10 +52,11 @@ namespace CHG
         }
 
         /// <summary>Spawn 직후 호출. dir 방향으로 speed(m/s)로 날아가며 range를 넘으면 사라진다.</summary>
-        public void Fire(GameObject shooter, int bulletDamage, Vector3 dir, float bulletSpeed, float maxRange, float hitRadius)
+        public void Fire(GameObject shooter, int bulletDamage, Vector3 dir, float bulletSpeed, float maxRange, float hitRadius, HitStagger hitStagger = HitStagger.Light)
         {
             owner = shooter;
             damage = bulletDamage;
+            stagger = hitStagger;
             direction = dir.sqrMagnitude > 0.0001f ? dir.normalized : transform.forward;
             speed = Mathf.Max(0.1f, bulletSpeed);
             range = Mathf.Max(0.1f, maxRange);
@@ -170,11 +172,12 @@ namespace CHG
             if (player != null)
             {
                 Vector3 from = owner != null ? owner.transform.position : origin;
+                // TODO(경직 단계): PlayerController.TakeHit이 경직 단계를 받게 되면 stagger를 함께 넘긴다
                 bool damaged = player.TakeHit(damage, from);
                 if (logHits)
                 {
                     string ownerName = owner != null ? owner.name : "Unknown";
-                    Debug.Log("[chg_EnemyBullet] " + ownerName + " → " + player.name + (damaged ? " 명중 (데미지 " + damage + ")" : " 통과 (무적 상태)"), player);
+                    Debug.Log("[chg_EnemyBullet] " + ownerName + " → " + player.name + (damaged ? " 명중 (데미지 " + damage + ", 경직 " + stagger + ")" : " 통과 (무적 상태)"), player);
                 }
                 if (!damaged)
                 {
