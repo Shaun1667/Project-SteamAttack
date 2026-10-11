@@ -21,4 +21,6 @@ public enum HitStagger
     Light = 1,
     /// <summary>강: 크게 비틀거림 (피격 대)</summary>
     Heavy = 2,
+    /// <summary>넘어짐: 쓰러졌다가 일어남 (패링 불가 강공격, 보스 궁극기 등)</summary>
+    Knockdown = 3,
 }
