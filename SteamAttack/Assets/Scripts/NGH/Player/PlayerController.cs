@@ -146,11 +146,13 @@ namespace NGH
         public bool instantDrawOnAttack = false;   // 끔: 납도 상태에서 공격하면 발도 동작 후 공격
 
         [Header("피격 — 동작이 재생되는 동안 무적")]
-        [Tooltip("데미지 1: 피격(소)")]
+        [Tooltip("피격(넉백) 기준 데미지. 이 값 이상이면 피격(대, 넉백), 미만이면 피격(소)")]
+        [Min(1)] public int heavyHitThreshold = 25;
+        [Tooltip("기준 데미지 미만: 피격(소)")]
         public AttackData hitSmallAction = new AttackData { playSpeed = 1f, endAt = 1f, hitWindows = new Vector2[0] };
-        [Tooltip("데미지 2 이상: 피격(대)")]
+        [Tooltip("기준 데미지 이상: 피격(대, 넉백)")]
         public AttackData hitLargeAction = new AttackData { playSpeed = 1f, endAt = 1f, hitWindows = new Vector2[0] };
-        [Tooltip("테스트용: 숫자 1 = 데미지 1, 숫자 2 = 데미지 2 를 자신에게 줌")]
+        [Tooltip("테스트용: 숫자 1 = 데미지 1(피격 소), 숫자 2 = 기준 데미지(피격 대)을 자신에게 줌")]
         public bool debugHitKeys = true;
 
         [HideInInspector] public float attackForwardRatio;   // 이전 버전 호환 (지금은 휘두를 때만 전진)
@@ -271,7 +273,7 @@ namespace NGH
             if (debugHitKeys)
             {
                 if (kb.digit1Key.wasPressedThisFrame) TakeHit(1, transform.position + transform.forward);
-                if (kb.digit2Key.wasPressedThisFrame) TakeHit(2, transform.position + transform.forward);
+                if (kb.digit2Key.wasPressedThisFrame) TakeHit(heavyHitThreshold, transform.position + transform.forward);
             }
             if (kb.fKey.wasPressedThisFrame) Request(drawn ? ActionState.Sheath : ActionState.Draw);
             if (kb.tabKey.wasPressedThisFrame && weapons && action == ActionState.None) weapons.SwapNext();
@@ -363,7 +365,7 @@ namespace NGH
 
         /// <summary>
         /// 플레이어가 맞았을 때 호출. 무적 중이면 무시하고 false 반환.
-        /// 데미지 1 = 피격(소), 2 이상 = 피격(대). 피격 동작이 끝날 때까지 무적.
+        /// 데미지가 Heavy Hit Threshold(기본 25) 이상이면 피격(대, 넉백), 미만이면 피격(소). 피격 동작이 끝날 때까지 무적.
         /// </summary>
         public bool TakeHit(int damage, Vector3 from)
         {
@@ -373,8 +375,9 @@ namespace NGH
             _buffered = ActionState.None;
             SetHp(hp - damage);
             if (hp <= 0) { Die(); return true; }
-            StartAction(damage >= 2 ? ActionState.HitLarge : ActionState.HitSmall);
-            Debug.Log($"[CHG] 플레이어 피격 데미지 {damage} → {(damage >= 2 ? "피격(대)" : "피격(소)")}, HP {hp}/{maxHp}, {_actionDuration:0.##}초 무적");
+            bool heavyHit = damage >= heavyHitThreshold;
+            StartAction(heavyHit ? ActionState.HitLarge : ActionState.HitSmall);
+            Debug.Log($"[CHG] 플레이어 피격 데미지 {damage} → {(heavyHit ? "피격(대)" : "피격(소)")}, HP {hp}/{maxHp}, {_actionDuration:0.##}초 무적");
             return true;
         }
 

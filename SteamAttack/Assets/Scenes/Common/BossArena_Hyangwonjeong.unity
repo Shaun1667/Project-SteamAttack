@@ -11207,14 +11207,17 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3933925296522799872, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1939869149}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1766717810704266006, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1932385061}
   m_SourcePrefab: {fileID: 100100000, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
 --- !u!114 &562215039 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
   m_PrefabInstance: {fileID: 562215038}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1932385060}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b451237558f54104482dee4a759898ee, type: 3}
@@ -11225,7 +11228,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2384890397531492216, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
   m_PrefabInstance: {fileID: 562215038}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1932385060}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 955af114af82983489097236f2e2467c, type: 3}
@@ -20857,6 +20860,30 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!1 &1932385060 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1766717810704266006, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 562215038}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1932385061
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1932385060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04bef46752ca488f9a17b1b7ab0c0f80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CHG.PlayerParry
+  useCtrl: 1
+  steamCost: 10
+  steamOnSuccess: 20
+  steamTank: {fileID: 1051657846}
+  cooldown: 2
+  parryRange: 5
+  logParry: 1
 --- !u!1 &1939869148
 GameObject:
   m_ObjectHideFlags: 0

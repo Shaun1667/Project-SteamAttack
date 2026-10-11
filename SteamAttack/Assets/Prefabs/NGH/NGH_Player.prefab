@@ -339,6 +339,7 @@ MonoBehaviour:
   drawShowAt: 0.3
   sheathHideAt: 0.75
   instantDrawOnAttack: 0
+  heavyHitThreshold: 25
   hitSmallAction:
     damage: 0
     clipLength: 1.6333334
