@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-namespace CHG
+namespace NGH
 {
     /// <summary>
     /// 적 HP와 피해 처리 (NGH)

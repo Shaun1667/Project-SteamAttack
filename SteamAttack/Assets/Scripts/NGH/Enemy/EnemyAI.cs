@@ -4,10 +4,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Random = UnityEngine.Random;
-using NGH;
 using YPH;
 
-namespace CHG
+namespace NGH
 {
     /// <summary>
     /// 적 기본 AI (NGH)

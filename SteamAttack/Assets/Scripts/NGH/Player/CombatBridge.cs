@@ -1,9 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using NGH;
 using YPH;
 
-namespace CHG
+namespace NGH
 {
     /// <summary>
     /// 병합용 연결 (NGH) — CHG 플레이어의 입력·무기 칸과 YPH 총·수류탄·조준을 잇는다. (CombatTestInput 대체)

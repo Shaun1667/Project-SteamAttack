@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace CHG
+namespace NGH
 {
     /// <summary>
     /// 패링 예고 동심원 UI (기획: 게임 제작일지/패링)

@@ -1,8 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
-using NGH;
 
-namespace CHG
+namespace NGH
 {
     /// <summary>
     /// 일반 몬스터 체력바 (개체별로 따로 관리, 피해 수치는 표시하지 않음)

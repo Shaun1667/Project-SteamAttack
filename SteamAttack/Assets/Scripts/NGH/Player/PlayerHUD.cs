@@ -2,10 +2,9 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using NGH;
 using YPH;
 
-namespace CHG
+namespace NGH
 {
     /// <summary>
     /// 플레이어 HUD (기획: 인게임 UI)

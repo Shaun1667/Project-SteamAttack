@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace CHG
+namespace NGH
 {
     /// <summary>
     /// 패링 동심원 UI 설정 (기획: 게임 제작일지/패링)

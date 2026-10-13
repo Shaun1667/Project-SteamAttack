@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 
-namespace CHG
+namespace NGH
 {
     /// <summary>
     /// 개발용 표시 전체 켜기/끄기 — 플레이 중 숫자 0 키

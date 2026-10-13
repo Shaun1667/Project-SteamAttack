@@ -1,9 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using NGH;
 using YPH;
 
-namespace CHG
+namespace NGH
 {
     /// <summary>
     /// 테스트용 빨리뽑기 패링 (플레이어 동작 없이 판정만). 씬의 플레이어(NGH_Player)에 붙여서 사용.
