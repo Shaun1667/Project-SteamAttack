@@ -53,14 +53,16 @@ namespace NGH
             public float planeBlend = 1f;
             // 시간 배치 구간 경계에서 속도가 갑자기 바뀌지 않게 이어 붙임 (끄면 구간마다 일정 속도)
             public bool smoothRetime;
+            // 반복 동작(걷기·달리기): 끝에서 감속하지 않고, 구운 클립에 Loop Time을 켬
+            public bool loop;
             public float Length => retime[retime.Length - 1].y + hold;
         }
 
-        /// <summary>플레이어 기준 방향(방위: 0 = 앞, 90 = 오른쪽 / 높이: + 위)으로 오른팔을 쭉 뻗고 칼을 눕힘.
+        /// <summary>플레이어 기준 방향(방위: 0 = 앞, 90 = 오른쪽 / 높이: + 위)으로 오른팔을 쭉 뻗음 (손목 각도는 원래 동작 그대로).
         /// 원본 프레임 inFrom→inTo 동안 들어가고, outFrom→outTo 동안 원래 동작으로 돌아감</summary>
         public class ArmReach
         {
-            public float armYaw, armPitch, bladeYaw, bladePitch;
+            public float armYaw, armPitch;
             public float inFrom, inTo, outFrom, outTo;
 
             public float Weight(float srcFrame) =>
@@ -70,7 +72,6 @@ namespace NGH
         // 휴머노이드 원본(EEJANAI Free Sword Animations)
         const string SlashDir = "Assets/AssetStore/NGH/EEJANAI_Team/FreeSwordAnimations/Animations/";
         const string HumanSrcModel = "Assets/AssetStore/NGH/EEJANAI_Team/Commons/Model/EEJANAIbot.fbx";
-        const string TemplateClip = "Assets/Animations/CHG/chg_anim_swordslash.fbx";   // 플레이어 뼈 커브 목록
         const string ChgAvatarPath = OutDir + "NGH_ChgHumanAvatar.asset";
 
         public const float Speed = 0.85f;      // 전체 재생 속도 (원본 = 1)
@@ -117,13 +118,13 @@ namespace NGH
             Paced("NGH_Anim_Combo4", "slash6", 27, 0.05f, (10, 1f / 1.2f * 1.2f), (14, 1f * 1.2f), (35, 1f / 1.2f * 1.2f)),
             // 마무리: 크게 휩쓸어 베기. 구간별 시간(초): 준비(0~8), 베기(8~13), 팔 뻗기(13~16), 팔 뻗은 채 유지(16~23), 회수(23~28)
             //  원본은 28프레임에서 움직임이 멈추므로 거기서 끝냄 (멈춘 뒤에 조작이 막혀 있지 않게)
-            //  원본 그대로면 칼이 팔뚝 둘레로 다른 타보다 약 70~100° 틀어져 역수처럼 보여서 파지 보정
-            //  베고 난 뒤(13~23)에는 오른팔을 몸 오른쪽 뒤로 크게 벌려 쭉 펴고 칼을 팔 연장선으로 눕힘
+            //  손·팔은 원본 각도 그대로 (팔뚝을 돌리는 파지 보정은 히어로에서 방향이 어색해져 사용 안 함). 칼 방향은 히어로 클립에서 칼만 돌려 맞춤
+            //  베고 난 뒤(13~23)에는 오른팔을 몸 오른쪽 뒤로 크게 벌려 쭉 펴고, 손목은 원래 각도 유지
             //  베기 → 팔 뻗기 경계(13프레임)에서 속도가 1/3로 뚝 떨어지고 팔 뻗기가 정면에서 섞이기 시작해 궤적이 꺾였으므로
             //  시간 배치를 매끄럽게 잇고, 팔 뻗기는 칼이 정면을 지난 뒤(14프레임)부터 섞음
             //  베는 동안 칼날이 79°→11° 굴러 궤적이 가운데서 접혀 보이므로 칼날 평면 보정 (클립 0.20~0.31)
-            FlatSwing(Smooth(Reach(Grip(Timed("NGH_Anim_Combo5", "slash3", 28, 0f, (8, 0.248f), (13, 0.097f), (16, 0.170f), (23, 0.502f), (28, 0.452f)), -100f),
-                  new ArmReach { armYaw = 120f, armPitch = 0f, bladeYaw = 115f, bladePitch = -3f, inFrom = 14f, inTo = 17f, outFrom = 23f, outTo = 27f })),
+            FlatSwing(Smooth(Reach(Grip(Timed("NGH_Anim_Combo5", "slash3", 28, 0f, (8, 0.248f), (13, 0.097f), (16, 0.170f), (23, 0.502f), (28, 0.452f)), 0f),
+                  new ArmReach { armYaw = 120f, armPitch = 0f, inFrom = 14f, inTo = 17f, outFrom = 23f, outTo = 27f })),
                   0.211f, 0.39f, 0.013f),   // 원본 칼날이 수직(0.18초 부근)에서 눕기 시작한 뒤에 섞음. 팔을 뻗으며 마저 도는 0.39까지
         });
 
@@ -245,7 +246,7 @@ namespace NGH
                 }
                 else pose = (t, outT) => src.SampleAnimation(go, t);
 
-                var bindings = AnimationUtility.GetCurveBindings(src.humanMotion ? AssetDatabase.LoadAssetAtPath<AnimationClip>(TemplateClip) : src);
+                var bindings = src.humanMotion ? SkeletonBindings(go) : AnimationUtility.GetCurveBindings(src);
                 var targets = new Transform[bindings.Length];
                 var curves = new AnimationCurve[bindings.Length];
                 for (int i = 0; i < bindings.Length; i++)
@@ -328,6 +329,12 @@ namespace NGH
                     AnimationUtility.SetEditorCurve(clip, bindings[i], curves[i]);
                 }
                 clip.EnsureQuaternionContinuity();
+                if (s.loop)
+                {
+                    var settings = AnimationUtility.GetAnimationClipSettings(clip);
+                    settings.loopTime = true;
+                    AnimationUtility.SetAnimationClipSettings(clip, settings);
+                }
 
                 string path = OutDir + s.outName + ".anim";
                 var existing = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
@@ -347,7 +354,7 @@ namespace NGH
         static Vector3 PlayerDir(float yaw, float pitch) =>
             Quaternion.Euler(-pitch, yaw, 0f) * Vector3.forward;   // 미리보기 플레이어는 원점에서 +Z를 봄
 
-        /// <summary>오른팔을 r 방향으로 쭉 펴고(IK) 칼을 r 방향으로 눕힌 자세를 weight만큼 섞음</summary>
+        /// <summary>오른팔을 r 방향으로 쭉 편(IK) 자세를 weight만큼 섞음. 손목 각도(손의 팔뚝 기준 회전)는 원래 동작 그대로</summary>
         static void ApplyReach(Dictionary<string, Transform> b, ArmReach r, float weight)
         {
             if (weight < 1e-3f) return;
@@ -358,8 +365,7 @@ namespace NGH
             Vector3 target = arm.position + PlayerDir(r.armYaw, r.armPitch) * length * 0.97f;
             Vector3 pole = Vector3.down * 0.8f + Vector3.back * 0.4f;   // 팔꿈치는 아래·뒤로
             AttackClipBuilder.TwoBoneIK(arm, fore, hand, target, pole);
-            Vector3 bladeNow = hand.rotation * BladeLocal;
-            hand.rotation = Quaternion.FromToRotation(bladeNow, PlayerDir(r.bladeYaw, r.bladePitch)) * hand.rotation;
+            hand.localRotation = h0;   // IK가 손 회전까지 바꿨다면 되돌려 손목이 꺾이지 않게 함
 
             arm.localRotation = Quaternion.Slerp(a0, arm.localRotation, weight);
             fore.localRotation = Quaternion.Slerp(f0, fore.localRotation, weight);
@@ -465,6 +471,26 @@ namespace NGH
             hand.rotation = Quaternion.AngleAxis(angle * 0.5f, axis) * hand.rotation;
         }
 
+        static readonly string[] TransformProps =
+        {
+            "m_LocalPosition.x", "m_LocalPosition.y", "m_LocalPosition.z",
+            "m_LocalRotation.x", "m_LocalRotation.y", "m_LocalRotation.z", "m_LocalRotation.w",
+            "m_LocalScale.x", "m_LocalScale.y", "m_LocalScale.z",
+        };
+
+        /// <summary>플레이어 모델 뼈대(메시가 없는 Transform)마다 위치·회전·크기 커브 목록. 휴머노이드 원본을 구울 때 씀</summary>
+        static EditorCurveBinding[] SkeletonBindings(GameObject model)
+        {
+            var list = new List<EditorCurveBinding>();
+            foreach (var t in model.GetComponentsInChildren<Transform>(true))
+            {
+                if (t == model.transform || t.GetComponent<Renderer>()) continue;
+                string path = AnimationUtility.CalculateTransformPath(t, model.transform);
+                foreach (var prop in TransformProps) list.Add(EditorCurveBinding.FloatCurve(path, typeof(Transform), prop));
+            }
+            return list.ToArray();
+        }
+
         /// <summary>결과 시간 → 원본 시간. 중간은 일정 속도, 마지막 구간만 감속</summary>
         static AnimationCurve RetimeCurve(Segment s)
         {
@@ -477,6 +503,7 @@ namespace NGH
                 AnimationUtility.SetKeyLeftTangentMode(map, i, mode);
                 AnimationUtility.SetKeyRightTangentMode(map, i, mode);
             }
+            if (s.loop) return map;
             var last = map[map.length - 1]; last.inTangent = 0f;
             AnimationUtility.SetKeyLeftTangentMode(map, map.length - 1, AnimationUtility.TangentMode.Free);
             map.MoveKey(map.length - 1, last);
