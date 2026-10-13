@@ -1,6 +1,7 @@
 using UnityEngine;
+using NGH;
 
-namespace NGH
+namespace YPH
 {
     /// <summary>
     /// 적 총알 (원거리 병사용). CHG_ObjectPool로 꺼내 Fire()로 발사하고, 맞거나 사거리를 넘으면 풀로 반납된다.

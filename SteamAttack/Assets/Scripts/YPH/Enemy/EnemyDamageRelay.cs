@@ -1,7 +1,7 @@
 using UnityEngine;
-using YPH;
+using NGH;
 
-namespace NGH
+namespace YPH
 {
     /// <summary>
     /// 병합용 연결 (NGH) — 적 HP(EnemyHealth)를 다른 파트의 공격과 잇는다.

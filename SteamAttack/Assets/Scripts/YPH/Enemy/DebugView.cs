@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
+using NGH;
 
-namespace NGH
+namespace YPH
 {
     /// <summary>
     /// 개발용 표시 전체 켜기/끄기 — 플레이 중 숫자 0 키

@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using NGH;
 
-namespace NGH
+namespace YPH
 {
     /// <summary>
     /// 적 근접 공격 판정용 히트박스 (NGH)
