@@ -23,6 +23,7 @@ namespace NGH
         const int Chains = 24;
         const int Joints = 6;            // 사슬당 마디 수 (허리 1 + 아래로 5)
         const float WaistDrop = 0.03f;   // 치마 맨 위에서 이만큼 아래가 허리 마디 (그 위는 엉덩이에 고정)
+        const float FoldSmoothing = 1f;  // 메시에 잡힌 주름을 펴는 정도 (0 = 원래 모양, 1 = 주름 모두 폄)
 
         [MenuItem("Tools/NGH/Hero/5. Build Skirt Physics Bones")]
         public static void Build()
@@ -72,6 +73,9 @@ namespace NGH
                 if (srcN.Length == nv) wNrm[i] = m.MultiplyVector(srcN[i]).normalized;
                 if (srcT.Length == nv) { var tv = m.MultiplyVector(srcT[i]).normalized; wTan[i] = new Vector4(tv.x, tv.y, tv.z, srcT[i].w); }
             }
+
+            // 1.5) 주름 펴기: 바깥면의 둘레 방향 굴곡을 이웃 평균으로 펴서 치마가 아래로 매끈하게 떨어지게 함 (안감과의 두께는 유지)
+            if (FoldSmoothing > 0f) SmoothFolds(wPos, hero, hips.position);
 
             // 2) 치마 축 기준 원통 좌표 (hero 기준: 위 = hero.up, 중심 = 엉덩이)
             Vector3 Local(Vector3 p) => hero.InverseTransformPoint(p);
@@ -167,6 +171,7 @@ namespace NGH
             mesh.vertices = wPos.Select(p => w2l.MultiplyPoint3x4(p)).ToArray();
             if (srcN.Length == nv) mesh.normals = wNrm.Select(n => w2l.MultiplyVector(n).normalized).ToArray();   // 스키닝이 노멀에 같은 행렬을 곱하므로 역행렬로 되돌림
             if (srcT.Length == nv) mesh.tangents = wTan.Select(t => { var v = w2l.MultiplyVector(t).normalized; return new Vector4(v.x, v.y, v.z, t.w); }).ToArray();
+            if (FoldSmoothing > 0f) RecalculateWeldedNormals(mesh);   // 모양이 바뀌었으니 노멀도 새 표면 기준으로
             mesh.boneWeights = weights;
             mesh.bindposes = allBones.Select(b => b.worldToLocalMatrix * l2w).ToArray();
             mesh.RecalculateBounds();
@@ -193,6 +198,95 @@ namespace NGH
             if (capsules.Length > 0) phys.colliders = capsules;
 
             return string.Format("사슬 {0} × 마디 {1}, 정점 {2}, 캡슐 {3}, 허리 높이 {4:F2}, 아랫단 {5:F2}", Chains, Joints, nv, phys.colliders.Length, yWaist, bot);
+        }
+
+        // 엉덩이 축 기준 원통 좌표로 바깥면 반지름 지도(둘레 2.5° × 높이 2cm)를 만들고,
+        // 지도를 둘레·높이 방향으로 흐리게 한 값과의 차이(= 주름)만큼 같은 칸의 정점을 모두 안팎으로 옮김
+        static void SmoothFolds(Vector3[] wPos, Transform hero, Vector3 hipsPos)
+        {
+            const int A = 144; const float H = 0.02f; const int BlurA = 8, BlurH = 2;
+            Vector3 c = hero.InverseTransformPoint(hipsPos);
+            int n = wPos.Length;
+            var ang = new float[n]; var hgt = new float[n]; var rad = new float[n];
+            float yMin = float.MaxValue, yMax = float.MinValue;
+            for (int i = 0; i < n; i++)
+            {
+                Vector3 p = hero.InverseTransformPoint(wPos[i]) - c;
+                float a = Mathf.Atan2(p.z, p.x); if (a < 0f) a += 2f * Mathf.PI;
+                ang[i] = a / (2f * Mathf.PI) * A; hgt[i] = p.y; rad[i] = new Vector2(p.x, p.z).magnitude;
+                yMin = Mathf.Min(yMin, p.y); yMax = Mathf.Max(yMax, p.y);
+            }
+            int nh = Mathf.CeilToInt((yMax - yMin) / H) + 1;
+            var outer = new float[A, nh];
+            for (int a = 0; a < A; a++) for (int h = 0; h < nh; h++) outer[a, h] = -1f;
+            for (int i = 0; i < n; i++)
+            {
+                int a = Mathf.FloorToInt(ang[i]) % A, h = Mathf.FloorToInt((hgt[i] - yMin) / H);
+                outer[a, h] = Mathf.Max(outer[a, h], rad[i]);
+            }
+            // 빈 칸은 같은 높이의 양옆 값으로 채움
+            for (int h = 0; h < nh; h++)
+            {
+                if (!Enumerable.Range(0, A).Any(a => outer[a, h] >= 0f)) continue;
+                var row = new float[A];
+                for (int a = 0; a < A; a++)
+                {
+                    if (outer[a, h] >= 0f) { row[a] = outer[a, h]; continue; }
+                    int l = 1, r = 1;
+                    while (outer[(a - l + A) % A, h] < 0f) l++;
+                    while (outer[(a + r) % A, h] < 0f) r++;
+                    row[a] = Mathf.Lerp(outer[(a - l + A) % A, h], outer[(a + r) % A, h], l / (float)(l + r));
+                }
+                for (int a = 0; a < A; a++) outer[a, h] = row[a];
+            }
+            var ripple = new float[A, nh];
+            for (int a = 0; a < A; a++)
+                for (int h = 0; h < nh; h++)
+                {
+                    if (outer[a, h] < 0f) continue;
+                    float sum = 0f, wsum = 0f;
+                    for (int da = -BlurA; da <= BlurA; da++)
+                        for (int dh = -BlurH; dh <= BlurH; dh++)
+                        {
+                            int hh = h + dh; if (hh < 0 || hh >= nh) continue;
+                            float v = outer[(a + da + A) % A, hh]; if (v < 0f) continue;
+                            float w = Mathf.Exp(-(da * da) / (2f * BlurA * BlurA / 4f) - (dh * dh) / (2f * BlurH * BlurH / 4f + 1e-3f));
+                            sum += v * w; wsum += w;
+                        }
+                    ripple[a, h] = outer[a, h] - sum / wsum;
+                }
+            float Ripple(float a, float y)
+            {
+                float fh = Mathf.Clamp((y - yMin) / H - 0.5f, 0f, nh - 1);
+                int h0 = Mathf.FloorToInt(fh), h1 = Mathf.Min(h0 + 1, nh - 1);
+                float fa = a - 0.5f; if (fa < 0f) fa += A;
+                int a0 = Mathf.FloorToInt(fa) % A, a1 = (a0 + 1) % A;
+                float ta = fa - Mathf.Floor(fa), th = fh - h0;
+                return Mathf.Lerp(Mathf.Lerp(ripple[a0, h0], ripple[a1, h0], ta), Mathf.Lerp(ripple[a0, h1], ripple[a1, h1], ta), th);
+            }
+            for (int i = 0; i < n; i++)
+            {
+                float keep = Mathf.Clamp01((yMax - WaistDrop - hgt[i]) / 0.03f);   // 허리선 근처는 그대로 (엉덩이에 붙는 부분)
+                float r = Mathf.Max(0.02f, rad[i] - FoldSmoothing * keep * Ripple(ang[i], hgt[i]));
+                float a = ang[i] / A * 2f * Mathf.PI;
+                wPos[i] = hero.TransformPoint(c + new Vector3(Mathf.Cos(a) * r, hgt[i], Mathf.Sin(a) * r));
+            }
+        }
+
+        // 노멀 재계산 후 같은 위치(UV 이음매)의 정점끼리 평균내서 이음매가 보이지 않게 함
+        static void RecalculateWeldedNormals(Mesh mesh)
+        {
+            mesh.RecalculateNormals();
+            var v = mesh.vertices; var nrm = mesh.normals;
+            foreach (var g in Enumerable.Range(0, v.Length).GroupBy(i => v[i]))
+            {
+                if (g.Count() < 2) continue;
+                Vector3 s = Vector3.zero; foreach (var i in g) s += nrm[i];
+                if (s.sqrMagnitude < 1e-8f) continue;   // 앞뒤 면이 붙은 곳은 그대로
+                s.Normalize(); foreach (var i in g) nrm[i] = s;
+            }
+            mesh.normals = nrm;
+            mesh.RecalculateTangents();
         }
 
         static Matrix4x4 Blend(Matrix4x4[] skin, BoneWeight w)

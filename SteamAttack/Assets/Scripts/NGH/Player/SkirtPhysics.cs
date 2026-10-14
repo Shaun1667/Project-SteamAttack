@@ -9,6 +9,8 @@ namespace NGH
     ///  - 골반의 좌우 기울기·비틀림은 일부만 따라가서 달릴 때 아랫단이 지렛대처럼 휘둘리지 않음
     ///  - 기준 위치가 다리(허벅지·정강이 캡슐)를 감싸도록 넓어짐: 무릎이 나오면 그 아래 치마도 무릎 폭을 유지(텐트처럼 늘어짐)
     ///    아랫단 높이는 그대로 두고 길이·둘레가 늘어나서 크게 벌린 다리도 덮음
+    ///    발(발목~발끝)도 덮고, 사슬과 사슬 사이로 들어온 다리는 양쪽 사슬을 같이 넓힘
+    ///    흔들림이나 마디 길이 제한 때문에 덜 벌어졌으면 마지막에 다리를 덮는 반지름까지 강제로 늘림
     ///  - 옆 사슬과의 간격을 유지해서 치마가 갈라지거나 뭉치지 않음
     /// 애니메이션과 GroundClamp(1000) 뒤에 실행합니다.
     /// </summary>
@@ -47,7 +49,11 @@ namespace NGH
         [Tooltip("다리 표면에서 치마를 띄울 거리 (m)")]
         public float legMargin = 0.03f;
         [Tooltip("다리를 덮느라 치마 길이·둘레가 늘어날 수 있는 최대 배율")]
-        [Range(1f, 2.5f)] public float maxStretch = 1.8f;
+        [Range(1f, 3f)] public float maxStretch = 2.5f;
+        [Tooltip("발(발목~발끝)도 치마가 덮을 대상에 넣음. 뒤로 차올린 발이 치마를 뚫지 않게 함")]
+        public bool coverFeet = true;
+        [Tooltip("발 두께 반지름 (m)")]
+        public float footRadius = 0.05f;
         [Tooltip("이 거리 이상 순간이동하면 시뮬레이션을 초기화 (m)")]
         public float teleportDistance = 0.7f;
 
@@ -66,6 +72,9 @@ namespace NGH
         Vector3[] _legPt;               // 다리 샘플 (월드)
         float[] _legR;
         int _legCount;
+        float[] _minRadius;             // 다리를 덮는 데 필요한 마디의 최소 반지름 (사슬 방향, 수평). 0 = 제한 없음
+        Vector3[] _chainDir;            // 사슬 방향 (허리 마디 기준, 수평 단위벡터)
+        Transform[,] _feet;             // [왼/오, 발목/발끝]
         bool _ready;
 
         int Idx(int c, int j) => c * jointsPerChain + j;
@@ -79,11 +88,21 @@ namespace NGH
             _segLen = new float[n]; _ringLen = new float[n]; _stiffMul = new float[n];
             _lastAnchor = new Vector3[chainCount];
             _restOffset = new Vector3[n];
-            _legPt = new Vector3[colliders.Length * LegSamples];
-            _legR = new float[_legPt.Length];
+            _minRadius = new float[n];
+            _chainDir = new Vector3[chainCount];
             _hips = joints[0].parent;
             var animator = GetComponentInParent<Animator>();
             _root = animator ? animator.transform : transform.parent;
+            if (animator && animator.isHuman)
+            {
+                _feet = new Transform[2, 2];
+                _feet[0, 0] = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+                _feet[0, 1] = animator.GetBoneTransform(HumanBodyBones.LeftToes);
+                _feet[1, 0] = animator.GetBoneTransform(HumanBodyBones.RightFoot);
+                _feet[1, 1] = animator.GetBoneTransform(HumanBodyBones.RightToes);
+            }
+            _legPt = new Vector3[(colliders.Length + 2) * LegSamples];
+            _legR = new float[_legPt.Length];
             _hipsRestInRoot = Quaternion.Inverse(_root.rotation) * _hips.rotation;
             for (int i = 0; i < n; i++)
             {
@@ -152,29 +171,37 @@ namespace NGH
         // 위쪽에서 다리가 튀어나온 만큼은 그 아래 마디도 유지 (무릎에서 아래로 떨어지는 텐트 모양). 높이는 그대로
         void WrapLegs()
         {
+            System.Array.Clear(_minRadius, 0, _minRadius.Length);
             _legCount = 0;
             for (int k = 0; k < colliders.Length; k++)
             {
                 var col = colliders[k];
                 if (!col || !col.enabled) continue;
                 GetCapsule(col, out Vector3 a, out Vector3 b, out float r);
-                for (int s = 0; s < LegSamples; s++)
-                {
-                    _legPt[_legCount] = Vector3.Lerp(a, b, s / (LegSamples - 1f));
-                    _legR[_legCount] = r + legMargin;
-                    _legCount++;
-                }
+                AddLegSamples(a, b, r);
             }
+            if (coverFeet && _feet != null)
+                for (int side = 0; side < 2; side++)
+                {
+                    Transform ankle = _feet[side, 0], toe = _feet[side, 1];
+                    if (!ankle) continue;
+                    Vector3 tip = toe ? toe.position : ankle.position + ankle.forward * 0.15f;
+                    AddLegSamples(ankle.position, tip, footRadius);
+                }
             if (_legCount == 0) return;
 
             Vector3 up = _root.up;
             Vector3 center = _hips.position;
+            // 사슬 방향은 허리 마디 기준 (몸을 숙여 아래 마디가 골반 뒤로 가도 앞쪽 사슬은 앞쪽)
+            for (int c = 0; c < chainCount; c++)
+                _chainDir[c] = Vector3.ProjectOnPlane(_target[Idx(c, 0)] - center, up).normalized;
+
             for (int c = 0; c < chainCount; c++)
             {
-                // 사슬 방향은 허리 마디 기준 (몸을 숙여 아래 마디가 골반 뒤로 가도 앞쪽 사슬은 앞쪽)
-                Vector3 waistRel = Vector3.ProjectOnPlane(_target[Idx(c, 0)] - center, up);
-                if (waistRel.sqrMagnitude < 1e-8f) continue;
-                Vector3 dir = waistRel.normalized;
+                Vector3 dir = _chainDir[c];
+                if (dir.sqrMagnitude < 0.5f) continue;
+                Vector3 prevDir = _chainDir[(c + chainCount - 1) % chainCount], nextDir = _chainDir[(c + 1) % chainCount];
+                float waistH = Vector3.Dot(_target[Idx(c, 0)] - center, up);
                 float carry = 0f;   // 위 마디에서 이어 내려오는 필요한 반지름
                 for (int j = 1; j < jointsPerChain; j++)
                 {
@@ -188,15 +215,60 @@ namespace NGH
                         Vector3 lp = _legPt[s] - center;
                         float lh = Vector3.Dot(lp, up);
                         if (lh < h - 0.05f) continue;                 // 이 마디보다 아래쪽 다리는 아래 마디가 담당
+                        if (lh > waistH) continue;                    // 허리보다 높이 든 다리(구르기 등)는 치마로 덮을 수 없음
                         Vector3 lv = lp - up * lh;
+                        float lr = _legR[s];
+                        // 양옆 사슬 사이에 들어온 다리: 두 사슬을 잇는 천(직선)이 다리 바깥을 지나도록 두 사슬 모두 넓힘
+                        float wedge = Mathf.Max(Wedge(prevDir, dir, lv, up), Wedge(dir, nextDir, lv, up));
+                        if (wedge > 0f) need = Mathf.Max(need, (lv.magnitude + lr) / wedge);
+                        // 이 사슬 방향에 걸치는 다리 (사슬 바깥쪽 먼 곳)
                         float along = Vector3.Dot(lv, dir);
                         float lat = (lv - dir * along).magnitude;
-                        float lr = _legR[s];
-                        if (lat >= lr || along <= 0f) continue;          // 이 사슬 방향에 걸치지 않는 다리
+                        if (lat >= lr || along <= 0f) continue;
                         need = Mathf.Max(need, along + Mathf.Sqrt(lr * lr - lat * lat));
                     }
                     carry = need;
-                    if (need > rest) _target[i] += dir * (need - rest);
+                    if (need > rest)
+                    {
+                        _target[i] += dir * (need - rest);
+                        _minRadius[i] = need;
+                    }
+                }
+            }
+        }
+
+        void AddLegSamples(Vector3 a, Vector3 b, float r)
+        {
+            for (int s = 0; s < LegSamples && _legCount < _legPt.Length; s++)
+            {
+                _legPt[_legCount] = Vector3.Lerp(a, b, s / (LegSamples - 1f));
+                _legR[_legCount] = r + legMargin;
+                _legCount++;
+            }
+        }
+
+        // v가 a와 b 방향 사이(부채꼴 안)에 있으면 cos(반각)을, 아니면 0을 돌려줌
+        static float Wedge(Vector3 a, Vector3 b, Vector3 v, Vector3 up)
+        {
+            float span = Vector3.Dot(Vector3.Cross(a, b), up);
+            float s = span >= 0f ? 1f : -1f;
+            if (s * Vector3.Dot(Vector3.Cross(a, v), up) < 0f || s * Vector3.Dot(Vector3.Cross(v, b), up) < 0f) return 0f;
+            return Mathf.Max(0.5f, Mathf.Sqrt(Mathf.Max(0f, (1f + Vector3.Dot(a, b)) * 0.5f)));
+        }
+
+        // 흔들림·마디 길이 제한 뒤에도 다리를 덮도록, 다리가 필요로 하는 반지름보다 안쪽에 있는 마디를 바깥으로 꺼냄 (치마가 늘어남)
+        void EnforceMinRadius()
+        {
+            Vector3 center = _hips.position;
+            for (int c = 0; c < chainCount; c++)
+            {
+                Vector3 dir = _chainDir[c];
+                for (int j = 1; j < jointsPerChain; j++)
+                {
+                    int i = Idx(c, j);
+                    if (_minRadius[i] <= 0f) continue;
+                    float r = Vector3.Dot(_pos[i] - center, dir);
+                    if (r < _minRadius[i]) _pos[i] += dir * (_minRadius[i] - r);
                 }
             }
         }
@@ -245,6 +317,7 @@ namespace NGH
                     ChainConstraint();
                     KeepOutsideLegs();
                 }
+                EnforceMinRadius();
             }
         }
 
