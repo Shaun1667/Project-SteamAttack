@@ -185,6 +185,14 @@ namespace NGH
         public string hitSmallState = "HitSmall";
         public string hitLargeState = "HitLarge";
 
+        [Header("발도 중 칼 든 팔 고정")]
+        [Tooltip("칼을 뽑고 이동할 때 오른팔을 내린 자세로 덮어쓰는 Animator 레이어 이름 (없으면 무시)")]
+        public string swordArmLayer = "SwordArm";
+        [Tooltip("팔 고정으로 넘어가는 속도 (가중치/초)")]
+        public float swordArmBlendIn = 6f;
+        [Tooltip("공격 등으로 팔 고정을 풀 때 속도 (가중치/초)")]
+        public float swordArmBlendOut = 20f;
+
         [Header("현재 상태 (확인용)")]
         [SerializeField] bool drawn;
         [SerializeField] ActionState action;
@@ -214,6 +222,8 @@ namespace NGH
         bool _healedThisAction;
         float _spawnInvincibleUntil;
         string _locoState = "Locomotion";
+        int _swordArmLayer = -1;
+        float _swordArmWeight;
         Vector3 _rollDir;
         ActionState _buffered;
         ActionState _comboLast;          // 이어지지 않고 끝난 마지막 약공격 타 (유예 시간 동안 다음 타로 이어 붙임)
@@ -256,6 +266,17 @@ namespace NGH
         void Start()
         {
             if (weapons) weapons.SetDrawn(drawn);
+            if (animator) _swordArmLayer = animator.GetLayerIndex(swordArmLayer);
+        }
+
+        // 칼을 뽑고 이동(대기·걷기·뛰기·옆걸음) 중일 때만 칼 든 팔을 내린 자세로 고정. 공격·구르기 등 동작 중에는 해제
+        void LateUpdate()
+        {
+            if (!animator || _swordArmLayer < 0) return;
+            bool hold = drawn && IsMeleeEquipped() && action == ActionState.None && !IsDead;
+            float target = hold ? 1f : 0f;
+            _swordArmWeight = Mathf.MoveTowards(_swordArmWeight, target, (hold ? swordArmBlendIn : swordArmBlendOut) * Time.deltaTime);
+            animator.SetLayerWeight(_swordArmLayer, _swordArmWeight);
         }
 
         void Update()

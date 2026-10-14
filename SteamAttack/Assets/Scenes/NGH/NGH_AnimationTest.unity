@@ -531,7 +531,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: 7001338396301897121, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1297753902}
     m_AddedComponents: []
@@ -547,11 +547,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b451237558f54104482dee4a759898ee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::chg_PlayerController
---- !u!4 &417166757 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 7001338396301897121, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-  m_PrefabInstance: {fileID: 417166755}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &417166758 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
@@ -1015,7 +1010,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 417166757}
+    m_TransformParent: {fileID: 417166758}
     m_Modifications:
     - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
       propertyPath: m_LocalScale.x
@@ -1035,7 +1030,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.19712926
+      value: 0.198
       objectReference: {fileID: 0}
     - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1072,6 +1067,10 @@ PrefabInstance:
     - target: {fileID: 6198444632936752713, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
       propertyPath: m_Name
       value: YPH_SteamBackpack
+      objectReference: {fileID: 0}
+    - target: {fileID: 6198444632936752713, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
