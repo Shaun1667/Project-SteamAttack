@@ -28,7 +28,7 @@ namespace YPH
     ///   범위·판정 Gizmo, 원거리 조준 레이저, 테스트 키 1·2 플레이어 경직/대경직, 3·4 증기 소비/회복, 5 패링당함 / 6 약점 노출 / 7 체력바 (대상: 락온한 적, 없으면 가장 가까운 적), 좌측 상단 설명·대상 정보 상자
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
-    public class EnemyAI : MonoBehaviour
+    public class EnemyAI : MonoBehaviour, IParryTarget
     {
         public enum State
         {
@@ -140,17 +140,17 @@ namespace YPH
             [Range(-45f, 45f)] public float kickFacingOffset = 10f;
         }
 
-        /// <summary>패링 가능한 공격이 시작될 때 (적, 판정까지 남은 시간) — 패링 UI(동심원)용</summary>
+        /// <summary>패링 가능한 공격이 시작될 때 (적, 판정까지 남은 시간) — 패링 UI(동심원)용. 삭제 예정(NGH 요청 처리 후).</summary>
         public static event Action<EnemyAI, float> ParryableAttackStarted;
 
         private static readonly List<EnemyAI> activeEnemies = new List<EnemyAI>();
 
-        /// <summary>패링 판정: 동심원이 겹치는 순간 = 공격 판정 이 시간(초) 전. 이 순간 ± ParryHalfWindow 안에 누르면 성공</summary>
+        /// <summary>패링 판정: 동심원이 겹치는 순간 = 공격 판정 이 시간(초) 전. 이 순간 ± ParryHalfWindow 안에 누르면 성공. 삭제 예정(NGH 요청 처리 후).</summary>
         public const float ParryOverlapLead = 0.15f;
-        /// <summary>패링 성공 허용 범위 (겹치는 순간 기준 ±초, 기획서 0.3초 = ±0.15)</summary>
+        /// <summary>패링 성공 허용 범위 (겹치는 순간 기준 ±초, 기획서 0.3초 = ±0.15). 삭제 예정(NGH 요청 처리 후).</summary>
         public const float ParryHalfWindow = 0.15f;
 
-        /// <summary>지금 살아서 움직이는 적 목록 (패링·UI에서 사용)</summary>
+        /// <summary>지금 살아서 움직이는 적 목록 (패링·UI에서 사용). 삭제 예정(NGH 요청 처리 후).</summary>
         public static IReadOnlyList<EnemyAI> ActiveEnemies => activeEnemies;
         private static int debugKeyFrame = -1;
 
@@ -229,6 +229,12 @@ namespace YPH
         [Min(0f)]
         [SerializeField] private float parriedStunTime = 1.8f;
 
+        [Header("받아치기")]
+        [Tooltip("동심원을 그릴 월드 위치입니다. 창끝 등의 Transform을 연결하며, 비우면 적 위치에서 Parry Point Height만큼 위를 사용합니다.")]
+        [SerializeField] private Transform parryPoint;
+        [Tooltip("Parry Point가 없을 때 적 위치에서 올릴 높이(m)입니다. 기본 1.2이며 높이면 동심원이 위로, 낮추면 아래로 이동합니다.")]
+        [SerializeField, Min(0f)] private float parryPointHeight = 1.2f;
+
         [Header("Animator (비우면 자식에서 찾음)")]
         [SerializeField] private Animator animator;
         [Tooltip("켜면 공격 클립에 찍은 타격 이벤트(OnAttackHit) 위치로 판정 시간을 자동 계산한다.\n" +
@@ -253,6 +259,10 @@ namespace YPH
         public bool IsAwareOfPlayer => isAware;
         /// <summary>패링 가능한 공격의 판정이 끝나기 전인지</summary>
         public bool IsParryWindowOpen => parryWindowOpen;
+        /// <summary>동심원과 거리 판정의 기준 위치입니다. 연결이 없으면 기존 동심원과 같은 높이를 사용합니다.</summary>
+        public Vector3 ParryPoint => parryPoint != null ? parryPoint.position : transform.position + Vector3.up * parryPointHeight;
+        /// <summary>받아치기에 당해 자세가 무너진 상태인지 공통 규약으로 알립니다.</summary>
+        public bool IsParryStunned => state == State.Parried;
         /// <summary>패링 가능한 공격의 판정이 생기는 시각 (Time.time 기준, 경직으로 밀리면 함께 밀림)</summary>
         public float ParryHitTime => parryHitTime;
 
@@ -413,6 +423,7 @@ namespace YPH
             {
                 activeEnemies.Add(this);
             }
+            ParryTargets.Register(this);
             if (drawDebugLines == null)
             {
                 drawDebugLines = DrawDebugLines;
@@ -423,6 +434,7 @@ namespace YPH
         private void OnDisable()
         {
             activeEnemies.Remove(this);
+            ParryTargets.Unregister(this);
             DebugView.Unregister(drawDebugLines);
             isAiming = false;
             laserFlashTimer = 0f;
@@ -627,8 +639,7 @@ namespace YPH
         }
 
         /// <summary>
-        /// 플레이어 패링 판정에서 호출. 패링 가능한 공격 중이면 패링당함 처리 후 true.
-        /// (플레이어 쪽 패링 기능이 생기면 여기에 연결)
+        /// 옛 입력 경로의 타이밍 검사를 유지합니다. NGH PlayerParry가 ApplyParry로 옮기면 삭제 예정입니다.
         /// </summary>
         /// <param name="damage">패링 성공 시 줄 피해 (약점 노출 전에 들어가므로 약점 배율이 붙지 않음)</param>
         /// <param name="from">패링한 쪽 위치</param>
@@ -641,6 +652,16 @@ namespace YPH
             if (Mathf.Abs(Time.time - ParryOverlapTime) > ParryHalfWindow)
             {
                 return false;   // 너무 빠르거나 늦음
+            }
+            return ApplyParry(damage, from);
+        }
+
+        /// <summary>플레이어의 타이밍 판정 후 호출합니다. 활성 상태의 열린 창만 확인하고 기존 성공 처리를 적용합니다.</summary>
+        public bool ApplyParry(float damage, Vector3 from)
+        {
+            if (!enabled || !parryWindowOpen)
+            {
+                return false;
             }
             ForceParried(damage, from);
             return true;
@@ -991,6 +1012,7 @@ namespace YPH
                 parryWindowOpen = true;
                 parryHitTime = Time.time + HeavyWindupTime;
                 ParryableAttackStarted?.Invoke(this, HeavyWindupTime);
+                ParryTargets.NotifyAttackStarted(this, ParryOverlapTime - Time.time);
             }
 
             float timer = 0f;
@@ -1144,6 +1166,7 @@ namespace YPH
                 float untilHit = r.kickPrepTime + Mathf.Max(0f, KickHitClipTime - r.kickPrepTime * r.kickPrepAnimSpeed);
                 parryHitTime = Time.time + untilHit;
                 ParryableAttackStarted?.Invoke(this, untilHit);
+                ParryTargets.NotifyAttackStarted(this, ParryOverlapTime - Time.time);
             }
             Log("킥 준비");
 
