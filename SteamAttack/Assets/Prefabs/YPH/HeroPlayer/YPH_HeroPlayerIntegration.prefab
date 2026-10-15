@@ -18217,6 +18217,9 @@ MonoBehaviour:
   sheathState: Sheath
   hitSmallState: HitSmall
   hitLargeState: HitLarge
+  swordArmLayer: SwordArm
+  swordArmBlendIn: 6
+  swordArmBlendOut: 20
   drawn: 0
   action: 0
   lockTarget: {fileID: 0}
@@ -25336,6 +25339,12 @@ MonoBehaviour:
   minClearance: 0
   settleSpeed: 1.5
   boneRoot: {fileID: 0}
+  locomotionStates:
+  - Locomotion
+  - StrafeLeft
+  - StrafeRight
+  locomotionLift: 0.08
+  locomotionSinkTolerance: 0.04
 --- !u!114 &7821710284158470259
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26452,6 +26461,12 @@ MonoBehaviour:
   minClearance: 0
   settleSpeed: 1.5
   boneRoot: {fileID: 6686208602590212770}
+  locomotionStates:
+  - Locomotion
+  - StrafeLeft
+  - StrafeRight
+  locomotionLift: 0.08
+  locomotionSinkTolerance: 0.04
 --- !u!114 &6873523347093481036
 MonoBehaviour:
   m_ObjectHideFlags: 0
