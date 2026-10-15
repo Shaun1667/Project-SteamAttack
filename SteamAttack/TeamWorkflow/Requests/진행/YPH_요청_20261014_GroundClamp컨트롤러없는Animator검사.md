@@ -65,6 +65,8 @@ if (!_animator || !_animator.isActiveAndEnabled ||
 - 일반 Play: 120프레임, 오류 0건, 해당 경고 119건. 원본 애니메이션의 `chg_Model`은 Controller가 있고 GroundClamp는 비활성, Hero 쪽 GroundClamp만 활성입니다.
 - 호출 위치: `GroundClamp.InLocomotion()`의 `GetCurrentAnimatorStateInfo(0)`, `LateUpdate()`.
 - 로컬 근거: 저장소 루트 `Docs/Archive/2026-10-14_Player웨이트2교체/UnityCommands/normal_play_result.txt`. 개인 기록이므로 팀에서는 위 절차로 재현합니다.
+- 2026-10-15 P1 추가 재현: 새 `Assets/Scenes/YPH/YPH_EnemyTest.unity`에서도 `Hero_Bound`의 활성 GroundClamp와 Controller null 구성을 확인했습니다. Domain Reload·Scene Reload를 모두 끈 재진입에서 120프레임 관찰 동안 오류 0건, 같은 경고 121건(진입 프레임 포함)이 발생했습니다. 받아치기 입력·약점 검사는 통과했지만 P1 콘솔 경고 0건 조건은 충족하지 못했습니다. 원본 프리팹·NGH 코드는 변경하지 않았습니다.
+- P1 로컬 근거: 저장소 루트 `Docs/Archive/2026-10-15_받아치기공통규약/UnityCommands/YPH_P1ReentryFinal.json`. 공유 설명은 [받아치기 공통 규약](../../Features/받아치기공통규약.md) 12~13번을 참고합니다.
 
 ---
 
