@@ -33,8 +33,9 @@ namespace YPH
         [Header("약점 노출")]
         [Tooltip("약점 노출 중 다음 공격 1회에 곱하는 배율")]
         [SerializeField, Min(1f)] private float weaknessMultiplier = 3f;
-        [Tooltip("약점 노출 유지 시간(초). 그 전에 공격을 맞으면 바로 해제")]
-        [SerializeField, Min(0.1f)] private float weaknessDuration = 4f;
+        // 저장된 옛 4초 대신 기획의 3초가 적용되도록 새 직렬화 이름을 사용합니다.
+        [Tooltip("약점 노출 유지 시간(초)입니다. 기획은 3초이며 높이면 약점을 공격할 여유가 늘어납니다. 그 전에 공격을 맞으면 바로 해제됩니다.")]
+        [SerializeField, Min(0.1f)] private float weaknessExposeSeconds = 3f;
 
         [Header("Debug")]
         [SerializeField] private bool logDamage = true;
@@ -131,7 +132,7 @@ namespace YPH
             }
         }
 
-        /// <summary>약점을 노출한다. duration이 0 이하면 Weakness Duration을 쓴다.</summary>
+        /// <summary>약점을 노출합니다. duration이 0 이하면 Weakness Expose Seconds(기본 3초)를 사용합니다.</summary>
         public void ExposeWeakness(float duration = -1f)
         {
             if (!IsAlive)
@@ -139,7 +140,7 @@ namespace YPH
                 return;
             }
             bool wasExposed = IsWeaknessExposed;
-            weaknessTimer = duration > 0f ? duration : weaknessDuration;
+            weaknessTimer = duration > 0f ? duration : weaknessExposeSeconds;
             if (logDamage)
             {
                 Debug.Log("[CHG_EnemyHealth:" + name + "] 약점 노출 " + weaknessTimer + "초 (다음 공격 " + weaknessMultiplier + "배)", this);
