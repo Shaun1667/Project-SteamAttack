@@ -207,8 +207,8 @@ namespace YPH
                     Debug.Log("[YPH 테스트] 증기통을 찾지 못했습니다.");
                 }
             }
-            bool parry = Pressed(keys, 5), weakness = Pressed(keys, 6), hp = Pressed(keys, 7);
-            if (!(parry || weakness || hp))
+            bool parry = Pressed(keys, 5), hp = Pressed(keys, 7);
+            if (!(parry || hp))
             {
                 return;
             }
@@ -221,10 +221,6 @@ namespace YPH
             if (parry)
             {
                 target.ForceParried();
-            }
-            if (weakness)
-            {
-                target.Health.ExposeWeakness();
             }
             if (hp)
             {
@@ -248,7 +244,6 @@ namespace YPH
                 case 3: return keys.digit3Key.wasPressedThisFrame || keys.numpad3Key.wasPressedThisFrame;
                 case 4: return keys.digit4Key.wasPressedThisFrame || keys.numpad4Key.wasPressedThisFrame;
                 case 5: return keys.digit5Key.wasPressedThisFrame || keys.numpad5Key.wasPressedThisFrame;
-                case 6: return keys.digit6Key.wasPressedThisFrame || keys.numpad6Key.wasPressedThisFrame;
                 case 7: return keys.digit7Key.wasPressedThisFrame || keys.numpad7Key.wasPressedThisFrame;
                 default: return false;
             }
@@ -292,8 +287,8 @@ namespace YPH
             }
             Rect help = DebugView.DrawBox(
                 "<b>개발용 표시 ON</b>  0: 끄기\n" +
-                "<b>플레이어</b>\n1: 경직(피해 1)  2: 대경직(피해 2)\n3: 증기 -20  4: 증기 +20\nCtrl: 동심원이 겹칠 때 받아치기(증기 10)\n" +
-                "<b>대상 적: 락온, 없으면 가장 가까운 적</b>\n5: 패링당함  6: 약점 노출  7: 체력바\n" +
+                "<b>플레이어</b>\n1: 경직(피해 1)  2: 대경직(피해 2)\n3: 증기 -20  4: 증기 +20\nCtrl: 붉은 동심원 받아치기(기본 증기 소모 없음)\n" +
+                "<b>대상 적: 락온, 없으면 가장 가까운 적</b>\n5: 패링당함  7: 체력바\n" +
                 "<b>원</b> 노랑: 인지  옅은 노랑: 놓침\n빨강: 근접 사거리/원거리 후퇴  자주: 강공격/킥\n초록: 원거리 유지/사격 거리\n" +
                 "<b>빨간 상자</b> 실제 공격 판정\n<b>레이저</b> 빨강: 조준  노랑: 발사 방향",
                 Vector2.zero);
@@ -303,8 +298,7 @@ namespace YPH
             {
                 info = "<b>대상 적</b> (" + (locked ? "락온" : "가장 가까움") + ")\n" + target.name +
                     "\n종류: " + (target.UsesRanged ? "원거리" : "근접") + "\n상태: " + target.CurrentState +
-                    "\nHP: " + Mathf.CeilToInt(target.Health.CurrentHp) + " / " + Mathf.CeilToInt(target.Health.MaxHp) +
-                    "\n약점: " + (target.Health.IsWeaknessExposed ? "노출 중" : "없음");
+                    "\nHP: " + Mathf.CeilToInt(target.Health.CurrentHp) + " / " + Mathf.CeilToInt(target.Health.MaxHp);
             }
             if (_player != null)
             {

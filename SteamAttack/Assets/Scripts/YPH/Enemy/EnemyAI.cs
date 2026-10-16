@@ -28,7 +28,7 @@ namespace YPH
         [SerializeField, Tooltip("추적 속도(m/s)입니다. 높이면 플레이어에게 빨리 접근합니다.")] private float _chaseSpeed = 3.5f;
         [Header("피격·받아치기")]
         [SerializeField, Min(0f), Tooltip("맞을 때 이동·공격·애니메이션을 멈추는 시간(초)입니다. 높이면 정지가 길어집니다.")] private float _hitStopTime = 0.1f;
-        [SerializeField, Min(0f), Tooltip("받아치기에 당한 뒤 움직이지 못하는 시간(초)입니다.")] private float _parriedStunTime = 1.8f;
+        [SerializeField, Min(0f), Tooltip("받아치기 성공 후 경직(초)입니다. 높이면 강공격을 넣을 여유가 늘어납니다(D-067). 플레이어 강공격 동작 1.2초를 기준으로 기본 1.8초입니다.")] private float _parriedStunTime = 1.8f;
         [SerializeField, Tooltip("동심원의 기준 위치입니다. 비우면 적 위치에 아래 높이를 더합니다.")] private Transform _parryPoint;
         [SerializeField, Min(0f), Tooltip("기준 Transform이 없을 때 동심원을 올릴 높이(m)입니다.")] private float _parryPointHeight = 1.2f;
         [SerializeField, Tooltip("켜면 상태 전환·공격·인지 이유를 콘솔에 남깁니다.")] private bool _logStateChanges = true;
@@ -224,7 +224,7 @@ namespace YPH
             ForceParried(damage, from);
             return true;
         }
-        /// <summary>공격을 취소하고 자세 붕괴·약점을 적용합니다. 개발용 5 키도 같은 통로를 사용합니다.</summary>
+        /// <summary>공격을 취소하고 경직을 적용합니다. 개발용 5 키도 같은 통로를 사용합니다.</summary>
         public void ForceParried(float damage = 0f, Vector3 from = default)
         {
             if (!enabled || !Health.IsAlive)
@@ -236,7 +236,7 @@ namespace YPH
             SetState(State.Parried);
             _parriedTimer = _parriedStunTime;
             _animation?.Play(EnemyAnimatorLink.ParriedHash);
-            // 성공 피해를 먼저 줘야 새 약점이 이 피해에 소비되지 않습니다.
+            // 피해로 쓰러지면 사망 처리가 우선이므로 경직 후속 신호는 보내지 않습니다.
             if (damage > 0f)
             {
                 Health.TakeDamage(damage, from);
@@ -246,8 +246,7 @@ namespace YPH
                     return;
                 }
             }
-            Health.ExposeWeakness();
-            Log("패링당함" + (damage > 0f ? " (피해 " + damage + ")" : "") + " → 약점 노출");
+            Log("패링당함" + (damage > 0f ? " (피해 " + damage + ")" : ""));
             Parried?.Invoke();
         }
         internal void OpenParryWindow(float hitTime)

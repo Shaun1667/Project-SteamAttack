@@ -13,7 +13,7 @@ namespace YPH
         float ParryOverlapTime { get; }
         /// <summary>받아치기로 자세가 무너진 상태인지 반환합니다. 동심원 성공 연출을 유지할 때 사용합니다.</summary>
         bool IsParryStunned { get; }
-        /// <summary>플레이어의 판정 성공 후 공격 취소·자세 붕괴·약점 노출을 적용합니다. 창이 닫혔으면 false입니다.</summary>
+        /// <summary>플레이어의 판정 성공 후 공격 취소·경직을 적용합니다. 창이 닫혔으면 false입니다.</summary>
         bool ApplyParry(float damage, Vector3 from);
     }
 }
