@@ -54,7 +54,7 @@
 - 1~5·7은 `0`으로 켠 동안만 작동하며 Alt는 필요 없습니다. 숫자패드도 같습니다. 6번은 R1에서 제거(약점 노출 키)했고 비워 둡니다.
 - 대상은 살아 있는 락온 적을 우선하고, 없으면 가까운 적을 고릅니다.
 - 켜진 동안 기존 `PlayerController.debugHitKeys`(1·2)와 `TimeRewindTester`(3·4)를 잠시 끄고, 끄거나 도구가 비활성화되면 복구합니다. 두 키가 동시에 처리되지 않습니다.
-- 주의: 2번은 피해 2를 주므로 `PlayerController.heavyHitThreshold`(NGH_Player 25) 미만이라 작은 경직입니다. 설명 상자의 `2: 대경직` 문구와 다릅니다(13번). NGH `PlayerController`의 2번(디버그 표시 꺼짐 상태)은 피해 25로 큰 경직입니다.
+- 2번은 `PlayerController.heavyHitThreshold`(현재 25)만큼 피해를 주어 큰 경직을 확인합니다. 안내문은 플레이어를 찾을 때 임계값으로 만들어 캐시합니다. 1번은 피해 1로 작은 경직입니다.
 - Editor·Development Build에만 포함합니다. 일반 Player에는 `EnemyDebugTools` 타입이 없고, NGH HUD와의 호환을 위해 `DebugView.Enabled`만 항상 false로 남깁니다. Play 시작 때 꺼져 있습니다(D-088).
 - 키 예약표는 [디버깅 메뉴](../Design/UI/디버깅메뉴.md)의 D-056 표입니다. 그 표의 처리 스크립트 `YPH.EnemyAI`·`1~7`은 2026-10-14 기준이라 현재 코드(`EnemyDebugTools`, 1~5·7)와 다릅니다.
 
@@ -414,7 +414,7 @@ E0 검사 기록입니다. R1은 아래 추가 기록과 [받아치기 검증](�
 | 이관 | Main `Enemy`에 공격 부품 없음. NGH_EnemyTest `Enemy`는 옛 필드만 있고 EnemyHealth·EnemyMotor 없음 | Main 적은 공격하지 않음. NGH_EnemyTest는 Play 시 오류 예상(미실행) | [교체 요청](../Requests/진행/NGH_요청_20261015_기존EnemyAI적교체.md). E1 프리팹 뒤 NGH가 교체 |
 | 프리팹 없음 | `Prefabs/YPH/Enemy/`와 총알 프리팹 에셋이 없음 | 교체 요청을 NGH가 아직 처리할 수 없음 | E1에서 변이 포졸 프리팹 생성 후 요청 문서 갱신 |
 | 경직 단계 미전달 | `EnemyAttackHitbox`·`EnemyBullet`이 `HitStagger`를 넘기지 않음(코드 TODO) | `*Stagger` 필드를 바꿔도 효과 없음. 경직은 피해 25 기준 | `PlayerController.TakeHit`이 경직 단계를 받게 되면 함께 전달 (NGH 요청 필요) |
-| 개발 키 문구 | `EnemyDebugTools` 설명 상자의 `2: 대경직(피해 2)`는 실제로 작은 경직 | 시험자가 오해할 수 있음 | 피해를 `heavyHitThreshold`로 주거나 문구 수정 (YPH) |
+| 개발 키 문구 해결 (2026-10-17) | 2번 피해를 `heavyHitThreshold`로 변경하고 안내문 캐시 | 피해 경로 호출로 HitSmall / HitLarge, HP 100→99→74 확인 | 실제 키 조작 검수는 별도 |
 | 판정 폭 이중 | 옛 `TryParry`는 ±0.15초(`ParryHalfWindow`), 현재 `ParryController`는 ±0.1초(D-084) | 옛 경로를 다시 쓰면 기획과 다름 | 옛 스크립트 삭제 후 옛 API 제거 |
 | 기존 경고 | 다른 HeroPlayer 구성의 GroundClamp Controller 없는 Animator 접근 | R1 시험 씬에서는 재현되지 않음 | [기존 NGH 요청](../Requests/진행/NGH_요청_20261014_GroundClamp컨트롤러없는Animator검사.md) |
 | 컴파일 경고 | Unity 6.6은 DEVELOPMENT_BUILD를 구식으로 표시 | 컴파일은 성공하지만 UAC0009 발생 | 팀 차원의 조건 정책 변경 시 함께 대응 |
@@ -440,3 +440,4 @@ E0 검사 기록입니다. R1은 아래 추가 기록과 [받아치기 검증](�
 | 2026-10-16 | YPH / Claude | 병합 후 코드 대조: 시험 씬 Legacy 경로·경직 2초·원거리 적 꺼짐, Ctrl 판정 ±0.1초, 적 프리팹 없음, 씬별 적 상태, 경직 단계 미전달, 2번 키 문구, 옛 API 사용처, EnemyHealth·Relay·Animator 파라미터, NGH 배치 안내(9-1), 기준 결정 D-074. Play 검증 미실행 | 미커밋 |
 | 2026-10-16 | YPH / Codex | E1-a 변이 포졸 프리팹·씬 교체·사망 옵션 안내. 상세 검증은 변이포졸 문서 | 미커밋 |
 | 2026-10-16 | YPH / Codex | E1-b 모델·클립·이벤트 연결 현황과 남은 보행 조정 반영 | 미커밋 |
+| 2026-10-17 | YPH / Codex | 시험 씬 탱크 참조 단일화, 변이 포졸 쿨다운 override 제거, 디버그 2번 피해를 heavyHitThreshold와 일치. 승인된 안내 문자열 캐시 1개 추가. Play에서 HitSmall·HitLarge 확인 | 미커밋 |
