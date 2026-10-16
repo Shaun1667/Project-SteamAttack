@@ -8,7 +8,7 @@ namespace YPH
     /// <summary>
     /// 적 HP와 피해를 처리합니다. 적 루트에 붙이며 EnemyAI와 연결됩니다.
     /// - 다른 파트(YPH 총·수류탄, NGH 근접)가 공통으로 쓰는 피해 API: IsAlive, TakeDamage(float, Vector3)
-    /// - HP가 0이 되면 같은 오브젝트의 EnemyAI를 멈추고, 잠시 뒤 몸(렌더러·콜라이더)을 숨긴다.
+    /// - HP가 0이 되면 EnemyAI와 충돌을 멈춘다. 몸 남기기 옵션을 끄면 렌더러도 숨긴다.
     ///   피해를 준 호출 안에서 오브젝트를 파괴하거나 끄지 않으므로, 공격한 쪽은 명중 직후 태그를 읽을 수 있다.
     /// - Respawn Delay가 0보다 크면 그 시간 뒤 스폰 지점에서 부활한다.
     /// - 오브젝트 풀(ObjectPool)로 다시 꺼낼 때도 HP·생존 상태가 초기화된다.
@@ -24,6 +24,8 @@ namespace YPH
         [Header("사망 / 부활")]
         [Tooltip("쓰러진 뒤 몸을 숨기기까지의 시간(초)")]
         [SerializeField, Min(0f)] private float hideDelay = 0.15f;
+        [Tooltip("켜면 쓰러진 몸을 남기고 충돌만 꺼서 통과할 수 있고 더 맞지 않습니다. 끄면 몸을 숨깁니다. 부활 여부는 Respawn Delay를 따릅니다.")]
+        [SerializeField] private bool _keepBodyOnDeath = false;
         [Tooltip("쓰러진 뒤 부활까지의 시간(초). 0 이하면 부활하지 않음")]
         [SerializeField] private float respawnDelay = 5f;
 
@@ -133,6 +135,7 @@ namespace YPH
             StopAllCoroutines();
             flashRoutine = null;
             RestoreColors();
+            SetBodyActive(true);
         }
 
         private void Die()
@@ -157,7 +160,7 @@ namespace YPH
                 yield return new WaitForSeconds(hideDelay);
             }
             RestoreColors();
-            SetBodyActive(false);
+            SetBodyActive(false, _keepBodyOnDeath);
 
             if (respawnDelay <= 0f)
             {
@@ -187,11 +190,12 @@ namespace YPH
             }
         }
 
-        private void SetBodyActive(bool on)
+        private void SetBodyActive(bool on, bool keepBody = false)
         {
+            // 몸을 남겨도 충돌과 물리는 꺼야 길을 막거나 추가로 맞지 않습니다.
             foreach (Renderer r in renderers)
             {
-                if (r != null) r.enabled = on;
+                if (r != null) r.enabled = on || keepBody;
             }
             foreach (Collider c in colliders)
             {
