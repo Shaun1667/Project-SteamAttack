@@ -5616,6 +5616,7 @@ GameObject:
   - component: {fileID: 4342040121591807708}
   - component: {fileID: 5435671481806618034}
   - component: {fileID: 1112613726534638615}
+  - component: {fileID: 1061133108650661386}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Untagged
@@ -10051,7 +10052,7 @@ MonoBehaviour:
   player: {fileID: 5444686568199331752}
   font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
   controlsImage: {fileID: 0}
-  titleScene: Title
+  titleScene: NMJ_Title
   OnSettings:
     m_PersistentCalls:
       m_Calls: []
@@ -10068,6 +10069,39 @@ MonoBehaviour:
   disabledAlpha: 0.35
   pauseAudio: 1
   fadeTime: 0.12
+--- !u!114 &1061133108650661386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46e29a533bcd6bc4d8db379d6c073ef7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.BossDefeatBanner
+  boss: {fileID: 0}
+  font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  headline: "\uD604\uBB34 \uD1A0\uBC8C"
+  sealText: "\u8A0E"
+  subtitle: "\uBA48\uCDC4\uB358 \uB3C4\uC131\uC758 \uC2DC\uAC04\uC774 \uB2E4\uC2DC \uD750\uB978\uB2E4"
+  caption: BOSS ELIMINATED
+  startDelay: 0.6
+  holdTime: 4
+  fadeOutTime: 1.5
+  slowMotion: 1
+  slowScale: 0.3
+  slowTime: 1.2
+  inkColor: {r: 0.03, g: 0.03, b: 0.035, a: 0.97}
+  textColor: {r: 0.96, g: 0.95, b: 0.92, a: 1}
+  sealColor: {r: 0.82, g: 0.18, b: 0.1, a: 1}
+  captionColor: {r: 0.94, g: 0.73, b: 0.16, a: 1}
+  OnFinished:
+    m_PersistentCalls:
+      m_Calls: []
+  sceneWhenDone: 
+  testKeys: 0
 --- !u!1 &1800097922734459134
 GameObject:
   m_ObjectHideFlags: 0

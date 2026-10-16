@@ -3,11 +3,10 @@ using NGH;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using static NMJ.NmjMenuUi;
 
 namespace NMJ
 {
@@ -43,7 +42,7 @@ namespace NMJ
 
         [Header("타이틀")]
         [Tooltip("타이틀 씬 이름. 빌드 설정에 없으면 '타이틀로'는 '준비 중'으로 흐리게 보인다")]
-        [SerializeField] private string titleScene = "Title";
+        [SerializeField] private string titleScene = "NMJ_Title";
 
         [Header("환경 설정")]
         [Tooltip("환경 설정 화면을 여는 곳. 비어 있으면 '환경 설정'은 '준비 중'으로 흐리게 보인다")]
@@ -77,20 +76,12 @@ namespace NMJ
 
         private enum Page { Closed, Main, Controls, Confirm }
 
-        private class MenuButton
-        {
-            public Button button;
-            public TMP_Text label;
-            public RectTransform underline;
-            public bool enabled = true;
-            public float line;
-        }
-
         private Page page = Page.Closed;
         private float prevTimeScale = 1f;
         private float alpha;
         private int lastGameOverFrame = -10;
 
+        private Style style;
         private CanvasGroup group;
         private RectTransform mainPage, controlsPage, confirmPage;
         private TMP_Text confirmText;
@@ -136,8 +127,8 @@ namespace NMJ
                 if (alpha <= 0f) ShowPageObjects();
             }
 
-            if (page == Page.Main) UpdateButtons(mainButtons);
-            else if (page == Page.Confirm) UpdateButtons(confirmButtons);
+            if (page == Page.Main) UpdateButtons(mainButtons, style);
+            else if (page == Page.Confirm) UpdateButtons(confirmButtons, style);
         }
 
         private void HandleEscape()
@@ -162,6 +153,7 @@ namespace NMJ
             // Game Over 화면이 떠 있거나 방금 닫힌 프레임(같은 ESC로 일어나는 중)에는 열지 않는다
             if (GameOverScreen.IsShowing || Time.frameCount - lastGameOverFrame <= 1) return false;
             if (player != null && player.IsDead) return false;
+            if (BossDefeatBanner.IsShowing) return false;   // 처치 문구 → 엔딩 중에는 열지 않는다
             return !ControlsOverlay.GuideOpen;
         }
 
@@ -198,7 +190,7 @@ namespace NMJ
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
             }
-            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+            Select(null);
             if (group != null) { group.blocksRaycasts = false; group.interactable = false; }
         }
 
@@ -207,9 +199,7 @@ namespace NMJ
             page = next;
             ShowPageObjects();
             if (group != null) { group.blocksRaycasts = true; group.interactable = true; }
-
-            MenuButton first = next == Page.Main ? resumeButton : next == Page.Confirm ? confirmNoButton : null;
-            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(first != null ? first.button.gameObject : null);
+            Select(next == Page.Main ? resumeButton : next == Page.Confirm ? confirmNoButton : null);
         }
 
         private void ShowPageObjects()
@@ -281,37 +271,9 @@ namespace NMJ
 
         private void RefreshAvailability()
         {
-            SetEnabled(titleButton, !string.IsNullOrEmpty(titleScene) && Application.CanStreamedLevelBeLoaded(titleScene));
-            SetEnabled(settingsButton, OnSettings.GetPersistentEventCount() > 0);
+            SetEnabled(titleButton, !string.IsNullOrEmpty(titleScene) && Application.CanStreamedLevelBeLoaded(titleScene), style);
+            SetEnabled(settingsButton, OnSettings.GetPersistentEventCount() > 0, style);
             LinkColumn(mainButtons);
-        }
-
-        private void SetEnabled(MenuButton b, bool on)
-        {
-            b.enabled = on;
-            b.button.interactable = on;
-            b.label.alpha = on ? 1f : disabledAlpha;
-            Transform tag = b.button.transform.Find("Soon");
-            if (tag != null) tag.gameObject.SetActive(!on);
-        }
-
-        // ───────── 고른 줄 표시 ─────────
-
-        private void UpdateButtons(List<MenuButton> buttons)
-        {
-            GameObject selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
-            float dt = Time.unscaledDeltaTime;
-            foreach (MenuButton b in buttons)
-            {
-                bool on = b.enabled && selected == b.button.gameObject;
-                // 고른 줄은 먹 밑줄이 왼쪽에서 오른쪽으로 그어진다
-                b.line = Mathf.MoveTowards(b.line, on ? 1f : 0f, dt * 7f);
-                float width = b.label.preferredWidth + 24f;
-                b.underline.sizeDelta = new Vector2(width * Mathf.SmoothStep(0f, 1f, b.line), b.underline.sizeDelta.y);
-                Color c = on ? brassColor : textColor;
-                c.a = b.enabled ? 1f : disabledAlpha;
-                b.label.color = c;
-            }
         }
 
         // ───────── UI 만들기 ─────────
@@ -319,36 +281,37 @@ namespace NMJ
         private void BuildUi()
         {
 #if UNITY_EDITOR
-            if (font == null) AutoAssignFont();
+            if (font == null) font = FindDefaultFont();
 #endif
-            var canvasGo = new GameObject("NMJ_PauseMenuCanvas", typeof(RectTransform));
-            canvasGo.transform.SetParent(transform, false);
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 90;   // HUD(40~50) 위
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
-            canvasGo.AddComponent<GraphicRaycaster>();
-            group = canvasGo.AddComponent<CanvasGroup>();
+            style = new Style
+            {
+                font = font,
+                textColor = textColor,
+                selectedColor = brassColor,
+                underlineColor = selectColor,
+                disabledAlpha = disabledAlpha,
+                buttonHeight = buttonHeight,
+                fontSize = buttonFontSize,
+            };
+
+            Canvas canvas = NewCanvas("NMJ_PauseMenuCanvas", transform, 90, out group);   // HUD(40~50) 위
             group.blocksRaycasts = false;
             group.interactable = false;
 
             // 뒤 화면 어둡게 (클릭이 게임으로 새지 않게 막는다)
-            Image dim = NewImage("Dim", canvasGo.transform, dimColor, Vector2.zero, Vector2.zero);
+            Image dim = NewImage("Dim", canvas.transform, dimColor, Vector2.zero, Vector2.zero);
             dim.raycastTarget = true;
 
-            BuildMainPage(canvasGo.transform);
-            BuildControlsPage(canvasGo.transform);
-            BuildConfirmPage(canvasGo.transform);
+            BuildMainPage(canvas.transform);
+            BuildControlsPage(canvas.transform);
+            BuildConfirmPage(canvas.transform);
             ShowPageObjects();
         }
 
         private void BuildMainPage(Transform parent)
         {
             mainPage = NewRect("Main", parent);
-            RectTransform panel = Panel(mainPage, panelSize);
+            RectTransform panel = Panel(mainPage, panelSize, panelColor, brassColor);
 
             // 현판처럼: 위에 큰 글자, 아래 작은 글자, 놋쇠 줄
             RectTransform head = NewRect("Head", panel);
@@ -357,29 +320,28 @@ namespace NMJ
             head.pivot = new Vector2(0.5f, 1f);
             head.sizeDelta = new Vector2(0f, 150f);
             head.anchoredPosition = new Vector2(0f, -28f);
-            TMP_Text t = NewText("Title", head, title, 64f, brassColor);
+            TMP_Text t = NewText("Title", head, font, title, 64f, brassColor);
             t.rectTransform.offsetMin = new Vector2(0f, 46f);
-            TMP_Text s = NewText("Subtitle", head, subtitle, 22f, textColor);
+            TMP_Text s = NewText("Subtitle", head, font, subtitle, 22f, textColor);
             s.rectTransform.offsetMax = new Vector2(0f, -100f);
             s.alpha = 0.7f;
-            Image rule = NewImage("Rule", head, brassColor, Vector2.zero, Vector2.zero);
+            Image rule = NewImage("Rule", head, new Color(brassColor.r, brassColor.g, brassColor.b, 0.6f), Vector2.zero, Vector2.zero);
             rule.rectTransform.anchorMin = new Vector2(0.18f, 0f);
             rule.rectTransform.anchorMax = new Vector2(0.82f, 0f);
             rule.rectTransform.sizeDelta = new Vector2(0f, 2f);
-            rule.color = new Color(brassColor.r, brassColor.g, brassColor.b, 0.6f);
 
             // 버튼 줄
             RectTransform list = NewRect("Buttons", panel);
             list.offsetMin = new Vector2(40f, 70f);
             list.offsetMax = new Vector2(-40f, -196f);
-            resumeButton = AddButton(mainButtons, list, "계속하기", OnResume);
-            AddButton(mainButtons, list, "조작법", OnControls);
-            settingsButton = AddButton(mainButtons, list, "환경 설정", OnSettingsPressed);
-            titleButton = AddButton(mainButtons, list, "타이틀로", OnTitle);
-            AddButton(mainButtons, list, "게임 종료", OnQuit);
-            LayoutColumn(mainButtons);
+            resumeButton = AddButton(mainButtons, list, style, "계속하기", OnResume);
+            AddButton(mainButtons, list, style, "조작법", OnControls);
+            settingsButton = AddButton(mainButtons, list, style, "환경 설정", OnSettingsPressed);
+            titleButton = AddButton(mainButtons, list, style, "타이틀로", OnTitle);
+            AddButton(mainButtons, list, style, "게임 종료", OnQuit);
+            LayoutColumn(mainButtons, buttonHeight);
 
-            Hint(panel, "ESC  계속하기");
+            Hint(panel, font, "ESC  계속하기", textColor);
         }
 
         private void BuildControlsPage(Transform parent)
@@ -397,14 +359,12 @@ namespace NMJ
             RectTransform area = NewRect("Area", controlsPage);
             area.anchorMin = new Vector2(0.075f, 0.1f);
             area.anchorMax = new Vector2(0.925f, 0.95f);
-            RectTransform img = NewRect("Image", area);
-            controlsRaw = img.gameObject.AddComponent<RawImage>();
-            controlsRaw.raycastTarget = false;
-            controlsFitter = img.gameObject.AddComponent<AspectRatioFitter>();
+            controlsRaw = NewRawImage("Image", area, null);
+            controlsFitter = controlsRaw.gameObject.AddComponent<AspectRatioFitter>();
             controlsFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
 
             // 이미지가 없을 때 쓰는 글 (기획안 v4 3-1)
-            controlsFallback = NewText("Fallback", area,
+            controlsFallback = NewText("Fallback", area, font,
                 "WASD  이동      Shift  달리기      Space  구르기\n" +
                 "좌클릭  공격 · 사격      우클릭  강공격 · 조준\n" +
                 "Tab  환도 ↔ 화승총      C  발도 · 납도      Ctrl  받아치기\n" +
@@ -412,15 +372,15 @@ namespace NMJ
                 30f, textColor);
             controlsFallback.lineSpacing = 40f;
 
-            Hint(controlsPage, "ESC · 클릭  메뉴로");
+            Hint(controlsPage, font, "ESC · 클릭  메뉴로", textColor);
         }
 
         private void BuildConfirmPage(Transform parent)
         {
             confirmPage = NewRect("Confirm", parent);
-            RectTransform panel = Panel(confirmPage, new Vector2(620f, 300f));
+            RectTransform panel = Panel(confirmPage, new Vector2(620f, 300f), panelColor, brassColor);
 
-            confirmText = NewText("Question", panel, "", 30f, textColor);
+            confirmText = NewText("Question", panel, font, "", 30f, textColor);
             confirmText.rectTransform.offsetMin = new Vector2(30f, 110f);
             confirmText.rectTransform.offsetMax = new Vector2(-30f, -30f);
             confirmText.textWrappingMode = TextWrappingModes.Normal;
@@ -428,8 +388,8 @@ namespace NMJ
             RectTransform row = NewRect("Row", panel);
             row.offsetMin = new Vector2(60f, 30f);
             row.offsetMax = new Vector2(-60f, -200f);
-            AddButton(confirmButtons, row, "예", () => confirmAction?.Invoke());
-            confirmNoButton = AddButton(confirmButtons, row, "아니오", () => ShowPage(Page.Main));
+            AddButton(confirmButtons, row, style, "예", () => confirmAction?.Invoke());
+            confirmNoButton = AddButton(confirmButtons, row, style, "아니오", () => ShowPage(Page.Main));
 
             // 가로 두 칸, 왼쪽·오른쪽 키로 오간다
             for (int i = 0; i < confirmButtons.Count; i++)
@@ -439,178 +399,14 @@ namespace NMJ
                 rt.anchorMax = new Vector2(i * 0.5f + 0.5f, 1f);
                 rt.offsetMin = rt.offsetMax = Vector2.zero;
             }
-            Navigation a = new Navigation { mode = Navigation.Mode.Explicit, selectOnRight = confirmButtons[1].button };
-            Navigation b = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = confirmButtons[0].button };
-            confirmButtons[0].button.navigation = a;
-            confirmButtons[1].button.navigation = b;
-        }
-
-        /// <summary>흑 바탕 + 놋쇠 겹테 판</summary>
-        private RectTransform Panel(RectTransform parent, Vector2 size)
-        {
-            RectTransform panel = NewRect("Panel", parent);
-            panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
-            panel.sizeDelta = size;
-            Image bg = NewImage("Bg", panel, panelColor, Vector2.zero, Vector2.zero);
-            bg.raycastTarget = true;
-            Frame(panel, 0f, 2f, 1f);
-            Frame(panel, 8f, 1f, 0.45f);
-            return panel;
-        }
-
-        private void Frame(RectTransform parent, float inset, float thickness, float a)
-        {
-            Color c = new Color(brassColor.r, brassColor.g, brassColor.b, a);
-            Edge(parent, c, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(inset, -inset - thickness), new Vector2(-inset, -inset));
-            Edge(parent, c, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(inset, inset), new Vector2(-inset, inset + thickness));
-            Edge(parent, c, new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(inset, inset), new Vector2(inset + thickness, -inset));
-            Edge(parent, c, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(-inset - thickness, inset), new Vector2(-inset, -inset));
-        }
-
-        private static void Edge(RectTransform parent, Color c, Vector2 min, Vector2 max, Vector2 offMin, Vector2 offMax)
-        {
-            Image e = NewImage("Edge", parent, c, offMin, offMax);
-            e.rectTransform.anchorMin = min;
-            e.rectTransform.anchorMax = max;
-        }
-
-        private MenuButton AddButton(List<MenuButton> list, RectTransform parent, string text, UnityAction onClick)
-        {
-            var b = new MenuButton();
-            RectTransform rt = NewRect("Btn_" + text, parent);
-            Image hit = rt.gameObject.AddComponent<Image>();
-            hit.color = Color.clear;   // 누를 자리만 잡는다
-            b.button = rt.gameObject.AddComponent<Button>();
-            b.button.targetGraphic = hit;
-            b.button.transition = Selectable.Transition.None;
-            b.button.onClick.AddListener(onClick);
-
-            // 마우스를 올리면 그 줄을 고른다 → 키보드와 마우스가 같은 표시를 쓴다
-            var trigger = rt.gameObject.AddComponent<EventTrigger>();
-            var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-            enter.callback.AddListener(_ => { if (b.enabled && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(rt.gameObject); });
-            trigger.triggers.Add(enter);
-
-            b.label = NewText("Label", rt, text, buttonFontSize, textColor);
-
-            b.underline = NewRect("Underline", rt);
-            b.underline.anchorMin = b.underline.anchorMax = new Vector2(0.5f, 0.5f);
-            b.underline.sizeDelta = new Vector2(0f, 3f);
-            b.underline.anchoredPosition = new Vector2(0f, -buttonFontSize * 0.62f);
-            Image ink = b.underline.gameObject.AddComponent<Image>();
-            ink.color = selectColor;
-            ink.raycastTarget = false;
-
-            TMP_Text soon = NewText("Soon", rt, "준비 중", 16f, textColor);
-            soon.alignment = TextAlignmentOptions.Right;
-            soon.alpha = 0.5f;
-            soon.gameObject.SetActive(false);
-
-            list.Add(b);
-            return b;
-        }
-
-        /// <summary>버튼을 위에서부터 한 줄씩 둔다</summary>
-        private void LayoutColumn(List<MenuButton> buttons)
-        {
-            for (int i = 0; i < buttons.Count; i++)
-            {
-                RectTransform rt = (RectTransform)buttons[i].button.transform;
-                rt.anchorMin = new Vector2(0f, 1f);
-                rt.anchorMax = new Vector2(1f, 1f);
-                rt.pivot = new Vector2(0.5f, 1f);
-                rt.sizeDelta = new Vector2(0f, buttonHeight);
-                rt.anchoredPosition = new Vector2(0f, -i * buttonHeight);
-            }
-            LinkColumn(buttons);
-        }
-
-        /// <summary>위아래 키로 쓸 수 있는 버튼만 돌아가며 오가게 잇는다 ('준비 중'은 건너뜀)</summary>
-        private static void LinkColumn(List<MenuButton> buttons)
-        {
-            var usable = buttons.FindAll(b => b.enabled);
-            foreach (MenuButton b in buttons) b.button.navigation = new Navigation { mode = Navigation.Mode.None };
-            for (int i = 0; i < usable.Count; i++)
-            {
-                usable[i].button.navigation = new Navigation
-                {
-                    mode = Navigation.Mode.Explicit,
-                    selectOnUp = usable[(i - 1 + usable.Count) % usable.Count].button,
-                    selectOnDown = usable[(i + 1) % usable.Count].button,
-                };
-            }
-        }
-
-        private void Hint(RectTransform parent, string text)
-        {
-            TMP_Text h = NewText("Hint", parent, text, 18f, textColor);
-            RectTransform rt = h.rectTransform;
-            rt.anchorMin = new Vector2(0f, 0f);
-            rt.anchorMax = new Vector2(1f, 0f);
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.sizeDelta = new Vector2(0f, 30f);
-            rt.anchoredPosition = new Vector2(0f, 22f);
-            h.alpha = 0.5f;
-        }
-
-        private static void EnsureEventSystem()
-        {
-            if (EventSystem.current != null || FindAnyObjectByType<EventSystem>() != null) return;
-            new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
-        }
-
-        // ───────── 작은 도우미 ─────────
-
-        private static RectTransform NewRect(string name, Transform parent)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rt = (RectTransform)go.transform;
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = rt.offsetMax = Vector2.zero;
-            return rt;
-        }
-
-        private static Image NewImage(string name, Transform parent, Color color, Vector2 offsetMin, Vector2 offsetMax)
-        {
-            RectTransform rt = NewRect(name, parent);
-            rt.offsetMin = offsetMin;
-            rt.offsetMax = offsetMax;
-            var img = rt.gameObject.AddComponent<Image>();
-            img.color = color;
-            img.raycastTarget = false;
-            return img;
-        }
-
-        private TMP_Text NewText(string name, Transform parent, string text, float size, Color color)
-        {
-            var t = NewRect(name, parent).gameObject.AddComponent<TextMeshProUGUI>();
-            if (font != null) t.font = font;
-            t.text = text;
-            t.fontSize = size;
-            t.alignment = TextAlignmentOptions.Center;
-            t.color = color;
-            t.raycastTarget = false;
-            t.textWrappingMode = TextWrappingModes.NoWrap;
-            return t;
+            confirmButtons[0].button.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnRight = confirmButtons[1].button };
+            confirmButtons[1].button.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = confirmButtons[0].button };
         }
 
 #if UNITY_EDITOR
-        private void AutoAssignFont()
-        {
-            foreach (string guid in UnityEditor.AssetDatabase.FindAssets("ChosunCentennial_otf SDF t:TMP_FontAsset"))
-            {
-                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-                if (path.Contains("Fallback")) continue;
-                font = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
-                if (font != null) return;
-            }
-        }
-
         private void OnValidate()
         {
-            if (font == null) AutoAssignFont();
+            if (font == null) font = FindDefaultFont();
         }
 #endif
     }
