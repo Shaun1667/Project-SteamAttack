@@ -5,11 +5,11 @@ using YPH;
 namespace NGH
 {
     /// <summary>
-    /// 병합용 연결 (NGH) — CHG 플레이어의 입력·무기 칸과 YPH 총·수류탄·조준을 잇는다. (CombatTestInput 대체)
-    /// - 좌클릭: CHG가 원거리 장비로 사격 동작을 시작하면(ShotStarted) 장착한 장비에 따라 총 발사 / 수류탄 투척
-    /// - 우클릭(총 장착 + 발도 중): 조준. 조준 배율을 CHG 카메라 감도·이동 속도에 반영하고, 끝나면 1로 되돌림
-    /// - R(총 장착 중): 탄 주머니 충전 / G: 수류탄 제작 (장비와 무관)
-    /// - CHG 근접 명중(OnHitLanded) → YPH 증기 회복
+    /// 병합용 연결 (NGH) — CHG 플레이어의 입력·무기 칸과 YPH 화승총·조준·증기를 잇는다. (CombatTestInput 대체)
+    /// - 좌클릭(화승총): 쏠 수 있을 때만 사격 동작을 시작하고(ShotGate), 사격 동작이 시작되면(ShotStarted) 발사
+    /// - 우클릭(화승총 장착 + 발도 중): 조준. 조준 배율을 CHG 카메라 감도·이동 속도에 반영하고, 끝나면 1로 되돌림
+    /// - CHG 근접 명중(OnHitLanded) → YPH 증기 회복 (약공격만 회복, 강공격은 회복 없음)
+    /// - 강공격 시작(HeavyAttackGate) → YPH 증기 지불. 모자라면 강공격이 나가지 않음
     /// YPH와 CHG가 서로를 직접 참조하지 않도록 이 컴포넌트가 가운데서만 연결한다.
     /// </summary>
     [DisallowMultipleComponent]
@@ -19,33 +19,19 @@ namespace NGH
         [SerializeField] private PlayerController player;
         [SerializeField] private WeaponHolder weapons;
         [SerializeField] private ThirdPersonCamera playerCamera;
-        [Tooltip("무기 칸에서 총으로 쓸 NGH_Weapon")]
+        [Tooltip("무기 칸에서 화승총으로 쓸 NGH_Weapon")]
         [SerializeField] private Weapon gunWeapon;
-        [Tooltip("무기 칸에서 수류탄으로 쓸 NGH_Weapon")]
-        [SerializeField] private Weapon grenadeWeapon;
 
         [Header("YPH")]
         [SerializeField] private SteamGun gun;
-        [SerializeField] private SteamGrenadeThrower thrower;
-        [SerializeField] private GrenadeHandView grenadeHandView;
         [SerializeField] private AimController aim;
         [SerializeField] private SteamHitRefill hitRefill;
-
-        [Header("키")]
-        [Tooltip("총 장착 중 탄 주머니 충전")]
-        [SerializeField] private Key chargeKey = Key.R;
-        [Tooltip("수류탄 제작 (장비와 무관)")]
-        [SerializeField] private Key craftKey = Key.G;
 
         [Header("Debug")]
         [SerializeField] private bool logActions = true;
 
-        private bool grenadeShown;
-        private bool grenadeShownInitialized;
-
         private Weapon Equipped => weapons != null && !weapons.IsSwapping ? weapons.Current : null;
         private bool GunReady => player != null && player.IsDrawn && gunWeapon != null && Equipped == gunWeapon;
-        private bool GrenadeReady => player != null && player.IsDrawn && grenadeWeapon != null && Equipped == grenadeWeapon;
 
         private void Awake()
         {
@@ -60,6 +46,8 @@ namespace NGH
             {
                 player.ShotStarted += HandleShotStarted;
                 player.OnHitLanded += HandleMeleeHit;
+                player.ShotGate = CanStartShot;
+                if (hitRefill != null) player.HeavyAttackGate = hitRefill.TryPayHeavyAttack;
             }
         }
 
@@ -69,6 +57,8 @@ namespace NGH
             {
                 player.ShotStarted -= HandleShotStarted;
                 player.OnHitLanded -= HandleMeleeHit;
+                player.ShotGate = null;
+                player.HeavyAttackGate = null;
                 player.MoveSpeedMultiplier = 1f;
             }
             if (playerCamera != null) playerCamera.SensitivityMultiplier = 1f;
@@ -79,34 +69,11 @@ namespace NGH
         {
             if (player == null) return;
 
-            Keyboard keyboard = Keyboard.current;
             Mouse mouse = Mouse.current;
-            bool canAct = keyboard != null && mouse != null && !player.IsDead && !ControlsOverlay.IsOpen;
+            bool canAct = mouse != null && !player.IsDead && !ControlsOverlay.IsOpen;
 
-            // 손의 수류탄 표시: 수류탄 칸 + 발도 중일 때만
-            bool showGrenade = GrenadeReady;
-            if (grenadeHandView != null && (!grenadeShownInitialized || showGrenade != grenadeShown))
-            {
-                grenadeHandView.SetEquipped(showGrenade);
-                grenadeShown = showGrenade;
-                grenadeShownInitialized = true;
-            }
-
-            // 조준: 총 칸 + 발도 중 + 우클릭 유지
+            // 조준: 화승총 칸 + 발도 중 + 우클릭 유지
             if (aim != null) aim.SetAiming(canAct && GunReady && mouse.rightButton.isPressed);
-
-            if (!canAct) return;
-
-            if (gun != null && GunReady && keyboard[chargeKey].wasPressedThisFrame)
-            {
-                bool started = gun.TryChargePouch();
-                Log("주머니 충전 " + started + ", 상태 " + gun.CurrentState);
-            }
-            if (thrower != null && keyboard[craftKey].wasPressedThisFrame)
-            {
-                bool started = thrower.TryCraft();
-                Log("수류탄 제작 " + started + ", 소지 " + thrower.HeldCount + "/" + thrower.MaxHeld);
-            }
         }
 
         private void LateUpdate()
@@ -117,20 +84,22 @@ namespace NGH
             if (player != null) player.MoveSpeedMultiplier = moveSpeed;
         }
 
+        /// <summary>화승총은 조준 중이고 쏠 수 있을 때만 사격 동작을 시작한다. 못 쏘면 YPH가 실패 피드백(딸깍·증기 부족)을 낸다</summary>
+        private bool CanStartShot(Weapon weapon)
+        {
+            if (weapon != gunWeapon || gun == null) return true;      // 화승총이 아니면 관여하지 않음
+            bool aiming = GunReady && Mouse.current != null && Mouse.current.rightButton.isPressed;
+            if (aiming && gun.CanFire) return true;
+            gun.NotifyFireBlocked();
+            Log("사격 막힘: 조준 " + aiming + ", 상태 " + gun.CurrentState);
+            return false;
+        }
+
         private void HandleShotStarted(Weapon weapon)
         {
-            if (weapon == null) return;
-
-            if (weapon == gunWeapon && gun != null)
-            {
-                bool fired = gun.TryFire();
-                Log("발사 " + fired + ", 약실 " + (gun.ChamberLoaded ? 1 : 0) + ", 주머니 " + gun.PouchRounds + "/" + gun.PouchCapacity + ", 상태 " + gun.CurrentState);
-            }
-            else if (weapon == grenadeWeapon && thrower != null)
-            {
-                bool thrown = thrower.TryThrow();
-                Log("수류탄 투척 " + thrown + ", 소지 " + thrower.HeldCount + "/" + thrower.MaxHeld);
-            }
+            if (weapon == null || weapon != gunWeapon || gun == null) return;
+            bool fired = gun.TryFire();
+            Log("발사 " + fired + ", 상태 " + gun.CurrentState);
         }
 
         private void HandleMeleeHit(Damageable target)
@@ -138,7 +107,8 @@ namespace NGH
             if (hitRefill == null || target == null) return;
             // 적 쪽에 YPH 피해 대상(예: EnemyDamageRelay)이 있으면 그걸로, 없으면 NGH_Damageable을 감싸서 전달
             IDamageable damageable = target.GetComponentInParent<IDamageable>();
-            hitRefill.NotifyHit(damageable ?? new ChgTarget(target));
+            bool heavy = player != null && player.CurrentAction == PlayerController.ActionState.HeavyAttack;
+            hitRefill.NotifyHit(damageable ?? new ChgTarget(target), heavy);
         }
 
         private void Log(string message)

@@ -7,7 +7,7 @@ namespace NGH
     /// <summary>
     /// 3인칭 플레이어 이동 + 근접 전투 프로토타입.
     ///  WASD 8방향(카메라 기준, 대각선도 같은 속도) / Shift 달리기 / Space 구르기(무적)
-    ///  F 발도·납도 / 좌클릭 약공격(최대 5연타) / 좌+우 동시 클릭 강공격 / 휠클릭 락온 / Tab 무기 교체
+    ///  F 발도·납도 / 좌클릭 약공격(최대 5연타) / 우클릭 강공격 / 휠클릭 락온 / Tab 무기 교체
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour
@@ -53,6 +53,10 @@ namespace NGH
         public event System.Action<Damageable> OnHitLanded;
         /// <summary>원거리 장비(isMelee = false) 사격 동작이 시작될 때 장착 무기와 함께 알립니다. 실제 발사·투척은 구독하는 쪽이 처리합니다. (병합 — YPH 총·수류탄 연결용)</summary>
         public event System.Action<Weapon> ShotStarted;
+        /// <summary>강공격을 실제로 시작하기 직전에 부릅니다. false면 강공격을 시작하지 않습니다. 비어 있으면 항상 시작합니다. (병합 — YPH 강공격 증기 지불용)</summary>
+        public System.Func<bool> HeavyAttackGate { get; set; }
+        /// <summary>원거리 장비로 좌클릭했을 때 사격 동작을 시작해도 되는지 묻습니다. false면 사격 동작을 시작하지 않습니다. 비어 있으면 항상 허용합니다. (병합 — YPH 화승총 발사 가능 확인용)</summary>
+        public System.Func<Weapon, bool> ShotGate { get; set; }
 
         [Header("이동 속도 (m/s)")]
         public float walkSpeed = 0.7f;
@@ -108,7 +112,7 @@ namespace NGH
         [Tooltip("약공격 1타")]
         public AttackData lightAttack = new AttackData
             { damage = 1f, playSpeed = 2f, endAt = 0.30f, hitWindows = new[] { new Vector2(0.13f, 0.27f) }, lungeDistance = 0.4f };
-        [Tooltip("강공격 (좌·우클릭 동시)")]
+        [Tooltip("강공격 (우클릭)")]
         public AttackData heavyAttack = new AttackData   // 파워슬래시(powerslash): 회전 점프 베기, 판정 1번
             { damage = 3f, playSpeed = 2f, endAt = 0.57f, hitWindows = new[] { new Vector2(0.345f, 0.39f) }, lungeDistance = 0.5f };   // 내려치는 순간(프레임 52~58)
         [Tooltip("약공격 2타: 1타 중 좌클릭을 한 번 더 누르면 이어짐 (두 번 베기 = 판정 2번, 판정마다 Damage)")]
@@ -127,8 +131,6 @@ namespace NGH
         [Min(0)] public float comboGraceTime = 0.35f;
         [Tooltip("유예 시간 안에 이어 붙일 때 섞는 시간(초). 이미 대기 자세로 돌아가는 중이라 바로 이어질 때보다 조금 길게")]
         [Min(0)] public float comboResumeBlend = 0.12f;
-        [Tooltip("좌클릭과 우클릭을 이 시간(초) 안에 함께 누르면 강공격. 좌클릭 약공격은 이 시간만큼 늦게 시작됨")]
-        public float bothClickWindow = 0.08f;
         [Tooltip("판정 구간보다 이만큼(클립 기준 0~1) 먼저 전진을 시작")]
         [Range(0, 0.2f)] public float lungeLead = 0.04f;
         [Tooltip("락온 대상과 이 거리(m)보다 가까우면 더 파고들지 않음")]
@@ -229,7 +231,6 @@ namespace NGH
         ActionState _comboLast;          // 이어지지 않고 끝난 마지막 약공격 타 (유예 시간 동안 다음 타로 이어 붙임)
         float _comboEndAt = -999f;
         float _blendOverride = -1f;
-        float _leftClickAt = -1f, _rightClickAt = -1f;   // 동시 클릭 판정용 (-1 = 대기 중인 클릭 없음)
         readonly HashSet<Damageable> _hitThisSwing = new HashSet<Damageable>();
         readonly HashSet<object> _externalInvincible = new HashSet<object>();   // 외부에서 켠 무적 (켠 쪽별로 관리)
 
@@ -490,6 +491,8 @@ namespace NGH
             if (a == ActionState.Draw && drawn) return;
             if (a == ActionState.Sheath && !drawn) return;
             bool isAttack = IsLightChain(a) || a == ActionState.HeavyAttack || a == ActionState.Shot;
+            // 강공격은 지금 바로 시작될 때만 증기를 냄 (납도 상태에서 발도부터 하는 경우는 발도 뒤 다시 이곳을 지날 때 확인)
+            if (a == ActionState.HeavyAttack && (drawn || instantDrawOnAttack) && HeavyAttackGate != null && !HeavyAttackGate()) return;
             if (isAttack && !drawn)
             {
                 // 납도 상태에서 공격: 즉시 발도하거나, 발도 동작 뒤에 공격을 이어서 실행
@@ -662,34 +665,19 @@ namespace NGH
         }
 
         /// <summary>
-        /// 근접 무기: 좌클릭 = 약공격, 좌+우 동시 클릭(Both Click Window 안) = 강공격, 우클릭 단독 = 동작 없음.
-        /// 원거리 무기: 좌클릭 = 사격 (지연 없음)
+        /// 근접 무기: 좌클릭 = 약공격, 우클릭 = 강공격.
+        /// 원거리 무기: 좌클릭 = 사격 (쏠 수 없으면 ShotGate가 막아 사격 동작을 시작하지 않음). 우클릭 조준은 CombatBridge가 처리
         /// </summary>
         void ReadAttackInput(Mouse mouse)
         {
             if (!IsMeleeEquipped())
             {
-                _leftClickAt = _rightClickAt = -1f;
-                if (mouse.leftButton.wasPressedThisFrame) Request(ActionState.Shot);
+                if (mouse.leftButton.wasPressedThisFrame && (ShotGate == null || ShotGate(weapons ? weapons.Current : null)))
+                    Request(ActionState.Shot);
                 return;
             }
-            float now = Time.time;
-            if (mouse.leftButton.wasPressedThisFrame) _leftClickAt = now;
-            if (mouse.rightButton.wasPressedThisFrame) _rightClickAt = now;
-
-            if (_leftClickAt >= 0f && _rightClickAt >= 0f)
-            {
-                _leftClickAt = _rightClickAt = -1f;
-                Request(ActionState.HeavyAttack);
-                return;
-            }
-            if (_leftClickAt >= 0f && now - _leftClickAt >= bothClickWindow)
-            {
-                // 입력이 멈춰 있던 동안(조작 안내 등) 오래 남은 클릭은 버림
-                if (now - _leftClickAt < bothClickWindow + 0.2f) Request(ActionState.LightAttack);
-                _leftClickAt = -1f;
-            }
-            if (_rightClickAt >= 0f && now - _rightClickAt >= bothClickWindow) _rightClickAt = -1f;
+            if (mouse.leftButton.wasPressedThisFrame) Request(ActionState.LightAttack);
+            else if (mouse.rightButton.wasPressedThisFrame) Request(ActionState.HeavyAttack);
         }
 
         static bool IsLightChain(ActionState a) =>
