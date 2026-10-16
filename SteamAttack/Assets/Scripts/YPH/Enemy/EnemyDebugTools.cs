@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+﻿#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -22,6 +22,7 @@ namespace YPH
         private EnemyAI _lockedEnemy;
         private bool _savedPlayerHitKeys, _ownsTestKeys;
         private float _nextLookup;
+        private string _helpText = BuildHelpText(25);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
@@ -87,6 +88,10 @@ namespace YPH
             if (_player == null || !_player.isActiveAndEnabled)
             {
                 _player = FindAnyObjectByType<PlayerController>();
+                if (_player != null)
+                {
+                    _helpText = BuildHelpText(_player.heavyHitThreshold);
+                }
             }
             if (_steam == null || !_steam.isActiveAndEnabled)
             {
@@ -179,7 +184,7 @@ namespace YPH
             {
                 if (_player != null)
                 {
-                    int damage = Pressed(keys, 1) ? 1 : 2;
+                    int damage = Pressed(keys, 1) ? 1 : _player.heavyHitThreshold;
                     _player.TakeHit(damage, _player.transform.position + _player.transform.forward);
                     Debug.Log("[YPH 테스트] 플레이어 피격 " + damage, _player);
                 }
@@ -279,19 +284,22 @@ namespace YPH
             }
             return best;
         }
+        /// <summary>플레이어를 찾았을 때 안내문을 만들어 그리기마다 문자열을 만들지 않습니다.</summary>
+        private static string BuildHelpText(int threshold)
+        {
+            return "<b>개발용 표시 ON</b>  0: 끄기\n" +
+                "<b>플레이어</b>\n1: 작은 경직(피해 1)  2: 큰 경직(피해 " + threshold + ")\n3: 증기 -20  4: 증기 +20\nCtrl: 붉은 동심원 받아치기(기본 증기 소모 없음)\n" +
+                "<b>대상 적: 락온, 없으면 가장 가까운 적</b>\n5: 패링당함  7: 체력바\n" +
+                "<b>원</b> 노랑: 인지  옅은 노랑: 놓침\n빨강: 근접 사거리/원거리 후퇴  자주: 강공격/킥\n초록: 원거리 유지/사격 거리\n" +
+                "<b>빨간 상자</b> 실제 공격 판정\n<b>레이저</b> 빨강: 조준  노랑: 발사 방향";
+        }
         private void OnGUI()
         {
             if (!DebugView.Enabled || gameObject.scene != SceneManager.GetActiveScene())
             {
                 return;
             }
-            Rect help = DebugView.DrawBox(
-                "<b>개발용 표시 ON</b>  0: 끄기\n" +
-                "<b>플레이어</b>\n1: 경직(피해 1)  2: 대경직(피해 2)\n3: 증기 -20  4: 증기 +20\nCtrl: 붉은 동심원 받아치기(기본 증기 소모 없음)\n" +
-                "<b>대상 적: 락온, 없으면 가장 가까운 적</b>\n5: 패링당함  7: 체력바\n" +
-                "<b>원</b> 노랑: 인지  옅은 노랑: 놓침\n빨강: 근접 사거리/원거리 후퇴  자주: 강공격/킥\n초록: 원거리 유지/사격 거리\n" +
-                "<b>빨간 상자</b> 실제 공격 판정\n<b>레이저</b> 빨강: 조준  노랑: 발사 방향",
-                Vector2.zero);
+            Rect help = DebugView.DrawBox(_helpText, Vector2.zero);
             EnemyAI target = FindTarget(out bool locked);
             string info = "<b>대상 적</b>\n없음";
             if (target != null)
