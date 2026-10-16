@@ -75,7 +75,8 @@ namespace NGH
 
         bool InLocomotion()
         {
-            if (!_animator) return false;
+            // 컨트롤러 없이 자세만 전달받는 Animator(예: YPH Hero 리타게팅)는 상태를 조회하면 매 프레임 경고가 남
+            if (!_animator || !_animator.isActiveAndEnabled || !_animator.runtimeAnimatorController || !_animator.isInitialized) return false;
             int hash = _animator.GetCurrentAnimatorStateInfo(0).shortNameHash;
             for (int i = 0; i < _locomotionHashes.Length; i++)
                 if (_locomotionHashes[i] == hash) return true;
