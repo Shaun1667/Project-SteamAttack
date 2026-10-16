@@ -117,10 +117,15 @@ namespace YPH
             return success;
         }
 
-        /// <summary>NGH의 공개 상태만 읽습니다. 공격 허용 옵션은 구르기·피격·사망 제한을 해제하지 않습니다.</summary>
+        /// <summary>NGH의 공개 상태만 읽습니다. 공격 허용 옵션은 구르기·피격·사망·납도 제한을 해제하지 않습니다.</summary>
         private bool IsBlockedByPlayerState()
         {
             if (_player.IsDead || _player.IsStandingUp || _player.IsHitReacting || _player.CurrentAction == PlayerController.ActionState.Roll)
+            {
+                return true;
+            }
+            // 납도 상태에서는 받아치기 자체를 하지 않습니다 (NGH 확인 2026-10-16). 발도·납도 동작 중에는 무기가 손에 보이는 동안만 허용됩니다.
+            if (!_player.IsDrawn)
             {
                 return true;
             }
