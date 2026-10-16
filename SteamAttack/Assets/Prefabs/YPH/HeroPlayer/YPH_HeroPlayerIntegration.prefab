@@ -243,18 +243,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamGun
   _tank: {fileID: 6342032219919825200}
-  _hitRefill: {fileID: 3280665350318653873}
   _aimOrigin: {fileID: 8403445457698246789}
   _ignoreRoot: {fileID: 5404594696211051736}
   _muzzle: {fileID: 1385678527175754450}
-  _pouchCapacity: 10
-  _startPouchRounds: 10
-  _steamCostPerRound: 1
+  _steamCostPerShot: 10
   _fireInterval: 0.25
   _chamberTime: 0.5
-  _pouchChargeTime: 1
-  _damage: 1
-  _range: 50
+  _damagePerShot: 20
+  _maxRange: 25
   _hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -275,8 +271,6 @@ MonoBehaviour:
   _readyColor: {r: 0.3, g: 1, b: 0.4, a: 1}
   _firingColor: {r: 1, g: 0.3, b: 0.2, a: 1}
   _chamberingColor: {r: 0.3, g: 0.6, b: 1, a: 1}
-  _emptyColor: {r: 0.4, g: 0.4, b: 0.4, a: 1}
-  _chargingColor: {r: 1, g: 0.85, b: 0.2, a: 1}
 --- !u!114 &5964354102994295807
 MonoBehaviour:
   m_ObjectHideFlags: 0
