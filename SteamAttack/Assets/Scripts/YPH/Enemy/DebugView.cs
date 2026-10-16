@@ -17,11 +17,12 @@ namespace YPH
     /// Game 뷰의 Gizmos 버튼과 관계없이 보인다. (새 오브젝트를 만들지 않음)
     /// 편집 중(플레이 안 할 때)에는 기존처럼 선택한 오브젝트의 Gizmo로 보인다.
     ///
-    /// 사용하는 곳: EnemyAI (범위 원·조준 레이저·테스트 키 1~7·설명 상자), EnemyAttackHitbox (판정 상자),
+    /// 사용하는 곳: EnemyDebugTools (범위 원·조준 레이저·테스트 키 1~7·설명 상자), EnemyAttackHitbox (판정 상자),
     ///            EnemyHealth.AnyDamaged (데미지 숫자 — 이 파일 아래쪽 '데미지 숫자' 구역)
     /// </summary>
     public static class DebugView
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         /// <summary>개발용 표시가 켜져 있는지 (플레이 시작 시 꺼짐)</summary>
         public static bool Enabled { get; private set; }
 
@@ -390,5 +391,9 @@ namespace YPH
                 DrawDamageNumbers();
             }
         }
+#else
+        /// <summary>NGH HUD의 읽기 API는 유지하되 출시 빌드에서는 개발 표시를 항상 끕니다.</summary>
+        public static bool Enabled => false;
+#endif
     }
 }
