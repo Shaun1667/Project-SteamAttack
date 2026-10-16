@@ -8,7 +8,7 @@
 | 우선순위 | 🟡 보통 |
 | 희망 기한 | 다음 플레이어 통합 확인 전 |
 | 관련 기획서 | 없음. 기존 Hero 자세 전달 구성의 경고 방지 |
-| 상태 | 요청됨 |
+| 상태 | 완료 |
 
 ## 1. 한 줄 요약
 
@@ -74,4 +74,4 @@ if (!_animator || !_animator.isActiveAndEnabled ||
 
 | 날짜 | 처리자 | 결과 | 비고 |
 |---|---|---|---|
-| | | | |
+| 2026-10-16 | NGH | 완료 (e516966) | 5번 방법 그대로 `InLocomotion()`에 검사 추가. `YPH_HeroPlayerIntegration`의 `Hero_Bound`(Controller null)를 띄워 120프레임 동안 해당 경고 0건 확인. 요청서의 `YPH_HeroPlayerTest` 씬은 YPH Player FBX가 저장소에 없어 Missing Prefab 상태라 그 씬으로는 확인하지 못함 |
