@@ -10919,22 +10919,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2384890397531492216, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-      propertyPath: slots.Array.size
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 2384890397531492216, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-      propertyPath: 'slots.Array.data[0]'
-      value: 
-      objectReference: {fileID: 562215044}
-    - target: {fileID: 2384890397531492216, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-      propertyPath: 'slots.Array.data[1]'
-      value: 
-      objectReference: {fileID: 562215041}
-    - target: {fileID: 2384890397531492216, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-      propertyPath: 'slots.Array.data[2]'
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 2700860348276839539, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 27.440487
@@ -11201,23 +11185,20 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1728431759}
-    - targetCorrespondingSourceObject: {fileID: 7001338396301897121, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1051657845}
-    - targetCorrespondingSourceObject: {fileID: 3933925296522799872, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1939869149}
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 1766717810704266006, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1932385061}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
 --- !u!114 &562215039 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
   m_PrefabInstance: {fileID: 562215038}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1932385060}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b451237558f54104482dee4a759898ee, type: 3}
@@ -11228,7 +11209,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2384890397531492216, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
   m_PrefabInstance: {fileID: 562215038}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1932385060}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 955af114af82983489097236f2e2467c, type: 3}
@@ -11236,7 +11217,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::chg_WeaponHolder
 --- !u!114 &562215041 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4558058189110418245, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_CorrespondingSourceObject: {fileID: 1331308873830520749, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
   m_PrefabInstance: {fileID: 562215038}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
@@ -11244,28 +11225,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c54875b8c054a794ab6fca59735f6eb4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_Weapon
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.Weapon
 --- !u!4 &562215042 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: 3933925296522799872, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_CorrespondingSourceObject: {fileID: 8216701855218754986, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
   m_PrefabInstance: {fileID: 562215038}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &562215043 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 7001338396301897121, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-  m_PrefabInstance: {fileID: 562215038}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &562215044 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3658074112825113857, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-  m_PrefabInstance: {fileID: 562215038}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c54875b8c054a794ab6fca59735f6eb4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_Weapon
 --- !u!4 &562215045 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
@@ -12204,7 +12169,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 562215043}
+    m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
       propertyPath: m_LocalScale.x
@@ -18004,6 +17969,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamHitRefill
   _tank: {fileID: 1051657846}
   _refillPerHit: 10
+  _heavyAttackCost: 30
 --- !u!114 &1728431758
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20860,30 +20826,6 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
---- !u!1 &1932385060 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1766717810704266006, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-  m_PrefabInstance: {fileID: 562215038}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1932385061
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1932385060}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 04bef46752ca488f9a17b1b7ab0c0f80, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CHG.PlayerParry
-  useCtrl: 1
-  steamCost: 10
-  steamOnSuccess: 20
-  steamTank: {fileID: 1051657846}
-  cooldown: 2
-  parryRange: 5
-  logParry: 1
 --- !u!1 &1939869148
 GameObject:
   m_ObjectHideFlags: 0
@@ -20920,7 +20862,7 @@ Transform:
   m_Children:
   - {fileID: 2035636381}
   - {fileID: 794657923}
-  m_Father: {fileID: 562215042}
+  m_Father: {fileID: 562215045}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1939869150
 MonoBehaviour:
@@ -20935,18 +20877,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamGun
   _tank: {fileID: 1051657846}
-  _hitRefill: {fileID: 1728431757}
   _aimOrigin: {fileID: 558124442}
   _ignoreRoot: {fileID: 562215045}
-  _muzzle: {fileID: 1295161760}
-  _pouchCapacity: 10
-  _startPouchRounds: 10
-  _steamCostPerRound: 1
+  _muzzle: {fileID: 562215042}
+  _steamCostPerShot: 5
   _fireInterval: 0.25
   _chamberTime: 0.5
-  _pouchChargeTime: 1
-  _damage: 1
-  _range: 50
+  _damagePerShot: 20
+  _maxRange: 25
   _hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -21014,8 +20952,6 @@ MonoBehaviour:
   _readyColor: {r: 0.3, g: 1, b: 0.4, a: 1}
   _firingColor: {r: 1, g: 0.3, b: 0.2, a: 1}
   _chamberingColor: {r: 0.3, g: 0.6, b: 1, a: 1}
-  _emptyColor: {r: 0.4, g: 0.4, b: 0.4, a: 1}
-  _chargingColor: {r: 1, g: 0.85, b: 0.2, a: 1}
 --- !u!1 &1945377969
 GameObject:
   m_ObjectHideFlags: 0
