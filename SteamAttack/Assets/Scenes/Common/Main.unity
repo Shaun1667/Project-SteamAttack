@@ -8653,6 +8653,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: chg_PlayerHUD
       objectReference: {fileID: 0}
+    - target: {fileID: 4310362058346758998, guid: 2f5ded0d532261c4194d409917bda6be, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6118663850989651614, guid: 2f5ded0d532261c4194d409917bda6be, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
