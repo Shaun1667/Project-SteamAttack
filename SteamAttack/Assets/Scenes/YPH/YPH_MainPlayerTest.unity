@@ -33516,6 +33516,8 @@ MonoBehaviour:
   objectiveText: {fileID: 182959323}
   stateText: {fileID: 656798142}
   mainQuestPrefix: "[\uC5B4\uBA85] "
+  hideDuringBossFight: 1
+  fadeSpeed: 4
 --- !u!1 &205124026
 GameObject:
   m_ObjectHideFlags: 0
@@ -35956,6 +35958,10 @@ PrefabInstance:
     - target: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
       propertyPath: m_Name
       value: YPH_MutantSoldier_2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -153494,6 +153500,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2774899969034203989, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+      propertyPath: _heavyChance
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8447182195599149519, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
       propertyPath: m_LocalPosition.x
       value: 6.488
