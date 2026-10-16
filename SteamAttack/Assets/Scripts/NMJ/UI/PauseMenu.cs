@@ -162,7 +162,7 @@ namespace NMJ
             // Game Over 화면이 떠 있거나 방금 닫힌 프레임(같은 ESC로 일어나는 중)에는 열지 않는다
             if (GameOverScreen.IsShowing || Time.frameCount - lastGameOverFrame <= 1) return false;
             if (player != null && player.IsDead) return false;
-            if (BossDefeatBanner.IsShowing) return false;   // 처치 문구 → 엔딩 중에는 열지 않는다
+            if (BossDefeatBanner.IsShowing || EndingCredits.IsPlaying) return false;   // 처치 문구 → 엔딩 크레딧 중에는 열지 않는다
             return !ControlsOverlay.GuideOpen;
         }
 

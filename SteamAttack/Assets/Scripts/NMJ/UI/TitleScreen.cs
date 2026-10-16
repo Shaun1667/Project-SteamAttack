@@ -99,6 +99,7 @@ namespace NMJ
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
 
+            PlayTimer.Stop();   // 타이틀에 있는 동안은 플레이 시간에 넣지 않는다
             BuildUi();
             fade.alpha = 1f;
         }
@@ -175,6 +176,7 @@ namespace NMJ
         {
             if (leaveTimer >= 0f) return;
             leaveTo = gameScene;
+            PlayTimer.Restart();
             leaveTimer = 0f;
             group.interactable = false;
         }

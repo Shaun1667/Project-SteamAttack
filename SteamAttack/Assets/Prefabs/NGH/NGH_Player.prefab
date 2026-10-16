@@ -5618,6 +5618,7 @@ GameObject:
   - component: {fileID: 1112613726534638615}
   - component: {fileID: 1061133108650661386}
   - component: {fileID: 8913662214249980563}
+  - component: {fileID: 5130903279594837647}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Untagged
@@ -10122,6 +10123,51 @@ MonoBehaviour:
   textColor: {r: 0.96, g: 0.95, b: 0.92, a: 1}
   redColor: {r: 0.82, g: 0.18, b: 0.1, a: 1}
   trackColor: {r: 0.22, g: 0.22, b: 0.24, a: 1}
+--- !u!114 &5130903279594837647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a2dc877dc6b4c2449adcbc77137c211, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.EndingCredits
+  credits:
+  - role: "\uAE30\uD68D \xB7 UI \xB7 \uC138\uACC4\uAD00"
+    names:
+    - "\uB098\uBBFC\uC7AC"
+  - role: "\uD50C\uB808\uC774\uC5B4 \xB7 \uC804\uD22C \xB7 \uC2DC\uAC04 \uC5ED\uD589"
+    names:
+    - "\uB0A8\uADC0\uD6C8"
+  - role: "\uBCF4\uC2A4 \xB7 \uD604\uBB34"
+    names:
+    - "BHS (\uC774\uB984)"
+  - role: "\uC8FC\uC778\uACF5 \uBAA8\uB378 \xB7 \uD654\uC2B9\uCD1D \xB7 \uBC1B\uC544\uCE58\uAE30 \xB7 \uC77C\uBC18 \uC801"
+    names:
+    - "YPH (\uC774\uB984)"
+  logo: "\u7384\u6B66"
+  subtitle: "\uC5ED\uB958\uC758 \uC5B4\uBA85"
+  creditsTitle: "\uB9CC\uB4E0 \uC0AC\uB78C\uB4E4"
+  notice: "\uC774 \uC791\uD488\uC740 \uC2E4\uC874 \uC778\uBB3C\xB7\uC0AC\uAC74\uACFC \uBB34\uAD00\uD55C \uCC3D\uC791\uC785\uB2C8\uB2E4"
+  thanks: "\uAC10\uC0AC\uD569\uB2C8\uB2E4"
+  banner: {fileID: 1061133108650661386}
+  titleScene: NMJ_Title
+  font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
+  fadeInTime: 2
+  scrollSpeed: 70
+  inputDelay: 1.5
+  backColor: {r: 0.03, g: 0.03, b: 0.035, a: 1}
+  textColor: {r: 0.96, g: 0.95, b: 0.92, a: 1}
+  brassColor: {r: 0.94, g: 0.73, b: 0.16, a: 1}
+  sealColor: {r: 0.82, g: 0.18, b: 0.1, a: 1}
+  snowColor: {r: 0.83, g: 0.93, b: 0.95, a: 1}
+  OnFinished:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1800097922734459134
 GameObject:
   m_ObjectHideFlags: 0
