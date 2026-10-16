@@ -8,39 +8,48 @@ using YPH;
 namespace NMJ
 {
     /// <summary>
-    /// 증기 게이지 — 놋쇠 띠 두른 쇠 실린더 + 유리창 안 흰 증기 (NMJ 새 HUD 2번: 증기)
+    /// 증기 게이지 + 무기 패 — 놋쇠 띠 두른 쇠 실린더, 유리창 안 흰 증기, 끝에 지금 든 무기 패 (NMJ HUD: 증기·무기)
     ///
-    ///       銃      強                 逆          ┳  ← 밸브: 증기를 쓰면 흰 증기가 뿜어져 나감
-    ///    (◔)═[▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░]═╯
-    ///     ↑      ↑ 유리창 안 흰 증기(천천히 일렁임), 끝은 부드럽게 흩어짐
-    ///   압력계(바늘이 잔량을 가리킴)
+    ///       銃      強                 逆
+    ///    (◔)═[▓▓|▓▓|▓▓|▓▓|▓▓|▓▓░░░░░░░░░░░░]═╗ [銃]   ← 무기 패 (刀 환도 / 銃 화승총), 총이면 남은 발 수 ×N
+    ///     ↑      ↑ 총을 들면 실린더가 증기 5씩 칸으로 나뉨 = 쏠 수 있는 발 수
+    ///   압력계
     ///
-    /// - 눈금 3개 (기획 v4, 10/15 회의 임시값): 銃(화승총 발사 5) · 強(강공격 30) · 逆(시간 역행 70).
-    ///   잔량이 그 이상이면 금색, 모자라면 회색. 증기발도는 강공격에 통합돼 눈금 없음.
-    /// - YPH.SteamTank의 공개 값·이벤트만 사용한다. 탱크는 부모(플레이어) → 씬 순서로 찾는다.
-    ///     OnConsumed      → 쓴 양에 비례해 밸브에서 증기 분출 (50 이상이면 이음새에서도 샘)
-    ///     OnConsumeFailed → 게이지가 덜컹 흔들리고 테두리가 붉게 번쩍, 김 빠지는 작은 분출
-    /// - 가장 싼 기술(화승총)도 못 쓰는 잔량이면 테두리가 붉게 맥박친다.
-    /// - 그림은 실행할 때 코드로 그린다 (텍스처 파일 없음). InkHealthBar 바로 아래에 오도록 배치.
+    /// 기획 v4 (10/15 회의 결정)를 그대로 따른다. 지금 YPH 총의 주머니 충전 방식은 보지 않는다.
+    /// - 행동 글자 3개: 銃(화승총 발사·받아치기 5) · 強(강공격 30) · 逆(시간 역행 70)
+    ///   증기가 충분하면 짙은 먹, 모자라면 마른 붓(비백)으로 갈라진다. 든 무기에 맞는 글자는 조금 크게.
+    /// - 받아치기 성공(적 경직 → 강공격 기회) → 強 글자에 붉은 먹이 번진다. FlashStrongChance()로 직접 부를 수도 있다.
+    /// - 칼 적중 등으로 증기가 차면 무기 패 쪽에서 김이 실린더로 빨려 들어간다.
+    /// - 증기를 쓰면 밸브에서 쓴 양만큼 김이 뿜어지고, 부족하면 게이지가 덜컹하며 붉게 번쩍인다.
+    /// - Tab으로 무기를 바꾸면 패의 글자를 붓으로 다시 쓰듯 왼쪽부터 드러난다. 납도 중에는 패가 흐려진다.
+    ///
+    /// 데이터는 공개 값만 읽는다: YPH.SteamTank(증기), NGH.PlayerController·WeaponHolder(든 무기, 발도 여부),
+    /// NGH.PlayerParry.ParryAttempted(받아치기 성공). 다른 사람 코드는 고치지 않는다.
+    /// 그림은 실행할 때 코드로 그린다. 한자는 NMJ 전용 고정 폰트(NMJ_HudGlyphs SDF)를 쓴다.
     ///
     /// 플레이어(YPH_HeroPlayerIntegration 안 NGH_Player)에 InkHealthBar와 함께 붙어 있다.
-    /// Test Keys (숫자패드 — F키는 퀘스트 디버그와 겹침): 1 = 화승총, 2 = 강공격, 3 = 시간 역행 만큼 쓰기, 0 = 가득 채우기
+    /// Test Keys (숫자패드 — F키는 퀘스트 디버그와 겹침):
+    ///   1 화승총 · 2 강공격 · 3 시간 역행만큼 쓰기 · 4 칼 적중(+5) · 5 받아치기 성공 · 0 가득 채우기
     /// </summary>
     [DisallowMultipleComponent]
     public class SteamCylinderGauge : MonoBehaviour
     {
-        [Header("연결 (비우면 씬에서 자동으로 찾음)")]
+        [Header("연결 (비우면 자동으로 찾음)")]
         [SerializeField] private SteamTank tank;
-        [Tooltip("눈금 글자 폰트. 비우면 에디터에서 ChosunCentennial을 자동으로 넣음")]
-        [SerializeField] private TMP_FontAsset font;
+        [SerializeField] private NGH.PlayerController player;
+        [Tooltip("HUD 한자 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동으로 넣음 (메뉴 SteamAttack/NMJ/HUD 한자 폰트 만들기)")]
+        [SerializeField] private TMP_FontAsset glyphFont;
+        [Tooltip("마른 붓 표현용 TMP 셰이더 (TextMeshPro/Distance Field). 비우면 에디터에서 자동으로 넣음")]
+        [SerializeField] private Shader glyphShader;
 
         [Header("배치 (화면 1920×1080 기준, 왼쪽 아래 기준점)")]
         [Tooltip("압력계가 체력바 낙관 아래, 실린더가 체력 획 아래에 오는 자리")]
         [SerializeField] private Vector2 position = new Vector2(60f, 22f);
-        [Tooltip("게이지 전체 크기 (압력계 포함)")]
-        [SerializeField] private Vector2 size = new Vector2(540f, 58f);
+        [Tooltip("게이지 전체 크기 (압력계·무기 패 포함)")]
+        [SerializeField] private Vector2 size = new Vector2(600f, 58f);
 
-        [Header("눈금 (기획 v4 증기 비용 — 임시값, 플레이 피드백 후 조정)")]
+        [Header("증기 비용 (기획 v4 — 임시값, 플레이 피드백 후 조정)")]
+        [Tooltip("화승총 1발 (받아치기도 화승총을 격발하므로 같은 비용)")]
         [SerializeField] private float gunCost = 5f;
         [SerializeField] private float strongCost = 30f;
         [SerializeField] private float rewindCost = 70f;
@@ -48,14 +57,23 @@ namespace NMJ
         [SerializeField] private string strongLabel = "強";
         [SerializeField] private string rewindLabel = "逆";
 
+        [Header("무기 패")]
+        [SerializeField] private string meleeGlyph = "刀";
+        [SerializeField] private string gunGlyph = "銃";
+        [Tooltip("납도 중 패의 진하기")]
+        [SerializeField, Range(0f, 1f)] private float sheathedAlpha = 0.45f;
+        [Tooltip("받아치기 성공 뒤 強이 붉게 빛나는 시간(초). 적 경직 시간에 맞춘다 (회의 2.1: 미정)")]
+        [SerializeField, Min(0.1f)] private float strongChanceTime = 1.2f;
+
         [Header("색")]
         [SerializeField] private Color ironColor = new Color(0.17f, 0.15f, 0.14f, 1f);
         [SerializeField] private Color brassColor = new Color(0.62f, 0.44f, 0.19f, 1f);
         [SerializeField] private Color inkColor = new Color(0.05f, 0.05f, 0.06f, 1f);
+        [SerializeField] private Color dryInkColor = new Color(0.16f, 0.15f, 0.14f, 0.95f);
+        [SerializeField] private Color paperColor = new Color(0.88f, 0.83f, 0.72f, 1f);
         [SerializeField] private Color glassColor = new Color(0.10f, 0.11f, 0.12f, 1f);
         [SerializeField] private Color steamColor = new Color(0.95f, 0.95f, 0.93f, 1f);
-        [SerializeField] private Color tickOnColor = new Color(0.94f, 0.73f, 0.25f, 1f);
-        [SerializeField] private Color tickOffColor = new Color(0.43f, 0.38f, 0.32f, 1f);
+        [SerializeField] private Color chanceColor = new Color(0.80f, 0.10f, 0.07f, 1f);
         [SerializeField] private Color warnColor = new Color(0.85f, 0.15f, 0.10f, 1f);
 
         [Header("연출")]
@@ -68,6 +86,8 @@ namespace NMJ
         [Tooltip("증기 10을 쓸 때 나오는 김 덩어리 수 (많이 쓸수록 비례해서 늘어남)")]
         [SerializeField, Min(1)] private int puffsPer10 = 2;
         [SerializeField, Min(0f)] private float failShake = 6f;
+        [Tooltip("먹이 마르고 젖는 빠르기")]
+        [SerializeField, Min(0.1f)] private float inkSpeed = 5f;
         [SerializeField] private int seed = 5;
         [SerializeField] private bool testKeys = true;
 
@@ -78,6 +98,10 @@ namespace NMJ
         private const float GlassInsetLeft = 26f;
         private const float GlassInsetRight = 32f;
         private const float GlassInsetY = 9f;
+        private const float PlaqueW = 46f;
+        private const float PlaqueH = 54f;
+        private const float PlaqueGap = 8f;
+        private const float RevealTime = 0.28f;
 
         private class Puff
         {
@@ -91,8 +115,12 @@ namespace NMJ
         private class Tick
         {
             public float cost;
-            public Image mark;
-            public TMP_Text label;
+            public RectTransform rt;
+            public TMP_Text wet;
+            public TMP_Text dry;
+            public Image notch;
+            public float wetness = 1f;
+            public bool isGun, isStrong;
         }
 
         private CanvasGroup group;
@@ -101,16 +129,37 @@ namespace NMJ
         private RawImage steam;
         private RectTransform frontWisp;
         private Image frontWispImg;
+        private Image glassBack;
         private RectTransform needle;
         private Image glow;
         private Vector2 valveTop;
         private Vector2 seamPoint;
+        private Vector2 plaqueInlet;
         private float glassWidth;
         private readonly List<Tick> ticks = new List<Tick>();
         private readonly List<Puff> puffs = new List<Puff>();
+        private readonly List<Image> cellLines = new List<Image>();
         private Sprite puffSprite;
 
+        // 무기 패
+        private RectTransform plaque;
+        private CanvasGroup plaqueGroup;
+        private RectMask2D plaqueReveal;
+        private TMP_Text plaqueGlyph;
+        private TMP_Text shotCount;
+        private Image shotPaper;
+        private NGH.Weapon shownWeapon;
+        private bool weaponShownOnce;
+        private float revealTimer = RevealTime;
+
+        // 코드로 만든 재질·텍스처 (OnDestroy에서 지움)
+        private Material wetMat, dryMat, plaqueMat;
+        private Texture2D dryTex;
+
         private float shown = -1f;
+        private float lastPressure = -1f;
+        private float gunMode;
+        private float strongChance;
         private float shakeTimer;
         private float flashTimer;
         private float pendingPuffs;
@@ -123,7 +172,12 @@ namespace NMJ
 
         private void Awake()
         {
+#if UNITY_EDITOR
+            AutoAssign();
+#endif
+            if (glyphShader == null) glyphShader = Shader.Find("TextMeshPro/Distance Field");
             FindTank();
+            if (player == null) player = GetComponentInParent<NGH.PlayerController>();
             BuildUi();
         }
 
@@ -136,24 +190,52 @@ namespace NMJ
             if (tank == null) tank = FindAnyObjectByType<SteamTank>();
         }
 
+        private void OnEnable()
+        {
+            NGH.PlayerParry.ParryAttempted += HandleParry;
+        }
+
         private void OnDisable()
         {
+            NGH.PlayerParry.ParryAttempted -= HandleParry;
             Unsubscribe();
         }
 
-        // 코드로 만든 텍스처·스프라이트는 직접 지워야 메모리에 남지 않는다
+        // 코드로 만든 텍스처·스프라이트·재질은 직접 지워야 메모리에 남지 않는다
         private void OnDestroy()
         {
-            if (root == null) return;
-            var done = new HashSet<Object>();
-            foreach (Image img in root.GetComponentsInChildren<Image>(true))
+            if (root != null)
             {
-                if (img.sprite == null || !done.Add(img.sprite)) continue;
-                if (done.Add(img.sprite.texture)) Destroy(img.sprite.texture);
-                Destroy(img.sprite);
+                var done = new HashSet<Object>();
+                foreach (Image img in root.GetComponentsInChildren<Image>(true))
+                {
+                    if (img.sprite == null || !done.Add(img.sprite)) continue;
+                    if (done.Add(img.sprite.texture)) Destroy(img.sprite.texture);
+                    Destroy(img.sprite);
+                }
             }
             if (steam != null && steam.texture != null) Destroy(steam.texture);
+            if (wetMat != null) Destroy(wetMat);
+            if (dryMat != null) Destroy(dryMat);
+            if (plaqueMat != null) Destroy(plaqueMat);
+            if (dryTex != null) Destroy(dryTex);
         }
+
+        /// <summary>강공격을 넣을 기회를 알린다 (強이 seconds 동안 붉게 빛남). 새 받아치기 코드에서 불러도 된다.</summary>
+        public void FlashStrongChance(float seconds)
+        {
+            strongChance = Mathf.Max(strongChance, seconds);
+        }
+
+        private void HandleParry(NGH.PlayerParry parry, bool success)
+        {
+            if (!success || parry == null) return;
+            // 다른 플레이어의 받아치기는 무시
+            if (player != null && parry.GetComponentInParent<NGH.PlayerController>() != player) return;
+            FlashStrongChance(strongChanceTime);
+        }
+
+        // ───────── 매 프레임 ─────────
 
         private void Update()
         {
@@ -168,6 +250,10 @@ namespace NMJ
             float current = tank != null ? tank.CurrentPressure : testPressure;
             float target = max > 0f ? Mathf.Clamp01(current / max) : 0f;
             group.alpha = 1f;
+
+            // 증기가 찼으면(칼 적중 등) 무기 패 쪽에서 김이 실린더로 빨려 들어간다
+            if (lastPressure >= 0f && current > lastPressure + 0.01f) SpawnInflow(current - lastPressure);
+            lastPressure = current;
 
             // 잔량 표시: 줄 때는 빠르게, 찰 때는 천천히
             if (shown < 0f) shown = target;
@@ -187,14 +273,8 @@ namespace NMJ
             float wobble = shown > 0.01f ? Mathf.Sin(Time.unscaledTime * 23f) * 0.6f : 0f;
             needle.localEulerAngles = new Vector3(0f, 0f, Mathf.Lerp(135f, -135f, shown) + wobble);
 
-            // 눈금 색
-            foreach (Tick t in ticks)
-            {
-                bool on = current + 0.0001f >= t.cost;
-                Color c = on ? tickOnColor : tickOffColor;
-                t.mark.color = c;
-                t.label.color = c;
-            }
+            UpdateWeapon(dt, current);
+            UpdateTicks(dt, current);
 
             // 경고: 가장 싼 기술도 못 쓰면 맥박 / 실패하면 번쩍
             float minCost = Mathf.Min(gunCost, Mathf.Min(strongCost, rewindCost));
@@ -213,6 +293,81 @@ namespace NMJ
             root.anchoredPosition = position + offset;
 
             UpdatePuffs(dt);
+        }
+
+        // ───────── 무기 패 ─────────
+
+        private void UpdateWeapon(float dt, float current)
+        {
+            NGH.WeaponHolder holder = player != null ? player.weapons : null;
+            NGH.Weapon weapon = holder != null ? holder.Current : null;
+            bool isGun = weapon != null && !weapon.isMelee;
+            bool drawn = player == null || player.IsDrawn;
+
+            // 무기가 바뀌면 글자를 다시 쓴다 (처음 한 번은 연출 없이)
+            if (!weaponShownOnce || weapon != shownWeapon)
+            {
+                plaqueGlyph.text = isGun ? gunGlyph : meleeGlyph;
+                revealTimer = weaponShownOnce ? 0f : RevealTime;
+                shownWeapon = weapon;
+                weaponShownOnce = true;
+            }
+
+            // 붓으로 왼쪽부터 쓰듯 드러남 + 패가 살짝 튐
+            revealTimer += dt;
+            float k = Mathf.Clamp01(revealTimer / RevealTime);
+            float ease = 1f - (1f - k) * (1f - k);
+            plaqueReveal.padding = new Vector4(0f, 0f, (1f - ease) * PlaqueW, 0f);
+            plaque.localScale = Vector3.one * (1f + 0.1f * Mathf.Sin(k * Mathf.PI));
+
+            plaqueGroup.alpha = Mathf.MoveTowards(plaqueGroup.alpha, drawn ? 1f : sheathedAlpha, dt * 4f);
+
+            // 총이면 실린더를 증기 5씩 칸으로 나누고, 패에 쏠 수 있는 발 수
+            gunMode = Mathf.MoveTowards(gunMode, isGun ? 1f : 0f, dt * 6f);
+            foreach (Image line in cellLines)
+                line.color = new Color(inkColor.r, inkColor.g, inkColor.b, 0.6f * gunMode);
+
+            int shots = gunCost > 0f ? Mathf.FloorToInt((current + 0.0001f) / gunCost) : 0;
+            string count = "×" + shots;
+            if (shotCount.text != count) shotCount.text = count;
+            shotCount.color = new Color(shots > 0 ? inkColor.r : chanceColor.r, shots > 0 ? inkColor.g : chanceColor.g,
+                shots > 0 ? inkColor.b : chanceColor.b, gunMode);
+            shotPaper.color = new Color(paperColor.r, paperColor.g, paperColor.b, 0.75f * gunMode);
+        }
+
+        // ───────── 행동 글자 (먹의 농담) ─────────
+
+        private void UpdateTicks(float dt, float current)
+        {
+            if (strongChance > 0f) strongChance -= dt;
+            float chance = Mathf.Clamp01(strongChance / 0.3f);   // 끝날 때 0.3초 동안 서서히 꺼짐
+            float chancePulse = chance * (0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 14f));
+
+            foreach (Tick t in ticks)
+            {
+                bool on = current + 0.0001f >= t.cost;
+                t.wetness = Mathf.MoveTowards(t.wetness, on ? 1f : 0f, dt * inkSpeed);
+
+                // 든 무기에 맞는 글자를 조금 크게 (총 → 銃, 칼 → 強)
+                float emphasis = t.isGun ? gunMode : t.isStrong ? 1f - gunMode : 0f;
+                float scale = 1f + 0.18f * emphasis;
+
+                Color wet = inkColor;
+                Color dry = dryInkColor;
+                if (t.isStrong && chancePulse > 0f)
+                {
+                    // 받아치기 성공: 붉은 먹이 번지며 크게 맥박친다
+                    wet = Color.Lerp(inkColor, chanceColor, chancePulse);
+                    dry = Color.Lerp(dryInkColor, chanceColor, chancePulse * 0.8f);
+                    scale += 0.25f * chancePulse;
+                }
+                wet.a *= t.wetness;
+                dry.a *= 1f - t.wetness;
+                t.wet.color = wet;
+                t.dry.color = dry;
+                t.rt.localScale = Vector3.one * scale;
+                t.notch.color = new Color(inkColor.r, inkColor.g, inkColor.b, Mathf.Lerp(0.35f, 0.9f, t.wetness));
+            }
         }
 
         // ───────── 탱크 이벤트 ─────────
@@ -254,12 +409,26 @@ namespace NMJ
             for (int i = 0; i < 2; i++) SpawnPuff(valveTop, new Vector2(Random.Range(5f, 20f), Random.Range(20f, 40f)), 8f, 0.5f, 0.35f);
         }
 
+        /// <summary>증기가 찼을 때: 무기 패 쪽에서 김이 실린더 안으로 빨려 들어간다</summary>
+        private void SpawnInflow(float amount)
+        {
+            int n = Mathf.Clamp(Mathf.RoundToInt(amount / 2.5f), 2, 6);
+            for (int i = 0; i < n; i++)
+                SpawnPuff(plaqueInlet, new Vector2(Random.Range(-170f, -110f), Random.Range(-12f, 12f)), Random.Range(9f, 14f), Random.Range(0.35f, 0.55f), 0.8f);
+        }
+
         private void HandleTestKeys()
         {
             if (!testKeys || Keyboard.current == null) return;
             if (Keyboard.current.numpad1Key.wasPressedThisFrame) TestConsume(gunCost);
             if (Keyboard.current.numpad2Key.wasPressedThisFrame) TestConsume(strongCost);
             if (Keyboard.current.numpad3Key.wasPressedThisFrame) TestConsume(rewindCost);
+            if (Keyboard.current.numpad4Key.wasPressedThisFrame)
+            {
+                if (tank != null) tank.Refill(5f);
+                else testPressure = Mathf.Min(100f, testPressure + 5f);
+            }
+            if (Keyboard.current.numpad5Key.wasPressedThisFrame) FlashStrongChance(strongChanceTime);
             if (Keyboard.current.numpad0Key.wasPressedThisFrame)
             {
                 if (tank != null) tank.Refill(tank.MaxPressure);
@@ -343,9 +512,8 @@ namespace NMJ
 
         private void BuildUi()
         {
-#if UNITY_EDITOR
-            if (font == null) AutoAssignFont();
-#endif
+            BuildGlyphMaterials();
+
             var canvasGo = new GameObject("NMJ_SteamGaugeCanvas", typeof(RectTransform));
             canvasGo.transform.SetParent(transform, false);
             var canvas = canvasGo.AddComponent<Canvas>();
@@ -367,11 +535,13 @@ namespace NMJ
             root.anchoredPosition = position;
 
             float W = size.x, H = size.y;
-            Rect body = new Rect(BodyLeft, BodyPadY * 0.5f, W - BodyLeft - 4f, H - BodyPadY);
+            Rect body = new Rect(BodyLeft, BodyPadY * 0.5f, W - BodyLeft - 4f - PlaqueW - PlaqueGap, H - BodyPadY);
             Rect glass = new Rect(body.x + GlassInsetLeft, body.y + GlassInsetY, body.width - GlassInsetLeft - GlassInsetRight, body.height - GlassInsetY * 2f);
+            Rect plaqueRect = new Rect(body.xMax + PlaqueGap, (H - PlaqueH) * 0.5f, PlaqueW, PlaqueH);
             glassWidth = glass.width;
             valveTop = new Vector2(body.xMax - 14f, body.yMax + 20f);
             seamPoint = new Vector2(body.x + 14f, body.yMax);
+            plaqueInlet = new Vector2(plaqueRect.x - 4f, H * 0.5f);
 
             // 경고 빛 (몸통 뒤)
             glow = NewImage("WarnGlow", root, MakeSprite(DrawGlow(Mathf.RoundToInt(body.width) + 32, Mathf.RoundToInt(body.height) + 32)));
@@ -388,7 +558,7 @@ namespace NMJ
 
             // 유리창 (둥근 모양으로 증기를 가림)
             Sprite glassSprite = MakeSprite(DrawCapsuleMask(Mathf.RoundToInt(glass.width), Mathf.RoundToInt(glass.height)));
-            Image glassBack = NewImage("Glass", root, glassSprite);
+            glassBack = NewImage("Glass", root, glassSprite);
             Place(glassBack.rectTransform, glass);
             glassBack.color = glassColor;
             var mask = glassBack.gameObject.AddComponent<Mask>();
@@ -425,14 +595,21 @@ namespace NMJ
             frontWisp.anchorMin = frontWisp.anchorMax = new Vector2(0f, 0.5f);
             frontWisp.sizeDelta = new Vector2(glass.height * 1.1f, glass.height * 1.1f);
 
+            // 총을 들었을 때 증기를 발 단위로 나누는 칸막이 (유리창 안)
+            BuildCellLines(glass);
+
             // 유리 반사광 + 먹 테두리
             Image glassTop = NewImage("GlassShine", root, MakeSprite(DrawGlassOverlay(Mathf.RoundToInt(glass.width) + 6, Mathf.RoundToInt(glass.height) + 6)));
             Place(glassTop.rectTransform, new Rect(glass.x - 3f, glass.y - 3f, glass.width + 6f, glass.height + 6f));
 
-            // 눈금 3개
-            AddTick(gunCost, gunLabel, glass, body);
-            AddTick(strongCost, strongLabel, glass, body);
-            AddTick(rewindCost, rewindLabel, glass, body);
+            // 행동 글자 3개
+            Sprite smudge = MakeSprite(DrawPuff(40));
+            AddTick(gunCost, gunLabel, glass, body, smudge, true, false);
+            AddTick(strongCost, strongLabel, glass, body, smudge, false, true);
+            AddTick(rewindCost, rewindLabel, glass, body, smudge, false, false);
+
+            // 무기 패
+            BuildPlaque(plaqueRect, smudge);
 
             // 압력계 (몸통 왼쪽 끝 위에 겹침)
             int dialSize = Mathf.RoundToInt(DialRadius * 2f);
@@ -450,30 +627,128 @@ namespace NMJ
             hub.color = inkColor;
         }
 
-        private void AddTick(float cost, string label, Rect glass, Rect body)
+        private void BuildCellLines(Rect glass)
+        {
+            float max = tank != null ? tank.MaxPressure : 100f;
+            if (gunCost <= 0f || max <= 0f) return;
+            int cells = Mathf.FloorToInt(max / gunCost + 0.0001f);
+            Sprite line = MakeSprite(DrawCellLine(3, Mathf.RoundToInt(glass.height)));
+            for (int i = 1; i < cells; i++)
+            {
+                Image img = NewImage("Cell_" + i, glassBack.transform, line);
+                RectTransform rt = img.rectTransform;
+                rt.anchorMin = rt.anchorMax = new Vector2(0f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(2f, glass.height);
+                rt.anchoredPosition = new Vector2(glass.width * (i * gunCost / max), 0f);
+                img.color = Color.clear;
+                cellLines.Add(img);
+            }
+        }
+
+        private void AddTick(float cost, string label, Rect glass, Rect body, Sprite smudge, bool isGun, bool isStrong)
         {
             float max = tank != null ? tank.MaxPressure : 100f;
             if (max <= 0f) max = 100f;
             float x = glass.x + glass.width * Mathf.Clamp01(cost / max);
-            if (cost >= max) x -= 3f;
 
-            var t = new Tick { cost = cost };
-            t.mark = NewImage("Tick_" + label, root, MakeSprite(DrawTriangle(14, 10)));
-            Place(t.mark.rectTransform, new Rect(x - 7f, body.yMax - 1f, 14f, 10f));
+            var t = new Tick { cost = cost, isGun = isGun, isStrong = isStrong };
 
-            var go = new GameObject("TickLabel_" + label, typeof(RectTransform));
-            go.transform.SetParent(root, false);
-            var txt = go.AddComponent<TextMeshProUGUI>();
-            if (font != null) txt.font = font;
-            txt.text = label;
-            txt.fontSize = 16f;
+            // 유리창 위 가장자리의 작은 먹 눈금 (정확한 문턱 위치)
+            t.notch = NewImage("Notch_" + label, root, null);
+            Place(t.notch.rectTransform, new Rect(x - 1f, glass.yMax - 4f, 2f, 7f));
+
+            t.rt = NewRect("Glyph_" + label, root);
+            t.rt.anchorMin = t.rt.anchorMax = Vector2.zero;
+            t.rt.pivot = new Vector2(0.5f, 0f);
+            t.rt.sizeDelta = new Vector2(30f, 28f);
+            t.rt.anchoredPosition = new Vector2(x, body.yMax + 1f);
+
+            // 글자 뒤 한지빛 번짐 — 어두운 배경에서도 먹 글자가 읽히게
+            Image back = NewImage("Paper", t.rt, smudge);
+            back.color = new Color(paperColor.r, paperColor.g, paperColor.b, 0.6f);
+            back.rectTransform.offsetMin = new Vector2(-6f, -4f);
+            back.rectTransform.offsetMax = new Vector2(6f, 4f);
+
+            t.wet = NewGlyph("Wet", t.rt, label, 24f, wetMat);
+            t.dry = NewGlyph("Dry", t.rt, label, 24f, dryMat);
+            // 마른 붓 면 텍스처를 글자마다 0~1로 입힌다
+            t.dry.horizontalMapping = TextureMappingOptions.Character;
+            t.dry.verticalMapping = TextureMappingOptions.Character;
+            ticks.Add(t);
+        }
+
+        private void BuildPlaque(Rect r, Sprite smudge)
+        {
+            plaque = NewRect("WeaponPlaque", root);
+            plaque.anchorMin = plaque.anchorMax = Vector2.zero;
+            plaque.pivot = new Vector2(0.5f, 0.5f);
+            plaque.sizeDelta = r.size;
+            plaque.anchoredPosition = r.center;
+            plaqueGroup = plaque.gameObject.AddComponent<CanvasGroup>();
+
+            Image face = NewImage("Face", plaque, MakeSprite(DrawPlaque(Mathf.RoundToInt(r.width), Mathf.RoundToInt(r.height))));
+            face.rectTransform.offsetMin = Vector2.zero;
+            face.rectTransform.offsetMax = Vector2.zero;
+
+            // 글자는 왼쪽부터 드러나도록 RectMask2D 안에 둔다
+            RectTransform reveal = NewRect("Reveal", plaque);
+            plaqueReveal = reveal.gameObject.AddComponent<RectMask2D>();
+            plaqueReveal.softness = new Vector2Int(8, 0);
+            plaqueGlyph = NewGlyph("Glyph", reveal, meleeGlyph, 32f, plaqueMat);
+            plaqueGlyph.rectTransform.offsetMin = new Vector2(0f, 6f);
+            plaqueGlyph.alignment = TextAlignmentOptions.Center;
+            plaqueGlyph.color = inkColor;
+
+            // 쏠 수 있는 발 수는 패 위에 (행동 글자와 같은 줄). 뒤에 한지빛 번짐을 깔아 어두운 배경에서도 읽히게
+            shotPaper = NewImage("ShotsPaper", root, smudge);
+            Place(shotPaper.rectTransform, new Rect(r.x - 10f, r.yMax - 4f, r.width + 20f, 30f));
+            shotPaper.color = Color.clear;
+            shotCount = NewGlyph("Shots", root, "×0", 20f, wetMat);
+            Place(shotCount.rectTransform, new Rect(r.x - 6f, r.yMax - 2f, r.width + 12f, 26f));
+            shotCount.alignment = TextAlignmentOptions.Bottom;
+            shotCount.color = Color.clear;
+        }
+
+        private TMP_Text NewGlyph(string name, Transform parent, string text, float fontSize, Material mat)
+        {
+            RectTransform rt = NewRect(name, parent);
+            var txt = rt.gameObject.AddComponent<TextMeshProUGUI>();
+            if (glyphFont != null) txt.font = glyphFont;
+            if (mat != null) txt.fontSharedMaterial = mat;
+            txt.text = text;
+            txt.fontSize = fontSize;
             txt.alignment = TextAlignmentOptions.Bottom;
             txt.raycastTarget = false;
-            txt.outlineWidth = 0.25f;
-            txt.outlineColor = inkColor;
-            Place(txt.rectTransform, new Rect(x - 14f, body.yMax + 8f, 28f, 20f));
-            t.label = txt;
-            ticks.Add(t);
+            txt.textWrappingMode = TextWrappingModes.NoWrap;
+            txt.overflowMode = TextOverflowModes.Overflow;
+            return txt;
+        }
+
+        /// <summary>젖은 먹(그대로), 마른 붓(면에 갈라진 붓털 텍스처), 무기 패용 재질을 만든다</summary>
+        private void BuildGlyphMaterials()
+        {
+            if (glyphFont == null)
+            {
+                Debug.LogWarning("[NMJ] 증기 게이지: HUD 한자 폰트가 없습니다. 메뉴 SteamAttack/NMJ/HUD 한자 폰트 만들기를 실행하세요.", this);
+                return;
+            }
+            dryTex = DrawDryBrush(128, 64);
+
+            // 명조 원본 획이 가늘어서 먹을 머금은 붓처럼 획을 부풀린다
+            wetMat = NewGlyphMaterial("NMJ_GlyphWet", 0.32f);
+            plaqueMat = NewGlyphMaterial("NMJ_GlyphPlaque", 0.28f);
+            dryMat = NewGlyphMaterial("NMJ_GlyphDry", 0.24f);
+            if (dryMat.HasProperty("_FaceTex")) dryMat.SetTexture("_FaceTex", dryTex);
+        }
+
+        private Material NewGlyphMaterial(string name, float dilate)
+        {
+            var m = new Material(glyphFont.material) { name = name };
+            if (glyphShader != null) m.shader = glyphShader;
+            if (m.HasProperty("_FaceDilate")) m.SetFloat("_FaceDilate", dilate);
+            ShaderUtilities.UpdateShaderRatios(m);
+            return m;
         }
 
         // ───────── 그림 그리기 (코드로 만드는 텍스처) ─────────
@@ -532,6 +807,78 @@ namespace NMJ
                     c = Color.Lerp(c, inkColor, ink);
                     c.a = d > 0f ? ink : 1f;
                     px[y * w + x] = c;
+                }
+            }
+            return MakeTexture(w, h, px);
+        }
+
+        /// <summary>무기 패: 한지 면 + 놋쇠 테두리 + 울퉁불퉁한 먹 테두리 (호패 모양)</summary>
+        private Texture2D DrawPlaque(int w, int h)
+        {
+            var px = new Color[w * h];
+            float r = 6f;
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float wob = (Mathf.PerlinNoise(x * 0.12f + seed * 7f, y * 0.12f) - 0.5f) * 1.6f;
+                    float d = CapsuleSd(x + 0.5f, y + 0.5f, w, h, r) + wob;
+                    if (d > 1.5f) { px[y * w + x] = Color.clear; continue; }
+
+                    // 한지 결 (가로로 긴 섬유 + 잔 얼룩)
+                    float fiber = Mathf.PerlinNoise(x * 0.05f + seed, y * 0.6f);
+                    float spot = Mathf.PerlinNoise(x * 0.2f, y * 0.2f + seed * 2f);
+                    Color c = paperColor * (0.88f + 0.12f * fiber + 0.06f * spot);
+                    // 위쪽이 살짝 밝은 둥근 음영
+                    c *= 0.92f + 0.12f * ((float)y / h);
+                    c.a = 1f;
+
+                    // 놋쇠 테두리 (안쪽 띠)
+                    float rim = Mathf.Clamp01(1f - (Mathf.Abs(d + 3.6f) - 1.6f));
+                    c = Color.Lerp(c, brassColor * (0.9f + 0.3f * ((float)y / h)), rim);
+
+                    // 먹 테두리
+                    float ink = Mathf.Clamp01(1f - (Mathf.Abs(d + 0.9f) - 0.9f));
+                    c = Color.Lerp(c, inkColor, ink);
+                    c.a = d > 0f ? ink : 1f;
+                    px[y * w + x] = c;
+                }
+            return MakeTexture(w, h, px);
+        }
+
+        /// <summary>마른 붓 면 텍스처: 가로로 갈라진 붓털 결 (흰색, 알파가 먹이 남은 곳)</summary>
+        private Texture2D DrawDryBrush(int w, int h)
+        {
+            var px = new Color[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                // 붓털 줄마다 먹이 남은 정도가 다르다
+                float lane = Mathf.PerlinNoise(seed * 1.7f, y * 0.45f);
+                for (int x = 0; x < w; x++)
+                {
+                    float streak = Mathf.PerlinNoise(x * 0.035f + seed, y * 0.45f);
+                    float fine = Mathf.PerlinNoise(x * 0.22f, y * 1.3f + seed * 3f);
+                    float v = streak * 0.55f + fine * 0.25f + lane * 0.35f;
+                    float a = Mathf.Clamp01((v - 0.42f) / 0.12f);
+                    px[y * w + x] = new Color(1f, 1f, 1f, a);
+                }
+            }
+            var tex = MakeTexture(w, h, px);
+            tex.wrapMode = TextureWrapMode.Repeat;
+            return tex;
+        }
+
+        /// <summary>발 단위 칸막이: 가운데가 진하고 위아래로 흐려지는 먹 선</summary>
+        private static Texture2D DrawCellLine(int w, int h)
+        {
+            var px = new Color[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                float ty = (y + 0.5f) / h;
+                float a = Mathf.Clamp01(Mathf.Sin(ty * Mathf.PI) * 1.4f);
+                for (int x = 0; x < w; x++)
+                {
+                    float ax = 1f - Mathf.Abs((x + 0.5f) / w - 0.5f) * 1.6f;
+                    px[y * w + x] = new Color(1f, 1f, 1f, a * ax);
                 }
             }
             return MakeTexture(w, h, px);
@@ -692,24 +1039,6 @@ namespace NMJ
             return MakeTexture(w, h, px);
         }
 
-        /// <summary>눈금 표시 ▼ (흰색 → Image 색으로 칠함, 먹 테두리)</summary>
-        private Texture2D DrawTriangle(int w, int h)
-        {
-            var px = new Color[w * h];
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    float ty = (float)y / (h - 1);       // 0 = 아래 꼭짓점
-                    float half = (w * 0.5f - 0.5f) * ty;
-                    float dx = Mathf.Abs(x + 0.5f - w * 0.5f);
-                    float d = dx - half;
-                    if (d > 1f) { px[y * w + x] = Color.clear; continue; }
-                    bool edge = d > -1.4f || y > h - 2;
-                    px[y * w + x] = edge ? new Color(0f, 0f, 0f, 1f) : Color.white;
-                }
-            return MakeTexture(w, h, px);
-        }
-
         /// <summary>몸통 뒤 경고 빛 (흰색 흐린 테두리 → 색은 Image에서)</summary>
         private static Texture2D DrawGlow(int w, int h)
         {
@@ -771,20 +1100,17 @@ namespace NMJ
         }
 
 #if UNITY_EDITOR
-        private void AutoAssignFont()
+        private void AutoAssign()
         {
-            foreach (string guid in UnityEditor.AssetDatabase.FindAssets("ChosunCentennial_otf SDF t:TMP_FontAsset"))
-            {
-                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-                if (path.Contains("Fallback")) continue;
-                font = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
-                if (font != null) return;
-            }
+            if (glyphFont == null)
+                glyphFont = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/NMJ/NMJ_HudGlyphs SDF.asset");
+            if (glyphShader == null)
+                glyphShader = Shader.Find("TextMeshPro/Distance Field");
         }
 
         private void OnValidate()
         {
-            if (font == null) AutoAssignFont();
+            AutoAssign();
         }
 #endif
     }

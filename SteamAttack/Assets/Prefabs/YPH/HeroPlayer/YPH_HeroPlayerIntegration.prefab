@@ -22309,28 +22309,36 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NMJ.SteamCylinderGauge
   tank: {fileID: 6342032219919825200}
-  font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  player: {fileID: 7706470834897513168}
+  glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
+  glyphShader: {fileID: 4800000, guid: 68e6db2ebdc24f95958faec2be5558d6, type: 3}
   position: {x: 60, y: 22}
-  size: {x: 540, y: 58}
+  size: {x: 600, y: 58}
   gunCost: 5
   strongCost: 30
   rewindCost: 70
   gunLabel: "\u9283"
   strongLabel: "\u5F37"
   rewindLabel: "\u9006"
+  meleeGlyph: "\u5200"
+  gunGlyph: "\u9283"
+  sheathedAlpha: 0.45
+  strongChanceTime: 1.2
   ironColor: {r: 0.17, g: 0.15, b: 0.14, a: 1}
   brassColor: {r: 0.62, g: 0.44, b: 0.19, a: 1}
   inkColor: {r: 0.05, g: 0.05, b: 0.06, a: 1}
+  dryInkColor: {r: 0.16, g: 0.15, b: 0.14, a: 0.95}
+  paperColor: {r: 0.88, g: 0.83, b: 0.72, a: 1}
   glassColor: {r: 0.1, g: 0.11, b: 0.12, a: 1}
   steamColor: {r: 0.95, g: 0.95, b: 0.93, a: 1}
-  tickOnColor: {r: 0.94, g: 0.73, b: 0.25, a: 1}
-  tickOffColor: {r: 0.43, g: 0.38, b: 0.32, a: 1}
+  chanceColor: {r: 0.8, g: 0.1, b: 0.07, a: 1}
   warnColor: {r: 0.85, g: 0.15, b: 0.1, a: 1}
   drainSpeed: 1.6
   refillSpeed: 0.8
   swirlSpeed: 0.04
   puffsPer10: 2
   failShake: 6
+  inkSpeed: 5
   seed: 5
   testKeys: 1
 --- !u!1 &3153274227430968840

@@ -69,6 +69,23 @@ namespace NMJ
         public int BrokenCount { get; private set; }
         /// <summary>다리가 모두 깨졌는지</summary>
         public bool AllBroken { get; private set; }
+        /// <summary>바가 화면에 보이는 중인지 (페이드 중 포함)</summary>
+        public bool IsVisible => isActiveAndEnabled && alpha > 0.01f;
+
+        /// <summary>
+        /// 화면에 보이는 현무 체력바가 하나라도 있는지 = 보스전 중.
+        /// 같은 자리(화면 위 가운데)를 쓰는 퀘스트창 등이 이걸 보고 비켜 준다.
+        /// </summary>
+        public static bool AnyVisible
+        {
+            get
+            {
+                foreach (HyeonmuBossBar b in Instances) if (b.IsVisible) return true;
+                return false;
+            }
+        }
+
+        private static readonly List<HyeonmuBossBar> Instances = new List<HyeonmuBossBar>();
 
         private class LegCell
         {
@@ -100,6 +117,9 @@ namespace NMJ
             BuildUi();
             ResetBar();
         }
+
+        private void OnEnable() => Instances.Add(this);
+        private void OnDisable() => Instances.Remove(this);
 
         /// <summary>처음 상태로 (모든 다리 온전)</summary>
         public void ResetBar()
