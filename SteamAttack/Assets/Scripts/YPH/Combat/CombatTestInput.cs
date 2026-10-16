@@ -3,11 +3,11 @@ using UnityEngine.InputSystem;
 
 namespace YPH
 {
-    /// <summary>개발 전용. 병합 후 CHG 입력 체계로 교체하면서 삭제할 총·수류탄 시험 입력입니다.</summary>
+    /// <summary>전투 시험 루트에서 총·수류탄·조준 입력을 전달합니다. 정식 플레이어는 NGH CombatBridge를 사용합니다.</summary>
     public class CombatTestInput : MonoBehaviour
     {
         private enum Equipped { Gun, Grenade }
-        [SerializeField, Tooltip("좌클릭 발사와 R 충전 요청을 받을 총입니다. 수류탄 장착 중에는 이 총 오브젝트만 꺼집니다.")]
+        [SerializeField, Tooltip("조준 중 좌클릭 발사 요청을 받을 총입니다. 수류탄 장착 중에는 이 총 오브젝트만 꺼집니다.")]
         private SteamGun _gun;
         [SerializeField, Tooltip("G 제작과 수류탄 좌클릭 요청을 받을 컴포넌트입니다. 장비 전환으로 끄지 않아 제작이 계속됩니다.")]
         private SteamGrenadeThrower _thrower;
@@ -26,6 +26,7 @@ namespace YPH
         private Equipped _equipped;
         private float _pitch;
         private bool _loggedAiming;
+        private SteamTank _tank;
 
         /// <summary>입력에 필요한 연결을 확인하고 기존 카메라 각도를 회전의 시작값으로 삼습니다.</summary>
         private void Awake()
@@ -37,6 +38,13 @@ namespace YPH
                 return;
             }
             _pitch = Mathf.DeltaAngle(0f, _aimCamera.localEulerAngles.x);
+            // 기존 시험 루트의 탱크를 로그용으로 한 번만 찾아 프리팹에 새 참조를 요구하지 않습니다.
+            _tank = _aimRig.GetComponentInChildren<SteamTank>(true);
+            if (_tank == null)
+            {
+                Debug.LogError("CombatTestInput: 시험 루트 아래에 증기 탱크가 필요합니다.", this);
+                enabled = false;
+            }
         }
 
         /// <summary>완료된 조준 전환의 배율만 기록하도록 이벤트를 구독합니다.</summary>
@@ -87,17 +95,22 @@ namespace YPH
             {
                 LogCraft(_thrower.TryCraft());
             }
-            if (keyboard.rKey.wasPressedThisFrame && _equipped == Equipped.Gun)
-            {
-                LogCharge(_gun.TryChargePouch());
-            }
             if (!mouse.leftButton.wasPressedThisFrame)
             {
                 return;
             }
             if (_equipped == Equipped.Gun)
             {
-                LogFire(_gun.TryFire());
+                bool fired = false;
+                if (_aim.IsAiming && _gun.CanFire)
+                {
+                    fired = _gun.TryFire();
+                }
+                else
+                {
+                    _gun.NotifyFireBlocked();
+                }
+                LogFire(fired);
             }
             else
             {
@@ -116,7 +129,7 @@ namespace YPH
             _grenadeHandView.SetEquipped(_equipped == Equipped.Grenade);
         }
 
-        /// <summary>실제 CHG 카메라 연결 전, 방향키 속도로 조준 감도 배율을 확인합니다.</summary>
+        /// <summary>시험 씬에서 방향키 속도로 조준 감도 배율을 확인합니다.</summary>
         private void RotateAim(Keyboard keyboard)
         {
             float step = _lookSpeed * _aim.SensitivityMultiplier * Time.deltaTime;
@@ -144,8 +157,7 @@ namespace YPH
         }
 
         // 인수를 받는 로그 함수로 분리합니다. 빌드에서 로그가 빠져도 호출 인수인 실제 공격은 반드시 실행해야 합니다.
-        private void LogFire(bool fired) { Log($"발사 {fired}, 약실 {(_gun.ChamberLoaded ? 1 : 0)}, 주머니 {_gun.PouchRounds}/{_gun.PouchCapacity}, 상태 {_gun.CurrentState}"); }
-        private void LogCharge(bool started) { Log($"주머니 충전 {started}, 상태 {_gun.CurrentState}"); }
+        private void LogFire(bool fired) { Log($"발사 {fired}, 상태 {_gun.CurrentState}, 증기 {_tank.CurrentPressure}"); }
         private void LogCraft(bool started) { Log($"수류탄 제작 {started}, 소지 {_thrower.HeldCount}/{_thrower.MaxHeld}"); }
         private void LogThrow(bool thrown) { Log($"수류탄 투척 {thrown}, 소지 {_thrower.HeldCount}/{_thrower.MaxHeld}"); }
 

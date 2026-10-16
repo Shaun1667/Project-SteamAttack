@@ -39,6 +39,7 @@ namespace YPH
         private Transform followTarget;
         private Rigidbody followBody;
         private Vector3 followLocalOffset;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private Action drawDebug;
 
         // 플레이 중 개발용 표시(0 키): 판정이 살아 있는 동안 빨간 상자
@@ -57,6 +58,7 @@ namespace YPH
         {
             DebugView.Unregister(drawDebug);
         }
+#endif
 
         private void Awake()
         {
@@ -90,11 +92,13 @@ namespace YPH
             followLocalOffset = localOffset;
 
             hitTargets.Clear();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (drawDebug == null)
             {
                 drawDebug = DrawDebugBox;
             }
             DebugView.Register(drawDebug);
+#endif
             ObjectPool.Despawn(gameObject, Mathf.Max(0.01f, lifetime));
             CheckOverlapNow();
         }
@@ -106,7 +110,9 @@ namespace YPH
 
         public void OnDespawned()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             DebugView.Unregister(drawDebug);
+#endif
             Owner = null;
             followTarget = null;
             followBody = null;
@@ -201,6 +207,7 @@ namespace YPH
             return playerController.TakeHit(Damage, from);
         }
 
+#if UNITY_EDITOR
         private void OnDrawGizmos()
         {
             // 편집 중에만 Gizmo로 그림 (플레이 중에는 0 키 개발용 표시가 그림)
@@ -222,5 +229,6 @@ namespace YPH
             Gizmos.DrawWireCube(gizmoBox.center, gizmoBox.size);
             Gizmos.matrix = Matrix4x4.identity;
         }
+#endif
     }
 }

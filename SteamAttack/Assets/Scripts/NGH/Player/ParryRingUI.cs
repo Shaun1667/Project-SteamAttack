@@ -83,10 +83,16 @@ namespace NGH
         private static void Hook()
         {
             EnemyAI.ParryableAttackStarted -= OnParryableAttackStarted;
-            EnemyAI.ParryableAttackStarted += OnParryableAttackStarted;
             PlayerParry.ParryAttempted -= OnParryAttempted;
-            PlayerParry.ParryAttempted += OnParryAttempted;
             Application.quitting -= OnApplicationQuitting;
+
+            // 새 플레이어는 프리팹의 ParryRingView를 사용하므로 옛 입력이 있는 씬에서만 옛 UI를 켭니다.
+            if (Object.FindAnyObjectByType<PlayerParry>() == null)
+            {
+                return;
+            }
+            EnemyAI.ParryableAttackStarted += OnParryableAttackStarted;
+            PlayerParry.ParryAttempted += OnParryAttempted;
             Application.quitting += OnApplicationQuitting;
         }
 

@@ -1,2170 +1,509 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using Unity.Profiling;
 using Random = UnityEngine.Random;
-using NGH;
 
 namespace YPH
 {
-    /// <summary>
-    /// 적 기본 AI (NGH)
-    /// - 배회(Wander): 스폰 지점 주변을 랜덤하게 돌아다닌다.
-    /// - 인지(Detect): 플레이어가 인지 범위 안에 들어오면 인지한다. (Gizmo로 범위 표시)
-    ///   피해를 받으면(근접·총·수류탄·패링) 거리와 관계없이 바로 인지하고 추적한다.
-    /// - 추적(Chase): 인지한 플레이어에게 다가간다.
-    ///   놓침 범위 밖에 Lose Delay 초 이상 머물면 추적을 끝낸다.
-    /// - 공격(Attack): 공격마다 일반공격 / 강공격(Heavy Attack 설정이 켜져 있을 때)을 확률로 고른다.
-    ///   공격 순간 EnemyAttack 히트박스를 오브젝트 풀에서 꺼내 판정하고, 동시에 앞으로 전진한다.
-    ///   강공격은 패링 가능 공격으로, 시작 순간부터 판정이 끝날 때까지 패링 구간이 열린다.
-    /// - 피격: 맞으면 Hit Stop Time 동안 애니메이션·이동·공격 타이머를 멈춘다. (피격 애니메이션 없음)
-    /// - 패링당함(Parried): 공격을 취소하고 경직 후 약점 노출 상태가 된다 (EnemyHealth).
-    /// - 원거리 모드(Ranged Attack 설정이 켜져 있을 때): 플레이어와 거리를 유지하며 조준 → 사격 → 장전을 반복한다.
-    ///   멀거나 시야가 막히면 다가가고, 너무 가까우면 뒤로 물러난다. 총알은 EnemyBullet(오브젝트 풀)로 날아간다.
-    /// - Animator가 있으면 Speed / MoveX / MoveZ / InCombat / Attack / HeavyAttack / Fire / Parried / Die 파라미터를 갱신한다 (없는 파라미터는 무시).
-    ///   InCombat(bool): 플레이어를 인지해 전투 중이면 true, 비전투(인지 전·놓친 뒤·사망)면 false.
-    /// - 개발용 표시(DebugView, 플레이 중 숫자 0 키로 켜고 끔, 기본 꺼짐):
-    ///   범위·판정 Gizmo, 원거리 조준 레이저, 테스트 키 1·2 플레이어 경직/대경직, 3·4 증기 소비/회복, 5 패링당함 / 6 약점 노출 / 7 체력바 (대상: 락온한 적, 없으면 가장 가까운 적), 좌측 상단 설명·대상 정보 상자
-    /// </summary>
-    [RequireComponent(typeof(Rigidbody))]
-    public class EnemyAI : MonoBehaviour
+    /// <summary>인지·상태를 결정하고 이동과 공격을 부품에 맡깁니다. 외부 피해·받아치기 API는 이곳에 유지합니다.</summary>
+    [RequireComponent(typeof(EnemyMotor), typeof(EnemyHealth))]
+    public class EnemyAI : MonoBehaviour, IParryTarget
     {
         public enum State
         {
-            Wander,
-            Chase,
-            Attack,
-            Parried
+            Wander, Chase, Attack, Parried
         }
+        [Header("대상·배회")]
+        [SerializeField, Tooltip("인지할 대상의 태그입니다. 실제 플레이어 태그와 같아야 찾을 수 있습니다.")] private string _playerTag = "Player";
+        [SerializeField, Tooltip("스폰 지점 주변 배회 반경(m)입니다. 높이면 넓게 다니며 0이면 제자리에 머뭅니다.")] private float _wanderRadius = 6f;
+        [SerializeField, Tooltip("배회 속도(m/s)입니다. 높이면 빨리 이동합니다.")] private float _wanderSpeed = 1.5f;
+        [SerializeField, Tooltip("배회 목적지 도착 후 최소 대기 시간(초)입니다. 높이면 오래 쉽니다.")] private float _wanderWaitMin = 1f;
+        [SerializeField, Tooltip("배회 목적지 도착 후 최대 대기 시간(초)입니다. 최소값 이상으로 설정합니다.")] private float _wanderWaitMax = 2.5f;
+        [Header("인지·추적")]
+        [SerializeField, Tooltip("이 거리(m) 안에 들어온 플레이어를 인지합니다. 높이면 멀리서 발견합니다.")] private float _detectRange = 8f;
+        [SerializeField, Tooltip("이 거리(m) 밖에서 놓침 시간을 셉니다. 높이면 더 멀리까지 추적합니다.")] private float _loseRange = 12f;
+        [SerializeField, Min(0f), Tooltip("놓침 범위 밖에서 추적을 유지할 시간(초)입니다. 높이면 오래 쫓습니다.")] private float _loseDelay = 3f;
+        [SerializeField, Min(0f), Tooltip("멀리서 맞았을 때 놓침 판정을 유예할 최대 시간(초)입니다.")] private float _damagedChaseMaxTime = 10f;
+        [SerializeField, Tooltip("추적 속도(m/s)입니다. 높이면 플레이어에게 빨리 접근합니다.")] private float _chaseSpeed = 3.5f;
+        [Header("피격·받아치기")]
+        [SerializeField, Min(0f), Tooltip("맞을 때 이동·공격·애니메이션을 멈추는 시간(초)입니다. 높이면 정지가 길어집니다.")] private float _hitStopTime = 0.1f;
+        [SerializeField, Min(0f), Tooltip("받아치기 성공 후 경직(초)입니다. 높이면 강공격을 넣을 여유가 늘어납니다(D-067). 플레이어 강공격 동작 1.2초를 기준으로 기본 1.8초입니다.")] private float _parriedStunTime = 1.8f;
+        [SerializeField, Tooltip("동심원의 기준 위치입니다. 비우면 적 위치에 아래 높이를 더합니다.")] private Transform _parryPoint;
+        [SerializeField, Min(0f), Tooltip("기준 Transform이 없을 때 동심원을 올릴 높이(m)입니다.")] private float _parryPointHeight = 1.2f;
+        [SerializeField, Tooltip("켜면 상태 전환·공격·인지 이유를 콘솔에 남깁니다.")] private bool _logStateChanges = true;
 
-        [Serializable]
-        public class HeavyAttackSettings
-        {
-            [Tooltip("강공격 사용 여부")]
-            public bool enabled = false;
-            [Tooltip("공격을 고를 때 강공격이 나올 확률 (0.3 = 30%)")]
-            [Range(0f, 1f)] public float chance = 0.3f;
-            public int damage = 44;
-            [Tooltip("맞은 쪽 경직 단계 (기획: 패링 가능한 강공격 = Heavy)")]
-            public HitStagger stagger = HitStagger.Heavy;
-            [Tooltip("이 거리 안이면 강공격 시작 (달려들며 내려찍기)")]
-            public float startRange = 4.5f;
-            [Tooltip("시작부터 판정이 생길 때까지 시간")]
-            public float windup = 1.62f;
-            [Tooltip("히트박스가 유지되는 시간")]
-            public float activeTime = 0.15f;
-            [Tooltip("판정 후 다음 행동까지 시간")]
-            public float recovery = 1.9f;
-            [Tooltip("시작하면서 앞으로 달려드는 최대 거리 (플레이어 앞에서 멈춤)")]
-            [Min(0f)] public float dashDistance = 4.3f;
-            [Tooltip("달려드는 데 걸리는 시간")]
-            [Min(0.01f)] public float dashDuration = 1.6f;
-            public Vector3 hitboxOffset = new Vector3(0f, 0.9f, 1.1f);
-            public Vector3 hitboxSize = new Vector3(1.4f, 1.8f, 1.6f);
-            [Tooltip("빨리뽑기 패링으로 막을 수 있는 공격인지")]
-            public bool parryable = true;
-        }
-
-        [Serializable]
-        public class RangedAttackSettings
-        {
-            [Tooltip("원거리 모드 사용 여부 (켜면 근접 공격 대신 사격)")]
-            public bool enabled = false;
-            [Tooltip("총알 프리팹 (오브젝트 풀로 재사용)")]
-            public EnemyBullet bulletPrefab;
-            [Tooltip("총알이 나가는 위치 (총구). 비우면 아래 오프셋 위치에서 발사")]
-            public Transform firePoint;
-            public Vector3 fallbackFireOffset = new Vector3(0f, 1.45f, 0.6f);
-            public int damage = 18;
-            [Tooltip("총알에 맞은 쪽 경직 단계 (기획: 총알 = Light)")]
-            public HitStagger stagger = HitStagger.Light;
-            [Tooltip("총알 속도 (m/s)")]
-            public float bulletSpeed = 15f;
-            [Tooltip("총알이 날아가는 최대 거리")]
-            public float bulletRange = 25f;
-            [Tooltip("총알 판정 반지름")]
-            public float bulletRadius = 0.12f;
-            [Tooltip("한 발 쏘고 다음 발을 쏘기까지 간격(초)")]
-            public float fireInterval = 5f;
-            [Tooltip("쏘기 전 멈춰서 조준하는 시간 (예고)")]
-            public float aimTime = 0.8f;
-            [Tooltip("사격 동작 시간")]
-            public float fireAnimTime = 0.27f;
-            [Tooltip("사격 후 장전 시간 (이 동안 제자리)")]
-            public float reloadTime = 3.3f;
-            [Tooltip("인지 후 첫 발까지 대기 시간")]
-            public float firstShotDelay = 1f;
-            [Tooltip("이 거리보다 멀면 다가감")]
-            public float preferredMaxDistance = 14f;
-            [Tooltip("이 거리보다 가까우면 뒤로 물러남")]
-            public float retreatDistance = 5f;
-            [Tooltip("이 거리 안에서만 사격")]
-            public float maxFireDistance = 18f;
-            [Tooltip("뒤로 물러나는 속도")]
-            public float retreatSpeed = 1.1f;
-            [Tooltip("켜면 플레이어 몸 콜라이더의 한가운데를 조준 (플레이어 키·크기가 바뀌어도 맞음). 끄거나 콜라이더가 없으면 아래 Aim Height 사용")]
-            public bool aimAtPlayerBody = true;
-            [Tooltip("플레이어 발밑 기준 조준 높이 (Aim At Player Body가 꺼졌거나 콜라이더가 없을 때만 사용)")]
-            public float aimHeight = 1.2f;
-            [Tooltip("시야를 막는 레이어 (장애물)")]
-            public LayerMask lineOfSightMask = ~0;
-
-            [Header("근접 킥 (패링 가능 강공격)")]
-            [Tooltip("플레이어가 가까이 붙으면 물러나는 대신 킥 (조준·장전 중에는 차지 않음)")]
-            public bool kickEnabled = false;
-            [Tooltip("이 거리 안이면 킥")]
-            public float kickRange = 2.5f;
-            public int kickDamage = 25;
-            [Tooltip("킥에 맞은 쪽 경직 단계 (기획: 패링 가능한 강공격 = Heavy)")]
-            public HitStagger kickStagger = HitStagger.Heavy;
-            [Tooltip("킥 후 다음 킥까지 시간(초)")]
-            public float kickCooldown = 4f;
-            [Tooltip("차기 전 준비 자세 시간 (패링 예고)")]
-            public float kickPrepTime = 0.7f;
-            [Tooltip("준비 자세 동안 킥 동작 재생 속도 (작을수록 멈춘 듯이)")]
-            [Range(0f, 1f)] public float kickPrepAnimSpeed = 0.15f;
-            [Tooltip("킥 클립에서 발이 닿는 시간(초) — 이 순간 판정 생성")]
-            public float kickHitClipTime = 0.3f;
-            [Tooltip("판정 유지 시간")]
-            public float kickActiveTime = 0.13f;
-            [Tooltip("킥 클립 전체 길이(초)")]
-            public float kickClipLength = 0.8f;
-            [Tooltip("차는 순간 앞으로 나가는 거리")]
-            public float kickLungeDistance = 0.3f;
-            public Vector3 kickHitboxOffset = new Vector3(0f, 1.0f, 0.9f);
-            public Vector3 kickHitboxSize = new Vector3(1.0f, 1.0f, 1.2f);
-            [Tooltip("빨리뽑기 패링으로 막을 수 있는지")]
-            public bool kickParryable = true;
-            [Tooltip("킥 방향 보정(도). 킥 동작이 몸 정면보다 왼쪽으로 차므로, 그만큼 몸을 오른쪽(+)으로 돌려 발이 플레이어를 향하게 함. 플레이 중 조절 가능")]
-            [Range(-45f, 45f)] public float kickFacingOffset = 10f;
-        }
-
-        /// <summary>패링 가능한 공격이 시작될 때 (적, 판정까지 남은 시간) — 패링 UI(동심원)용</summary>
-        public static event Action<EnemyAI, float> ParryableAttackStarted;
-
-        private static readonly List<EnemyAI> activeEnemies = new List<EnemyAI>();
-
-        /// <summary>패링 판정: 동심원이 겹치는 순간 = 공격 판정 이 시간(초) 전. 이 순간 ± ParryHalfWindow 안에 누르면 성공</summary>
+        // NGH 입력·UI가 공통 규약으로 옮길 때까지 옛 이름과 신호 시점을 유지합니다.
         public const float ParryOverlapLead = 0.15f;
-        /// <summary>패링 성공 허용 범위 (겹치는 순간 기준 ±초, 기획서 0.3초 = ±0.15)</summary>
         public const float ParryHalfWindow = 0.15f;
-
-        /// <summary>지금 살아서 움직이는 적 목록 (패링·UI에서 사용)</summary>
-        public static IReadOnlyList<EnemyAI> ActiveEnemies => activeEnemies;
-        private static int debugKeyFrame = -1;
-
-        [Header("Target")]
-        [Tooltip("인지 대상 태그")]
-        [SerializeField] private string playerTag = "Player";
-
-        [Header("Wander (배회)")]
-        [Tooltip("스폰 지점 기준 배회 반경 (0이면 제자리 대기)")]
-        [SerializeField] private float wanderRadius = 6f;
-        [SerializeField] private float wanderSpeed = 1.5f;
-        [Tooltip("목적지 도착 후 대기 시간 (최소)")]
-        [SerializeField] private float wanderWaitMin = 1f;
-        [Tooltip("목적지 도착 후 대기 시간 (최대)")]
-        [SerializeField] private float wanderWaitMax = 2.5f;
-
-        [Header("Detection (인지)")]
-        [Tooltip("이 거리 안에 플레이어가 들어오면 인지")]
-        [SerializeField] private float detectRange = 8f;
-        [Tooltip("인지 후 이 거리보다 멀어지면 놓침 판정 시작 (인지 범위 이상이어야 함)")]
-        [SerializeField] private float loseRange = 12f;
-        [Tooltip("놓침 범위 밖에 이 시간(초) 이상 있으면 추적 종료")]
-        [Min(0f)]
-        [SerializeField] private float loseDelay = 3f;
-        [Tooltip("놓침 범위 밖에서 맞았을 때, 가까이 올 때까지 놓침 판정 없이 쫓아가는 최대 시간(초)")]
-        [Min(0f)]
-        [SerializeField] private float damagedChaseMaxTime = 10f;
-
-        [Header("Chase (추적)")]
-        [SerializeField] private float chaseSpeed = 3.5f;
-        [Tooltip("초당 회전 각도")]
-        [SerializeField] private float turnSpeed = 540f;
-
-        [Header("Attack (일반 공격)")]
-        [Tooltip("이 거리 안이면 공격 시작")]
-        [SerializeField] private float attackRange = 1.8f;
-        [Tooltip("공격 선딜레이 (판정 생성 전 대기)")]
-        [SerializeField] private float attackWindup = 0.4f;
-        [Tooltip("히트박스가 유지되는 시간")]
-        [SerializeField] private float attackActiveTime = 0.15f;
-        [Tooltip("공격 후딜레이")]
-        [SerializeField] private float attackCooldown = 1.2f;
-        [SerializeField] private int attackDamage = 22;
-        [Tooltip("일반 공격에 맞은 쪽 경직 단계 (기획: 일반 공격 = Light)")]
-        [SerializeField] private HitStagger attackStagger = HitStagger.Light;
-        [Tooltip("공격 판정용 히트박스 프리팹 (오브젝트 풀로 재사용)")]
-        [SerializeField] private EnemyAttackHitbox attackHitboxPrefab;
-        [Tooltip("적 기준 히트박스 생성 위치 (로컬)")]
-        [SerializeField] private Vector3 attackHitboxOffset = new Vector3(0f, 0f, 1.1f);
-        [SerializeField] private Vector3 attackHitboxSize = new Vector3(1.2f, 1.5f, 1.2f);
-        [Tooltip("시작할 때 미리 만들어 둘 히트박스 개수")]
-        [SerializeField] private int attackHitboxPrewarm = 2;
-
-        [Header("Attack Lunge (공격 시 전진)")]
-        [Tooltip("공격하는 순간 앞으로 전진하는 거리 (0이면 전진하지 않음)")]
-        [Min(0f)]
-        [SerializeField] private float attackLungeDistance = 1f;
-        [Tooltip("전진에 걸리는 시간 (짧을수록 빠르게 튀어나감)")]
-        [Min(0.01f)]
-        [SerializeField] private float attackLungeDuration = 0.12f;
-        [Tooltip("전진 중 플레이어 표면과 유지할 최소 간격 (플레이어를 뚫지 않도록)")]
-        [Min(0f)]
-        [SerializeField] private float lungeStopGap = 0.1f;
-
-        [Header("Heavy Attack (강공격, 패링 가능)")]
-        [SerializeField] private HeavyAttackSettings heavyAttack = new HeavyAttackSettings();
-
-        [Header("Ranged Attack (원거리 사격)")]
-        [SerializeField] private RangedAttackSettings rangedAttack = new RangedAttackSettings();
-
-        [Header("Hit / Parried (피격 · 패링당함)")]
-        [Tooltip("맞았을 때 애니메이션·이동을 멈추는 시간(초)")]
-        [Min(0f)]
-        [SerializeField] private float hitStopTime = 0.1f;
-        [Tooltip("패링당한 뒤 움직이지 못하는 시간(초)")]
-        [Min(0f)]
-        [SerializeField] private float parriedStunTime = 1.8f;
-
-        [Header("Animator (비우면 자식에서 찾음)")]
-        [SerializeField] private Animator animator;
-        [Tooltip("켜면 공격 클립에 찍은 타격 이벤트(OnAttackHit) 위치로 판정 시간을 자동 계산한다.\n" +
-                 "이벤트 String 칸: Attack(일반 공격) / HeavyAttack(강공격) / Kick(킥).\n" +
-                 "강공격은 달려드는 시간(Dash Duration)과 후딜레이(Recovery)도 이벤트·클립 길이에 맞춰 자동 계산한다.\n" +
-                 "이벤트가 없는 공격은 인스펙터에 넣은 초 값(Attack Windup, Heavy Windup·Dash Duration·Recovery, Kick Hit Clip Time)을 그대로 쓴다.")]
-        [SerializeField] private bool useClipHitEvents = true;
-        [Tooltip("배회 속도일 때 Speed 값 (걷기)")]
-        [SerializeField] private float walkAnimSpeedValue = 0.5f;
-        [Tooltip("추적 속도일 때 Speed 값 (달리기)")]
-        [SerializeField] private float runAnimSpeedValue = 1f;
-        [SerializeField] private float speedDampTime = 0.1f;
-
-        [Header("Debug")]
-        [SerializeField] private bool logStateChanges = true;
-        [Tooltip("1·2 플레이어 경직, 3·4 증기, 5 패링당함 / 6 약점 노출 / 7 체력바 (락온 대상 또는 가장 가까운 적). 0 키로 개발용 표시를 켰을 때만 동작")]
-        [SerializeField] private bool debugKeys = true;
-        [Tooltip("원거리: 개발용 표시가 켜져 있을 때 조준 방향 레이저를 보여줌")]
-        [SerializeField] private bool debugAimLaser = true;
-
-        public State CurrentState => state;
-        public bool IsAwareOfPlayer => isAware;
-        /// <summary>패링 가능한 공격의 판정이 끝나기 전인지</summary>
-        public bool IsParryWindowOpen => parryWindowOpen;
-        /// <summary>패링 가능한 공격의 판정이 생기는 시각 (Time.time 기준, 경직으로 밀리면 함께 밀림)</summary>
-        public float ParryHitTime => parryHitTime;
-
-        // 타격 이벤트에서 읽은 시간(초). 음수 = 이벤트 없음 → 인스펙터 값 사용
-        private float clipAttackHitTime = -1f;
-        private float clipHeavyHitTime = -1f;
-        private float clipHeavyLength = -1f;
-        private float clipKickHitTime = -1f;
-        private float clipKickLength = -1f;
-
-        /// <summary>일반 공격 시작 → 판정까지 시간 (타격 이벤트 우선)</summary>
-        private float AttackWindupTime => clipAttackHitTime >= 0f ? clipAttackHitTime : attackWindup;
-        /// <summary>강공격 시작 → 판정까지 시간 (타격 이벤트 우선)</summary>
-        private float HeavyWindupTime => clipHeavyHitTime >= 0f ? clipHeavyHitTime : heavyAttack.windup;
-        /// <summary>강공격 달려드는 시간: 타격 이벤트가 있으면 판정 순간에 도착하도록 타격 시각과 같게</summary>
-        private float HeavyDashTime => clipHeavyHitTime >= 0f ? clipHeavyHitTime : heavyAttack.dashDuration;
-        /// <summary>강공격 후딜레이: 타격 이벤트가 있으면 클립이 끝날 때까지 남은 시간</summary>
-        private float HeavyRecoveryTime => clipHeavyLength >= 0f
-            ? Mathf.Max(0f, clipHeavyLength - clipHeavyHitTime - heavyAttack.activeTime)
-            : heavyAttack.recovery;
-        /// <summary>킥 클립에서 발이 닿는 시간 (타격 이벤트 우선)</summary>
-        private float KickHitClipTime => clipKickHitTime >= 0f ? clipKickHitTime : rangedAttack.kickHitClipTime;
-        /// <summary>킥 클립 전체 길이 (타격 이벤트가 있으면 그 클립 길이)</summary>
-        private float KickClipLength => clipKickLength >= 0f ? clipKickLength : rangedAttack.kickClipLength;
-        /// <summary>동심원이 겹치는 시각 = 패링 타이밍의 한가운데</summary>
-        public float ParryOverlapTime => parryHitTime - ParryOverlapLead;
-        /// <summary>강공격(도끼 달려들기, 소총 킥) 중이라 패링 외에는 끊기지 않는 상태인지</summary>
-        public bool IsSuperArmor => superArmor;
-
-        /// <summary>인지 상태가 바뀔 때 (true = 추적 시작, false = 추적 종료)</summary>
+        public const string HitEventName = "OnAttackHit";
+        private static readonly List<EnemyAI> _activeEnemies = new List<EnemyAI>();
+        private static readonly ProfilerMarker _findPlayerMarker = new ProfilerMarker("YPH.EnemyAI.FindPlayer");
+        public static IReadOnlyList<EnemyAI> ActiveEnemies => _activeEnemies;
+        public static event Action<EnemyAI, float> ParryableAttackStarted;
         public event Action<bool> AwarenessChanged;
-        /// <summary>패링당했을 때</summary>
         public event Action Parried;
-
-        private static readonly int SpeedHash = Animator.StringToHash("Speed");
-        private static readonly int AttackHash = Animator.StringToHash("Attack");
-        private static readonly int HeavyAttackHash = Animator.StringToHash("HeavyAttack");
-        private static readonly int ParriedHash = Animator.StringToHash("Parried");
-        private static readonly int DieHash = Animator.StringToHash("Die");
-        private static readonly int FireHash = Animator.StringToHash("Fire");
-        private static readonly int KickHash = Animator.StringToHash("Kick");
-        private static readonly int KickSpeedHash = Animator.StringToHash("KickSpeed");
-        private static readonly int MoveXHash = Animator.StringToHash("MoveX");
-        private static readonly int MoveZHash = Animator.StringToHash("MoveZ");
-        private static readonly int InCombatHash = Animator.StringToHash("InCombat");
-        private static readonly RaycastHit[] losHits = new RaycastHit[16];
-        private readonly HashSet<int> animatorParams = new HashSet<int>();
-
-        private Rigidbody rb;
-        private Collider bodyCollider;
-        private EnemyHealth health;
-        private Transform player;
-        private Collider playerCollider;
-        private State state = State.Wander;
-        private bool isAware;
-        private float loseTimer;
-        private float damagedChaseTimer;
-
-        private Vector3 homePosition;
-        private bool hasHome;
-        private Vector3 wanderTarget;
-        private bool hasWanderTarget;
-        private float wanderWaitTimer;
-        private float wanderMoveTimer;
-        private float wanderGiveUpTime;
-
-        private Coroutine attackRoutine;
-        private bool attackChosen;
-        private bool nextIsHeavy;
-        private bool parryWindowOpen;
-        private float parriedTimer;
-        private float hitStopTimer;
-        private float nextFireTime;
-        private float nextKickTime;
-        private float parryHitTime;
-        private bool superArmor;
-        private float nextLosCheck;
-        private bool hasLineOfSight = true;
-        private bool isAiming;
-        private Vector3 lastShotDirection;
-        private float laserFlashTimer;
-        private LineRenderer debugLaser;
-        private static Material debugLaserMaterial;
-        private Action drawDebugLines;
-
-        private Vector3 moveDirection;
-        private float moveSpeed;
-        private Vector3 facingDirection;
-
-        private bool isLunging;
-        private Vector3 lungeDirection;
-        private float lungeRemaining;
-        private float lungeSpeed;
-
-        private bool IsHitStopped => hitStopTimer > 0f;
-        private bool IsRanged => rangedAttack != null && rangedAttack.enabled;
-        // 경직 중에는 공격 타이머가 흐르지 않는다
-        private float ActiveDeltaTime => IsHitStopped ? 0f : Time.deltaTime;
+        public State CurrentState => _state;
+        public bool IsAwareOfPlayer => _isAware;
+        public bool IsParryWindowOpen => _parryWindowOpen;
+        public float ParryHitTime => _parryHitTime;
+        public float ParryOverlapTime => _parryHitTime - ParryOverlapLead;
+        public bool IsSuperArmor => _superArmor;
+        public bool IsParryStunned => _state == State.Parried;
+        public Vector3 ParryPoint => _parryPoint != null ? _parryPoint.position : transform.position + Vector3.up * _parryPointHeight;
+        internal Transform Player { get; private set; }
+        internal Collider PlayerCollider { get; private set; }
+        internal float DetectRange => _detectRange;
+        internal bool IsHitStopped => _hitStopTimer > 0f;
+        internal float ActiveDeltaTime => IsHitStopped ? 0f : Time.deltaTime;
+        internal bool UsesRanged => _ranged != null && _ranged.isActiveAndEnabled;
+        internal EnemyHealth Health { get; private set; }
+        internal EnemyMeleeAttack Melee => _melee;
+        internal EnemyRangedAttack Ranged => _ranged;
+        private EnemyMotor _motor;
+        private EnemyAnimatorLink _animation;
+        private EnemyAttack[] _attacks;
+        private EnemyAttack _runningAttack;
+        private EnemyMeleeAttack _melee;
+        private EnemyRangedAttack _ranged;
+        private State _state;
+        private bool _isAware, _parryWindowOpen, _superArmor, _hasWanderTarget;
+        private float _loseTimer, _damagedChaseTimer, _parriedTimer, _hitStopTimer, _parryHitTime, _nextPlayerSearch;
+        private float _wanderWaitTimer, _wanderMoveTimer, _wanderGiveUpTime;
+        private Vector3 _homePosition, _wanderTarget;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
-            activeEnemies.Clear();
-            debugKeyFrame = -1;
+            _activeEnemies.Clear();
             ParryableAttackStarted = null;
         }
-
         private void Awake()
         {
-            rb = GetComponent<Rigidbody>();
-            rb.constraints = RigidbodyConstraints.FreezeRotation;
-            rb.interpolation = RigidbodyInterpolation.Interpolate;
-            bodyCollider = GetComponent<Collider>();
-            health = GetComponent<EnemyHealth>();
-            if (health != null)
-            {
-                health.Damaged += OnDamaged;
-            }
-
-            if (animator == null)
-            {
-                animator = GetComponentInChildren<Animator>();
-            }
-            CacheAnimatorParams();
-            ReadClipHitEvents();
-
-            homePosition = transform.position;
-            hasHome = true;
-            facingDirection = transform.forward;
+            _motor = GetComponent<EnemyMotor>();
+            Health = GetComponent<EnemyHealth>();
+            _animation = GetComponent<EnemyAnimatorLink>();
+            _attacks = GetComponents<EnemyAttack>();
+            _melee = GetComponent<EnemyMeleeAttack>();
+            _ranged = GetComponent<EnemyRangedAttack>();
+            // 원거리 구성에서도 근접 킥을 먼저 검사하도록 시작 때 한 번만 순서를 고정합니다.
+            Array.Sort(_attacks, (a, b) => (a is EnemyMeleeAttack ? 0 : 1).CompareTo(b is EnemyMeleeAttack ? 0 : 1));
+            Health.Damaged += OnDamaged;
+            _homePosition = transform.position;
         }
-
-        private void OnDestroy()
-        {
-            if (health != null)
-            {
-                health.Damaged -= OnDamaged;
-            }
-        }
-
         private void Start()
         {
             FindPlayer();
-            wanderWaitTimer = Random.Range(wanderWaitMin, wanderWaitMax);
-
-            if (attackHitboxPrefab != null)
-            {
-                ObjectPool.Prewarm(attackHitboxPrefab.gameObject, attackHitboxPrewarm);
-            }
-            if (IsRanged && rangedAttack.bulletPrefab != null)
-            {
-                ObjectPool.Prewarm(rangedAttack.bulletPrefab.gameObject, 3);
-            }
+            _wanderWaitTimer = Random.Range(_wanderWaitMin, _wanderWaitMax);
         }
-
         private void OnEnable()
         {
-            if (!activeEnemies.Contains(this))
+            if (!_activeEnemies.Contains(this))
             {
-                activeEnemies.Add(this);
+                _activeEnemies.Add(this);
             }
-            if (drawDebugLines == null)
-            {
-                drawDebugLines = DrawDebugLines;
-            }
-            DebugView.Register(drawDebugLines);
+            ParryTargets.Register(this);
         }
-
         private void OnDisable()
         {
-            activeEnemies.Remove(this);
-            DebugView.Unregister(drawDebugLines);
-            isAiming = false;
-            laserFlashTimer = 0f;
-            if (debugLaser != null)
+            _activeEnemies.Remove(this);
+            ParryTargets.Unregister(this);
+            CancelAttack();
+            if (_state == State.Attack)
             {
-                debugLaser.enabled = false;
+                SetState(_isAware && Player != null ? State.Chase : State.Wander);
             }
-            isLunging = false;
-            parryWindowOpen = false;
-            EndHitStop();
         }
-
+        private void OnDestroy()
+        {
+            if (Health != null)
+            {
+                Health.Damaged -= OnDamaged;
+            }
+        }
         private void OnValidate()
         {
-            wanderRadius = Mathf.Max(0f, wanderRadius);
-            wanderWaitMax = Mathf.Max(wanderWaitMin, wanderWaitMax);
-            detectRange = Mathf.Max(0.1f, detectRange);
-            loseRange = Mathf.Max(detectRange, loseRange);
-            attackRange = Mathf.Clamp(attackRange, 0.1f, detectRange);
-            attackHitboxPrewarm = Mathf.Max(0, attackHitboxPrewarm);
-            if (rangedAttack != null)
-            {
-                rangedAttack.retreatDistance = Mathf.Max(0f, rangedAttack.retreatDistance);
-                rangedAttack.preferredMaxDistance = Mathf.Max(rangedAttack.retreatDistance + 0.5f, rangedAttack.preferredMaxDistance);
-                rangedAttack.maxFireDistance = Mathf.Max(rangedAttack.preferredMaxDistance, rangedAttack.maxFireDistance);
-                rangedAttack.fireInterval = Mathf.Max(0.1f, rangedAttack.fireInterval);
-                rangedAttack.bulletSpeed = Mathf.Max(0.1f, rangedAttack.bulletSpeed);
-            }
-            if (heavyAttack != null)
-            {
-                heavyAttack.startRange = Mathf.Max(0.1f, heavyAttack.startRange);
-                heavyAttack.windup = Mathf.Max(0f, heavyAttack.windup);
-                heavyAttack.activeTime = Mathf.Max(0.01f, heavyAttack.activeTime);
-                heavyAttack.recovery = Mathf.Max(0f, heavyAttack.recovery);
-            }
+            _wanderRadius = Mathf.Max(0f, _wanderRadius);
+            _wanderWaitMax = Mathf.Max(_wanderWaitMin, _wanderWaitMax);
+            _detectRange = Mathf.Max(0.1f, _detectRange);
+            _loseRange = Mathf.Max(_detectRange, _loseRange);
+            GetComponent<EnemyMeleeAttack>()?.ClampRange(_detectRange);
         }
-
         private void Update()
         {
-            DebugView.PollToggleKey();
-            if (debugKeys && DebugView.Enabled)
-            {
-                HandleDebugKeys();
-            }
-
-            if (player == null)
-            {
-                FindPlayer();
-            }
-
             if (IsHitStopped)
             {
-                hitStopTimer -= Time.deltaTime;
-                if (hitStopTimer <= 0f)
+                _hitStopTimer -= Time.deltaTime;
+                if (_hitStopTimer <= 0f)
                 {
                     EndHitStop();
                 }
             }
-
+            if (Player == null && Time.time >= _nextPlayerSearch)
+            {
+                FindPlayer();
+            }
             UpdateAwareness();
-
-            moveDirection = Vector3.zero;
-            moveSpeed = 0f;
-
+            _motor.Move(Vector3.zero, 0f);
             if (!IsHitStopped)
             {
-                switch (state)
+                switch (_state)
                 {
-                    case State.Wander:
-                        TickWander();
-                        break;
-                    case State.Chase:
-                        TickChase();
-                        break;
-                    case State.Attack:
-                        // 공격 중 이동은 AttackRoutine + 전진(Lunge)이 담당
-                        break;
+                    case State.Wander: TickWander(); break;
+                    case State.Chase: TickChase(); break;
                     case State.Parried:
-                        TickParried();
+                        _parriedTimer -= Time.deltaTime;
+                        if (_parriedTimer <= 0f)
+                        {
+                            SetState(_isAware && Player != null ? State.Chase : State.Wander);
+                        }
                         break;
                 }
             }
-
-            UpdateAnimatorSpeed();
+            _animation?.UpdateMovement(_state, _motor.Direction, _motor.Speed, _wanderSpeed, _chaseSpeed, IsHitStopped);
         }
 
-        private void FixedUpdate()
-        {
-            Vector3 velocity;
-            if (IsHitStopped || state == State.Parried)
-            {
-                velocity = Vector3.zero;
-            }
-            else
-            {
-                velocity = isLunging ? GetLungeVelocity() : moveDirection * moveSpeed;
-            }
-            rb.linearVelocity = new Vector3(velocity.x, rb.linearVelocity.y, velocity.z);
-
-            if (!IsHitStopped && state != State.Parried && facingDirection.sqrMagnitude > 0.0001f)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(facingDirection, Vector3.up);
-                rb.MoveRotation(Quaternion.RotateTowards(rb.rotation, targetRotation, turnSpeed * Time.fixedDeltaTime));
-            }
-        }
-
-    #region Death (EnemyHealth 연동)
-
-        /// <summary>쓰러졌을 때 CHG_EnemyHealth가 호출한다. 공격·전진·이동을 즉시 멈추고 AI를 끈다.</summary>
+        /// <summary>죽은 순간 공격과 이동을 취소하고 사망 애니메이션으로 바꿉니다.</summary>
         public void StopForDeath()
         {
-            StopAllCoroutines();
-            attackRoutine = null;
-            attackChosen = false;
-            parryWindowOpen = false;
-            isLunging = false;
-            lungeRemaining = 0f;
-            EndHitStop();
+            CancelAttack();
             SetAware(false);
-            moveDirection = Vector3.zero;
-            moveSpeed = 0f;
-            if (rb != null && !rb.isKinematic)
-            {
-                rb.linearVelocity = Vector3.zero;
-            }
-            SetAnimFloat(SpeedHash, 0f, false);
-            SetAnimFloat(MoveXHash, 0f, false);
-            SetAnimFloat(MoveZHash, 0f, false);
-            ResetAttackTriggers();
-            SetAnimTrigger(DieHash);
+            _animation?.StopForDeath();
             SetState(State.Wander);
             enabled = false;
         }
-
-        /// <summary>부활할 때 CHG_EnemyHealth가 호출한다. 스폰 지점으로 돌아가 배회부터 다시 시작한다.</summary>
+        /// <summary>부활 시 원래 위치·공격 대기·애니메이션을 되돌립니다.</summary>
         public void ReviveAtHome()
         {
-            if (hasHome)
-            {
-                transform.position = homePosition;
-                if (rb != null)
-                {
-                    rb.position = homePosition;
-                }
-            }
-            if (animator != null)
-            {
-                animator.Rebind();
-                animator.speed = 1f;
-            }
+            _motor.ReturnHome(_homePosition);
+            _animation?.Rebind();
             SetAware(false);
-            hasWanderTarget = false;
-            attackChosen = false;
-            nextFireTime = 0f;
-            nextKickTime = 0f;
+            _hasWanderTarget = false;
+            _melee?.ResetCooldown();
+            _ranged?.ResetCooldown();
             SetState(State.Wander);
-            wanderWaitTimer = Random.Range(wanderWaitMin, wanderWaitMax);
+            _wanderWaitTimer = Random.Range(_wanderWaitMin, _wanderWaitMax);
             enabled = true;
         }
-
-    #endregion
-
-    #region Hit / Parried
-
-        // EnemyHealth.Damaged — 근접·총·수류탄 모두 여기로 들어온다
-        private void OnDamaged(float amount, Vector3 hitFrom)
+        private void OnDamaged(float amount, Vector3 from)
         {
             if (!enabled)
             {
                 return;
             }
             Aggro(true);
-            HitStop(hitStopTime);
+            HitStop(_hitStopTime);
         }
-
-        /// <summary>애니메이션·이동·공격 타이머를 잠깐 멈춘다 (일반 피격 경직)</summary>
+        /// <summary>공격 타이머와 받아치기 예정 시각도 함께 늦춰 표시와 실제 판정을 맞춥니다.</summary>
         public void HitStop(float duration)
         {
             if (duration <= 0f || !enabled)
             {
                 return;
             }
-            float added = Mathf.Max(0f, duration - hitStopTimer);
-            hitStopTimer = Mathf.Max(hitStopTimer, duration);
-            if (parryWindowOpen)
-            {
-                parryHitTime += added;   // 멈춘 만큼 판정 시각도 밀림
-            }
-            if (animator != null)
-            {
-                animator.speed = 0f;
-            }
+            float added = Mathf.Max(0f, duration - _hitStopTimer);
+            _hitStopTimer = Mathf.Max(_hitStopTimer, duration);
+            _parryHitTime += _parryWindowOpen ? added : 0f;
+            _animation?.SetPlaybackSpeed(0f);
         }
-
         private void EndHitStop()
         {
-            hitStopTimer = 0f;
-            if (animator != null)
-            {
-                animator.speed = 1f;
-            }
+            _hitStopTimer = 0f;
+            _animation?.SetPlaybackSpeed(1f);
         }
-
-        /// <summary>
-        /// 플레이어 패링 판정에서 호출. 패링 가능한 공격 중이면 패링당함 처리 후 true.
-        /// (플레이어 쪽 패링 기능이 생기면 여기에 연결)
-        /// </summary>
-        /// <param name="damage">패링 성공 시 줄 피해 (약점 노출 전에 들어가므로 약점 배율이 붙지 않음)</param>
-        /// <param name="from">패링한 쪽 위치</param>
-        public bool TryParry(float damage = 0f, Vector3 from = default)
+        /// <summary>옛 NGH 입력 경로의 타이밍 검사입니다. 새 입력은 검사 후 ApplyParry를 호출합니다.</summary>
+        public bool TryParry(float damage = 0f, Vector3 from = default) =>
+            enabled && _parryWindowOpen && Mathf.Abs(Time.time - ParryOverlapTime) <= ParryHalfWindow && ApplyParry(damage, from);
+        /// <summary>공통 규약으로 받아치기 성공을 적용하며 중복 호출은 닫힌 창에서 거절합니다.</summary>
+        public bool ApplyParry(float damage, Vector3 from)
         {
-            if (!enabled || !parryWindowOpen)
+            if (!enabled || !_parryWindowOpen)
             {
                 return false;
-            }
-            if (Mathf.Abs(Time.time - ParryOverlapTime) > ParryHalfWindow)
-            {
-                return false;   // 너무 빠르거나 늦음
             }
             ForceParried(damage, from);
             return true;
         }
-
-        /// <summary>공격 여부와 관계없이 패링당함 상태로 만든다 (테스트용 5 키)</summary>
+        /// <summary>공격을 취소하고 경직을 적용합니다. 개발용 5 키도 같은 통로를 사용합니다.</summary>
         public void ForceParried(float damage = 0f, Vector3 from = default)
         {
-            if (!enabled || (health != null && !health.IsAlive))
+            if (!enabled || !Health.IsAlive)
             {
                 return;
             }
-
-            if (attackRoutine != null)
-            {
-                StopCoroutine(attackRoutine);
-                attackRoutine = null;
-            }
-            attackChosen = false;
-            parryWindowOpen = false;
-            isLunging = false;
-            lungeRemaining = 0f;
-            EndHitStop();
-
+            CancelAttack();
             Aggro(true);
             SetState(State.Parried);
-            parriedTimer = parriedStunTime;
-            ResetAttackTriggers();
-            SetAnimTrigger(ParriedHash);
-
-            // 패링 피해는 약점 노출 "전에" 준다 (먼저 노출하면 이 피해에 약점 배율이 붙고 약점이 바로 풀림)
-            if (damage > 0f && health != null)
+            _parriedTimer = _parriedStunTime;
+            _animation?.Play(EnemyAnimatorLink.ParriedHash);
+            // 피해로 쓰러지면 사망 처리가 우선이므로 경직 후속 신호는 보내지 않습니다.
+            if (damage > 0f)
             {
-                health.TakeDamage(damage, from);
-                if (!health.IsAlive)
+                Health.TakeDamage(damage, from);
+                if (!Health.IsAlive)
                 {
                     Log("패링 피해 " + damage + "로 쓰러짐");
                     return;
                 }
             }
-
-            if (health != null)
-            {
-                health.ExposeWeakness();
-            }
-            Log("패링당함" + (damage > 0f ? " (피해 " + damage + ")" : "") + " → 약점 노출");
+            Log("패링당함" + (damage > 0f ? " (피해 " + damage + ")" : ""));
             Parried?.Invoke();
         }
-
-        private void TickParried()
+        internal void OpenParryWindow(float hitTime)
         {
-            parriedTimer -= Time.deltaTime;
-            if (parriedTimer > 0f)
+            _parryWindowOpen = true;
+            _parryHitTime = hitTime;
+            ParryableAttackStarted?.Invoke(this, hitTime - Time.time);
+            ParryTargets.NotifyAttackStarted(this, ParryOverlapTime - Time.time);
+        }
+        internal void CloseParryWindow() => _parryWindowOpen = false;
+        internal void SetSuperArmor(bool value) => _superArmor = value;
+        internal void OnAttackFinished(EnemyAttack attack)
+        {
+            if (_runningAttack != attack)
             {
                 return;
             }
-            SetState(isAware && player != null ? State.Chase : State.Wander);
+            _runningAttack = null;
+            _melee?.ResetChoice();
+            SetState(_isAware && Player != null ? State.Chase : State.Wander);
         }
-
-    #endregion
-
-    #region Awareness
+        private void CancelAttack()
+        {
+            if (_runningAttack != null)
+            {
+                _runningAttack.Cancel();
+            }
+            _runningAttack = null;
+            _melee?.ResetChoice();
+            CloseParryWindow();
+            _motor.Stop();
+            EndHitStop();
+        }
 
         private void FindPlayer()
         {
-            GameObject playerObject = GameObject.FindGameObjectWithTag(playerTag);
-            player = playerObject != null ? playerObject.transform : null;
-
-            playerCollider = null;
-            if (player != null)
+            // 재생성 대기 중에도 한 프레임마다 씬 전체를 훑지 않도록 탐색 간격을 고정합니다.
+            _nextPlayerSearch = Time.time + 0.5f;
+            using (_findPlayerMarker.Auto())
             {
-                foreach (Collider col in player.GetComponentsInChildren<Collider>())
-                {
-                    if (col.enabled && !col.isTrigger)
-                    {
-                        playerCollider = col;
-                        break;
-                    }
-                }
+                GameObject found = GameObject.FindGameObjectWithTag(_playerTag);
+                Player = found != null ? found.transform : null;
+                PlayerCollider = Player != null
+                    ? Array.Find(Player.GetComponentsInChildren<Collider>(), col => col.enabled && !col.isTrigger) : null;
             }
         }
-
-        /// <summary>사격 조준점: 플레이어 몸 콜라이더 한가운데 (없으면 발밑 + Aim Height)</summary>
-        private Vector3 PlayerAimPoint
-        {
-            get
-            {
-                if (player == null)
-                {
-                    return transform.position + transform.forward;
-                }
-                if (rangedAttack.aimAtPlayerBody && playerCollider != null && playerCollider.enabled)
-                {
-                    return playerCollider.bounds.center;
-                }
-                return player.position + Vector3.up * rangedAttack.aimHeight;
-            }
-        }
-
-        /// <summary>플레이어를 인지시킨다. fromDamage면 거리와 관계없이 추적을 시작한다.</summary>
+        /// <summary>피해로 인지하면 멀리 있어도 잠시 추적을 유지합니다.</summary>
         public void Aggro(bool fromDamage)
         {
-            if (player == null)
+            if (Player == null && Time.time >= _nextPlayerSearch)
             {
                 FindPlayer();
             }
-            if (player == null)
+            if (Player == null)
             {
                 return;
             }
-
-            loseTimer = 0f;
-            if (fromDamage && FlatDistance(transform.position, player.position) > loseRange)
+            _loseTimer = 0f;
+            if (fromDamage && Flat(Player.position - transform.position).magnitude > _loseRange)
             {
-                damagedChaseTimer = damagedChaseMaxTime;
+                _damagedChaseTimer = _damagedChaseMaxTime;
             }
-
-            if (!isAware)
+            if (!_isAware)
             {
                 SetAware(true);
                 Log(fromDamage ? "피격 → 플레이어 인지" : "플레이어 인지");
-                if (IsRanged)
+                if (UsesRanged)
                 {
-                    nextFireTime = Mathf.Max(nextFireTime, Time.time + rangedAttack.firstShotDelay);
+                    _ranged.DelayFirstShot();
                 }
             }
-            if (state == State.Wander)
+            if (_state == State.Wander)
             {
                 SetState(State.Chase);
             }
         }
-
         private void UpdateAwareness()
         {
-            if (player == null)
+            if (Player == null)
             {
-                if (isAware)
+                if (_isAware)
                 {
                     LosePlayer();
                 }
                 return;
             }
-
-            float distance = FlatDistance(transform.position, player.position);
-
-            if (!isAware)
+            float distance = Flat(Player.position - transform.position).magnitude;
+            if (!_isAware)
             {
-                if (distance <= detectRange)
+                if (distance <= _detectRange)
                 {
                     Aggro(false);
                 }
                 return;
             }
-
-            // 멀리서 맞고 쫓아오는 중: 가까워질 때까지(또는 최대 시간까지) 놓치지 않는다
-            if (damagedChaseTimer > 0f)
+            if (_damagedChaseTimer > 0f)
             {
-                damagedChaseTimer = distance <= loseRange ? 0f : damagedChaseTimer - Time.deltaTime;
-                loseTimer = 0f;
+                _damagedChaseTimer = distance <= _loseRange ? 0f : _damagedChaseTimer - Time.deltaTime;
+                _loseTimer = 0f;
                 return;
             }
-
-            if (distance > loseRange)
+            _loseTimer = distance > _loseRange ? _loseTimer + Time.deltaTime : 0f;
+            if (distance > _loseRange && _loseTimer >= _loseDelay)
             {
-                loseTimer += Time.deltaTime;
-                if (loseTimer >= loseDelay)
-                {
-                    LosePlayer();
-                }
-            }
-            else
-            {
-                loseTimer = 0f;
+                LosePlayer();
             }
         }
-
         private void LosePlayer()
         {
             SetAware(false);
-            attackChosen = false;
+            _melee?.ResetChoice();
             Log("플레이어 놓침");
-
-            // 공격·패링당함 중이면 끝난 뒤 배회로 돌아간다
-            if (state != State.Attack && state != State.Parried)
+            if (_state != State.Attack && _state != State.Parried)
             {
                 SetState(State.Wander);
             }
         }
-
         private void SetAware(bool aware)
         {
-            loseTimer = 0f;
-            if (!aware)
-            {
-                damagedChaseTimer = 0f;
-            }
-            if (isAware == aware)
+            _loseTimer = 0f;
+            _damagedChaseTimer = aware ? _damagedChaseTimer : 0f;
+            if (_isAware == aware)
             {
                 return;
             }
-            isAware = aware;
-            SetAnimBool(InCombatHash, aware);
+            _isAware = aware;
+            _animation?.SetCombat(aware);
             AwarenessChanged?.Invoke(aware);
         }
-
-    #endregion
-
-    #region Wander
-
         private void TickWander()
         {
-            if (!hasWanderTarget)
+            if (!_hasWanderTarget)
             {
-                wanderWaitTimer -= Time.deltaTime;
-                if (wanderWaitTimer > 0f)
+                _wanderWaitTimer -= Time.deltaTime;
+                if (_wanderWaitTimer > 0f)
                 {
                     return;
                 }
-                PickWanderTarget();
+                Vector2 offset = Random.insideUnitCircle * _wanderRadius;
+                _wanderTarget = _homePosition + new Vector3(offset.x, 0f, offset.y);
+                _hasWanderTarget = true;
+                _wanderMoveTimer = 0f;
+                // 길이 막혀도 한 목표에 영원히 매달리지 않도록 기존 포기 시간을 유지합니다.
+                _wanderGiveUpTime = Flat(_wanderTarget - transform.position).magnitude / Mathf.Max(0.01f, _wanderSpeed) * 1.5f + 1f;
             }
-
-            Vector3 toTarget = Flat(wanderTarget - transform.position);
-            wanderMoveTimer += Time.deltaTime;
-
-            if (toTarget.magnitude <= 0.3f || wanderMoveTimer >= wanderGiveUpTime)
+            Vector3 toTarget = Flat(_wanderTarget - transform.position);
+            _wanderMoveTimer += Time.deltaTime;
+            if (toTarget.magnitude <= 0.3f || _wanderMoveTimer >= _wanderGiveUpTime)
             {
-                hasWanderTarget = false;
-                wanderWaitTimer = Random.Range(wanderWaitMin, wanderWaitMax);
+                _hasWanderTarget = false;
+                _wanderWaitTimer = Random.Range(_wanderWaitMin, _wanderWaitMax);
                 return;
             }
-
-            moveDirection = toTarget.normalized;
-            moveSpeed = wanderSpeed;
-            facingDirection = moveDirection;
+            _motor.Move(toTarget.normalized, _wanderSpeed);
+            _motor.Face(toTarget.normalized);
         }
-
-        private void PickWanderTarget()
-        {
-            Vector2 offset = Random.insideUnitCircle * wanderRadius;
-            wanderTarget = homePosition + new Vector3(offset.x, 0f, offset.y);
-            hasWanderTarget = true;
-            wanderMoveTimer = 0f;
-
-            // 막혀서 도착하지 못하는 경우를 대비해 예상 이동 시간의 1.5배가 지나면 포기
-            float distance = Flat(wanderTarget - transform.position).magnitude;
-            wanderGiveUpTime = distance / Mathf.Max(0.01f, wanderSpeed) * 1.5f + 1f;
-        }
-
-    #endregion
-
-    #region Chase
-
         private void TickChase()
         {
-            if (!isAware || player == null)
+            if (!_isAware || Player == null)
             {
                 SetState(State.Wander);
                 return;
             }
-
-            if (IsRanged)
+            Vector3 direction = Flat(Player.position - transform.position);
+            float distance = direction.magnitude;
+            if (UsesRanged)
             {
-                TickRangedChase();
+                _ranged.PrepareChase();
+            }
+            foreach (EnemyAttack attack in _attacks)
+            {
+                if (attack.isActiveAndEnabled && attack.CanBegin(distance))
+                {
+                    BeginAttack(attack);
+                    return;
+                }
+            }
+            if (UsesRanged)
+            {
+                _ranged.MaintainDistance(distance, _chaseSpeed);
                 return;
             }
-
-            Vector3 toPlayer = Flat(player.position - transform.position);
-            float distance = toPlayer.magnitude;
-
-            // 다음 공격 종류는 공격마다 한 번 고른다 (일반 70% / 강공격 30%)
-            if (!attackChosen)
-            {
-                nextIsHeavy = heavyAttack != null && heavyAttack.enabled && Random.value < heavyAttack.chance;
-                attackChosen = true;
-            }
-
-            if (nextIsHeavy ? distance <= heavyAttack.startRange : distance <= attackRange)
-            {
-                StartAttack(nextIsHeavy);
-                return;
-            }
-
-            moveDirection = toPlayer.normalized;
-            moveSpeed = chaseSpeed;
-            facingDirection = moveDirection;
+            _motor.Move(direction.normalized, _chaseSpeed);
+            _motor.Face(direction.normalized);
         }
-
-    #endregion
-
-    #region Attack
-
-        private void StartAttack(bool heavy)
+        private void BeginAttack(EnemyAttack attack)
         {
             SetState(State.Attack);
-
-            if (attackRoutine != null)
-            {
-                StopCoroutine(attackRoutine);
-            }
-            attackRoutine = StartCoroutine(heavy ? HeavyAttackRoutine() : AttackRoutine());
+            CancelAttack();
+            _runningAttack = attack;
+            attack.Begin();
         }
-
-        private IEnumerator AttackRoutine()
+        internal void FacePlayer()
         {
-            ResetAttackTriggers();
-            SetAnimTrigger(AttackHash);
-
-            // 1) 선딜레이: 멈춘 채로 플레이어를 바라본다
-            float timer = 0f;
-            while (timer < AttackWindupTime)
-            {
-                FacePlayer();
-                timer += ActiveDeltaTime;
-                yield return null;
-            }
-
-            // 2) 판정 + 전진: 이 순간에만 EnemyAttack 히트박스를 꺼내고 앞으로 튀어나간다
-            SpawnAttackHitbox(attackDamage, attackStagger, attackHitboxOffset, attackHitboxSize, attackActiveTime, "근접 공격");
-            StartLunge(attackLungeDistance, attackLungeDuration, false);
-            yield return WaitActive(attackActiveTime);
-
-            // 3) 후딜레이
-            timer = 0f;
-            while (timer < attackCooldown)
-            {
-                FacePlayer();
-                timer += ActiveDeltaTime;
-                yield return null;
-            }
-
-            FinishAttack();
-        }
-
-        private IEnumerator HeavyAttackRoutine()
-        {
-            HeavyAttackSettings h = heavyAttack;
-            ResetAttackTriggers();
-            SetAnimTrigger(HeavyAttackHash);
-
-            // 1) 플레이어 쪽으로 방향을 정하고 달려든다 (도착 거리는 시작 순간에 확정)
-            FacePlayer();
-            lungeDirection = facingDirection.sqrMagnitude > 0.0001f ? facingDirection : Flat(transform.forward).normalized;
-            StartLunge(h.dashDistance, HeavyDashTime, true);
-
-            superArmor = true;
-            if (h.parryable)
-            {
-                parryWindowOpen = true;
-                parryHitTime = Time.time + HeavyWindupTime;
-                ParryableAttackStarted?.Invoke(this, HeavyWindupTime);
-            }
-
-            float timer = 0f;
-            while (timer < HeavyWindupTime)
-            {
-                timer += ActiveDeltaTime;
-                yield return null;
-            }
-
-            // 2) 내려찍기 판정
-            SpawnAttackHitbox(h.damage, h.stagger, h.hitboxOffset, h.hitboxSize, h.activeTime, "강공격");
-            yield return WaitActive(h.activeTime);
-            parryWindowOpen = false;
-
-            // 3) 후딜레이
-            timer = 0f;
-            while (timer < HeavyRecoveryTime)
-            {
-                timer += ActiveDeltaTime;
-                yield return null;
-            }
-
-            FinishAttack();
-        }
-
-        private IEnumerator WaitActive(float duration)
-        {
-            float timer = 0f;
-            while (timer < duration)
-            {
-                timer += ActiveDeltaTime;
-                yield return null;
-            }
-        }
-
-        private void FinishAttack()
-        {
-            attackRoutine = null;
-            attackChosen = false;
-            parryWindowOpen = false;
-            superArmor = false;
-
-            // 다음 행동은 추적 상태에서 다시 고른다 (사거리 안이면 바로 다음 공격)
-            SetState(isAware && player != null ? State.Chase : State.Wander);
-        }
-
-        // stagger: 맞은 쪽 경직 단계 (HitStagger). 히트박스에 저장되어 명중 시 사용
-        private void SpawnAttackHitbox(int damage, HitStagger stagger, Vector3 offset, Vector3 size, float activeTime, string label)
-        {
-            if (attackHitboxPrefab == null)
-            {
-                Debug.LogWarning("[CHG_EnemyAI:" + name + "] attackHitboxPrefab이 비어 있어 공격 판정을 만들 수 없습니다.", this);
-                return;
-            }
-
-            Vector3 position = transform.TransformPoint(offset);
-            Quaternion rotation = transform.rotation;
-
-            EnemyAttackHitbox hitbox = ObjectPool.Spawn(attackHitboxPrefab, position, rotation);
-            if (hitbox != null)
-            {
-                // 전진하는 동안 히트박스가 적을 따라오도록 follow 지정
-                hitbox.Init(gameObject, damage, size, activeTime, transform, offset, stagger);
-                Log(label + " (데미지 " + damage + ", 경직 " + stagger + ")");
-            }
-        }
-
-        private void FacePlayer()
-        {
-            if (player == null)
+            if (Player == null)
             {
                 return;
             }
-
-            Vector3 toPlayer = Flat(player.position - transform.position);
-            if (toPlayer.sqrMagnitude > 0.0001f)
+            Vector3 direction = Flat(Player.position - transform.position);
+            if (direction.sqrMagnitude > 0.0001f)
             {
-                facingDirection = toPlayer.normalized;
+                _motor.Face(direction.normalized);
             }
         }
-
-    #endregion
-
-    #region Ranged
-
-        // 원거리: 거리 유지 + 시야 확인 + 사격 간격이 되면 조준·사격
-        private void TickRangedChase()
-        {
-            RangedAttackSettings r = rangedAttack;
-            Vector3 toPlayer = Flat(player.position - transform.position);
-            float distance = toPlayer.magnitude;
-            Vector3 dir = distance > 0.001f ? toPlayer / distance : Flat(transform.forward).normalized;
-
-            if (Time.time >= nextLosCheck)
-            {
-                nextLosCheck = Time.time + 0.2f;
-                hasLineOfSight = CheckLineOfSight();
-            }
-
-            facingDirection = dir;   // 항상 플레이어를 바라봄 (뒤로 물러날 때도)
-
-            // 바짝 붙으면 물러나는 대신 킥 (조준·장전은 Attack 상태라 여기 오지 않음 → 그동안은 차지 않음)
-            if (r.kickEnabled && distance <= r.kickRange && Time.time >= nextKickTime)
-            {
-                StartKick();
-                return;
-            }
-
-            if (Time.time >= nextFireTime && hasLineOfSight && distance <= r.maxFireDistance)
-            {
-                StartRangedAttack();
-                return;
-            }
-
-            if (distance > r.preferredMaxDistance || !hasLineOfSight)
-            {
-                moveDirection = dir;
-                moveSpeed = chaseSpeed;
-            }
-            else if (distance < r.retreatDistance)
-            {
-                moveDirection = -dir;
-                moveSpeed = r.retreatSpeed;
-            }
-        }
-
-        private void StartKick()
-        {
-            SetState(State.Attack);
-            if (attackRoutine != null)
-            {
-                StopCoroutine(attackRoutine);
-            }
-            attackRoutine = StartCoroutine(KickRoutine());
-        }
-
-        // 준비 자세(패링 예고) → 킥 → 복귀. 강공격이라 패링 외에는 끊기지 않음
-        private IEnumerator KickRoutine()
-        {
-            RangedAttackSettings r = rangedAttack;
-            superArmor = true;
-            nextKickTime = Time.time + r.kickCooldown;
-
-            // 1) 준비 자세: 킥 동작을 아주 느리게 시작하며 플레이어를 바라봄
-            ResetAttackTriggers();
-            SetAnimFloat(KickSpeedHash, r.kickPrepAnimSpeed, false);
-            SetAnimTrigger(KickHash);
-            if (r.kickParryable)
-            {
-                parryWindowOpen = true;
-                float untilHit = r.kickPrepTime + Mathf.Max(0f, KickHitClipTime - r.kickPrepTime * r.kickPrepAnimSpeed);
-                parryHitTime = Time.time + untilHit;
-                ParryableAttackStarted?.Invoke(this, untilHit);
-            }
-            Log("킥 준비");
-
-            float timer = 0f;
-            while (timer < r.kickPrepTime)
-            {
-                FacePlayer();
-                facingDirection = Quaternion.Euler(0f, r.kickFacingOffset, 0f) * facingDirection;
-                timer += ActiveDeltaTime;
-                yield return null;
-            }
-
-            // 2) 차기: 원래 속도로 재생, 발이 닿는 순간 판정
-            SetAnimFloat(KickSpeedHash, 1f, false);
-            float windup = Mathf.Max(0f, KickHitClipTime - r.kickPrepTime * r.kickPrepAnimSpeed);
-            timer = 0f;
-            while (timer < windup)
-            {
-                timer += ActiveDeltaTime;
-                yield return null;
-            }
-
-            SpawnAttackHitbox(r.kickDamage, r.kickStagger, r.kickHitboxOffset, r.kickHitboxSize, r.kickActiveTime, "킥");
-            StartLunge(r.kickLungeDistance, 0.12f, false);
-            yield return WaitActive(r.kickActiveTime);
-            parryWindowOpen = false;
-
-            // 3) 남은 동작
-            float recovery = Mathf.Max(0f, KickClipLength - KickHitClipTime - r.kickActiveTime);
-            timer = 0f;
-            while (timer < recovery)
-            {
-                timer += ActiveDeltaTime;
-                yield return null;
-            }
-
-            FinishAttack();
-        }
-
-        private void StartRangedAttack()
-        {
-            SetState(State.Attack);
-            if (attackRoutine != null)
-            {
-                StopCoroutine(attackRoutine);
-            }
-            attackRoutine = StartCoroutine(RangedAttackRoutine());
-        }
-
-        private IEnumerator RangedAttackRoutine()
-        {
-            RangedAttackSettings r = rangedAttack;
-
-            // 1) 조준 (예고): 멈춰서 플레이어를 따라 돌린다
-            isAiming = true;
-            float timer = 0f;
-            while (timer < r.aimTime)
-            {
-                FacePlayer();
-                timer += ActiveDeltaTime;
-                yield return null;
-            }
-            isAiming = false;
-
-            // 2) 사격: 이 순간의 플레이어 가슴 쪽으로 총알을 날린다 (이후엔 따라가지 않음)
-            ResetAttackTriggers();
-            SetAnimTrigger(FireHash);
-            FireBullet();
-            nextFireTime = Time.time + r.fireInterval;
-
-            // 3) 사격 동작 + 장전 (제자리)
-            timer = 0f;
-            float lockTime = r.fireAnimTime + r.reloadTime;
-            while (timer < lockTime)
-            {
-                FacePlayer();
-                timer += ActiveDeltaTime;
-                yield return null;
-            }
-
-            FinishAttack();
-        }
-
-        private void FireBullet()
-        {
-            RangedAttackSettings r = rangedAttack;
-            if (r.bulletPrefab == null)
-            {
-                Debug.LogWarning("[CHG_EnemyAI:" + name + "] 총알 프리팹(Bullet Prefab)이 비어 있어 사격할 수 없습니다.", this);
-                return;
-            }
-
-            Vector3 origin = GetFirePosition();
-            Vector3 target = player != null ? PlayerAimPoint : origin + transform.forward;
-            Vector3 dir = target - origin;
-            if (dir.sqrMagnitude < 0.0001f)
-            {
-                dir = transform.forward;
-            }
-            dir.Normalize();
-
-            lastShotDirection = dir;
-            laserFlashTimer = 0.25f;
-            EnemyBullet bullet = ObjectPool.Spawn(r.bulletPrefab, origin, Quaternion.LookRotation(dir));
-            if (bullet != null)
-            {
-                bullet.Fire(gameObject, r.damage, dir, r.bulletSpeed, r.bulletRange, r.bulletRadius, r.stagger);
-                Log("사격 (데미지 " + r.damage + ", 경직 " + r.stagger + ")");
-            }
-        }
-
-        private Vector3 GetFirePosition()
-        {
-            RangedAttackSettings r = rangedAttack;
-            return r.firePoint != null ? r.firePoint.position : transform.TransformPoint(r.fallbackFireOffset);
-        }
-
-        // 총구 높이에서 플레이어 가슴까지 장애물이 있는지 (자기 자신·다른 적·플레이어는 무시)
-        private bool CheckLineOfSight()
-        {
-            if (player == null)
-            {
-                return false;
-            }
-
-            Vector3 from = GetFirePosition();
-            Vector3 to = PlayerAimPoint;
-            Vector3 dir = to - from;
-            float distance = dir.magnitude;
-            if (distance < 0.01f)
-            {
-                return true;
-            }
-
-            int count = Physics.RaycastNonAlloc(from, dir / distance, losHits, distance, rangedAttack.lineOfSightMask, QueryTriggerInteraction.Ignore);
-            for (int i = 0; i < count; i++)
-            {
-                Collider col = losHits[i].collider;
-                if (col == null || col.transform.IsChildOf(transform) || col.transform.IsChildOf(player))
-                {
-                    continue;
-                }
-                if (col.GetComponentInParent<EnemyHealth>() != null || col.GetComponentInParent<PlayerController>() != null)
-                {
-                    continue;
-                }
-                return false;
-            }
-            return true;
-        }
-
-    #endregion
-
-    #region Debug Aim Laser (개발용)
-
-        private void LateUpdate()
-        {
-            UpdateDebugLaser();
-        }
-
-        // 원거리: 조준 중엔 지금 겨누는 방향(빨강), 쏜 직후엔 실제로 쏜 방향(노랑)을 레이저로 표시
-        private void UpdateDebugLaser()
-        {
-            if (laserFlashTimer > 0f)
-            {
-                laserFlashTimer -= Time.deltaTime;
-            }
-
-            bool show = debugAimLaser && DebugView.Enabled && IsRanged && player != null
-                        && (isAiming || laserFlashTimer > 0f);
-            if (!show)
-            {
-                if (debugLaser != null && debugLaser.enabled)
-                {
-                    debugLaser.enabled = false;
-                }
-                return;
-            }
-
-            if (debugLaser == null)
-            {
-                CreateDebugLaser();
-            }
-
-            Vector3 from = GetFirePosition();
-            Vector3 dir = isAiming
-                ? (PlayerAimPoint - from)
-                : lastShotDirection;
-            if (dir.sqrMagnitude < 0.0001f)
-            {
-                dir = transform.forward;
-            }
-            dir.Normalize();
-
-            float length = rangedAttack.bulletRange;
-            if (Physics.Raycast(from, dir, out RaycastHit hit, length, rangedAttack.lineOfSightMask, QueryTriggerInteraction.Ignore)
-                && !hit.collider.transform.IsChildOf(transform))
-            {
-                length = hit.distance;
-            }
-
-            Color color = isAiming ? new Color(1f, 0.1f, 0.1f, 0.9f) : new Color(1f, 0.85f, 0.2f, 0.9f);
-            debugLaser.startColor = color;
-            debugLaser.endColor = color;
-            debugLaser.SetPosition(0, from);
-            debugLaser.SetPosition(1, from + dir * length);
-            debugLaser.enabled = true;
-        }
-
-        // 플레이 중 개발용 표시(0 키): 범위 원 + 플레이어 연결선 (Game 뷰·Scene 뷰 모두)
-        private void DrawDebugLines()
-        {
-            Vector3 center = transform.position + Vector3.up * 0.05f;
-            Vector3 home = (hasHome ? homePosition : transform.position) + Vector3.up * 0.05f;
-
-            DebugView.Circle(home, wanderRadius, new Color(0.2f, 0.8f, 1f, 0.6f));
-            DebugView.Circle(center, detectRange, isAware ? new Color(1f, 0.4f, 0.1f, 1f) : new Color(1f, 0.9f, 0.1f, 1f));
-            DebugView.Circle(center, loseRange, new Color(1f, 0.9f, 0.1f, 0.3f));
-
-            if (IsRanged)
-            {
-                DebugView.Circle(center, rangedAttack.retreatDistance, Color.red);
-                if (rangedAttack.kickEnabled)
-                {
-                    DebugView.Circle(center, rangedAttack.kickRange, new Color(0.8f, 0.2f, 0.6f, 0.9f));
-                }
-                DebugView.Circle(center, rangedAttack.preferredMaxDistance, new Color(0.2f, 0.9f, 0.3f, 1f));
-                DebugView.Circle(center, rangedAttack.maxFireDistance, new Color(0.2f, 0.9f, 0.3f, 0.4f));
-                if (isAware && player != null)
-                {
-                    Color c = hasLineOfSight ? new Color(1f, 0.9f, 0.2f, 0.8f) : new Color(0.5f, 0.5f, 0.5f, 0.8f);
-                    DebugView.Line(GetFirePosition(), PlayerAimPoint, c);
-                }
-            }
-            else
-            {
-                DebugView.Circle(center, attackRange, Color.red);
-                if (heavyAttack != null && heavyAttack.enabled)
-                {
-                    DebugView.Circle(center, heavyAttack.startRange, new Color(0.8f, 0.2f, 0.6f, 0.8f));
-                }
-                if (isAware && player != null)
-                {
-                    DebugView.Line(center, player.position + Vector3.up * 0.05f, new Color(1f, 0.4f, 0.1f, 1f));
-                }
-            }
-        }
-
-        // 레이저는 이 적 오브젝트에 컴포넌트로만 붙임 (새 오브젝트를 만들지 않음)
-        private void CreateDebugLaser()
-        {
-            debugLaser = GetComponent<LineRenderer>();
-            if (debugLaser == null)
-            {
-                debugLaser = gameObject.AddComponent<LineRenderer>();
-            }
-            if (debugLaserMaterial == null)
-            {
-                Shader shader = Shader.Find("Sprites/Default");
-                if (shader == null)
-                {
-                    shader = Shader.Find("Universal Render Pipeline/Unlit");
-                }
-                debugLaserMaterial = new Material(shader);
-            }
-            debugLaser.sharedMaterial = debugLaserMaterial;
-            debugLaser.useWorldSpace = true;
-            debugLaser.positionCount = 2;
-            debugLaser.widthMultiplier = 0.025f;
-            debugLaser.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            debugLaser.receiveShadows = false;
-            debugLaser.enabled = false;
-        }
-
-    #endregion
-
-    #region Lunge
-
-        /// <summary>
-        /// 앞으로 전진. 플레이어 표면 앞까지로 거리를 제한한다.
-        /// fitDuration이면 실제 이동 거리를 duration 동안 나눠서 이동 (강공격 달려들기용).
-        /// </summary>
-        private void StartLunge(float maxDistance, float duration, bool fitDuration)
-        {
-            if (maxDistance <= 0f)
-            {
-                return;
-            }
-
-            if (!fitDuration)
-            {
-                lungeDirection = Flat(rb.rotation * Vector3.forward).normalized;
-            }
-            if (lungeDirection.sqrMagnitude < 0.0001f)
-            {
-                return;
-            }
-
-            // 전진 거리는 공격 순간에 확정한다.
-            // 플레이어가 가까우면 표면 앞까지만 전진하고, 이후 플레이어가 물러나도 더 따라가지 않는다.
-            float distance = Mathf.Min(maxDistance, Mathf.Max(0f, GetLungeAllowance()));
-            if (distance <= 0.0001f)
-            {
-                return;
-            }
-
-            lungeRemaining = distance;
-            lungeSpeed = (fitDuration ? distance : maxDistance) / Mathf.Max(0.01f, duration);
-            isLunging = true;
-        }
-
-        private Vector3 GetLungeVelocity()
-        {
-            float deltaTime = Time.fixedDeltaTime;
-            float step = Mathf.Min(lungeSpeed * deltaTime, lungeRemaining);
-
-            // 전진 도중 플레이어가 다가와 막히면 표면 앞까지만 가고 전진을 끝낸다
-            float allowance = GetLungeAllowance();
-            bool blocked = allowance < step;
-            if (blocked)
-            {
-                step = Mathf.Max(0f, allowance);
-            }
-
-            lungeRemaining -= step;
-            Vector3 velocity = lungeDirection * (step / deltaTime);
-
-            if (blocked || lungeRemaining <= 0.0001f)
-            {
-                isLunging = false;
-                lungeRemaining = 0f;
-            }
-
-            return velocity;
-        }
-
-        /// <summary>
-        /// 전진 방향으로 플레이어와 부딪히기 전까지 이동 가능한 거리.
-        /// 플레이어가 전진 방향 뒤쪽이면 제한하지 않는다.
-        /// </summary>
-        private float GetLungeAllowance()
-        {
-            if (player == null || playerCollider == null)
-            {
-                return float.PositiveInfinity;
-            }
-
-            Vector3 origin = rb.position;
-            Vector3 closest = GetClosestPoint(playerCollider, origin);
-            Vector3 toSurface = Flat(closest - origin);
-
-            if (Vector3.Dot(toSurface, lungeDirection) <= 0f && toSurface.sqrMagnitude > 0.0001f)
-            {
-                return float.PositiveInfinity;
-            }
-
-            return toSurface.magnitude - GetBodyRadius() - lungeStopGap;
-        }
-
-        private static Vector3 GetClosestPoint(Collider col, Vector3 point)
-        {
-            // 볼록하지 않은 MeshCollider는 ClosestPoint를 지원하지 않으므로 바운드로 대체
-            if (col is MeshCollider meshCollider && !meshCollider.convex)
-            {
-                return col.bounds.ClosestPoint(point);
-            }
-            return col.ClosestPoint(point);
-        }
-
-        private float GetBodyRadius()
-        {
-            if (bodyCollider is CapsuleCollider capsule)
-            {
-                Vector3 scale = transform.lossyScale;
-                return capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
-            }
-
-            if (bodyCollider != null)
-            {
-                Vector3 extents = bodyCollider.bounds.extents;
-                return Mathf.Max(extents.x, extents.z);
-            }
-
-            return 0.5f;
-        }
-
-    #endregion
-
-    #region Animator
-
-        private void CacheAnimatorParams()
-        {
-            animatorParams.Clear();
-            if (animator == null || animator.runtimeAnimatorController == null)
-            {
-                return;
-            }
-            foreach (AnimatorControllerParameter p in animator.parameters)
-            {
-                animatorParams.Add(p.nameHash);
-            }
-        }
-
-        // ───────── 타격 이벤트 (애니메이션 클립의 OnAttackHit) ─────────
-        // 클립에 찍은 이벤트 "위치"만 읽어서 판정·패링 시간을 미리 계산한다. (패링 원은 맞기 전에 시간을 알아야 하므로
-        // 이벤트가 울리는 순간에 판정을 만들지 않는다) 공격 상태는 전환이 시작되면 클립 0초부터 재생되므로
-        // 공격 시작 후 경과 시간 = 클립 시간 (상태 Speed 1 기준, 킥은 준비 자세 감속을 따로 계산)
-        public const string HitEventName = "OnAttackHit";
-
-        private void ReadClipHitEvents()
-        {
-            clipAttackHitTime = clipHeavyHitTime = clipHeavyLength = clipKickHitTime = clipKickLength = -1f;
-            if (!useClipHitEvents || animator == null || animator.runtimeAnimatorController == null)
-            {
-                return;
-            }
-
-            bool found = false;
-            foreach (AnimationClip clip in animator.runtimeAnimatorController.animationClips)
-            {
-                if (clip == null)
-                {
-                    continue;
-                }
-                foreach (AnimationEvent ev in clip.events)
-                {
-                    if (ev.functionName != HitEventName)
-                    {
-                        continue;
-                    }
-                    found = true;
-                    switch (ev.stringParameter)
-                    {
-                        case "Attack": clipAttackHitTime = ev.time; break;
-                        case "HeavyAttack": clipHeavyHitTime = ev.time; clipHeavyLength = clip.length; break;
-                        case "Kick": clipKickHitTime = ev.time; clipKickLength = clip.length; break;
-                        default:
-                            Debug.LogWarning("[CHG_EnemyAI:" + name + "] 클립 " + clip.name + "의 " + HitEventName +
-                                             " 이벤트 String 칸이 비었거나 잘못됨 (\"" + ev.stringParameter + "\") — Attack / HeavyAttack / Kick 중 하나로 넣어 주세요.", this);
-                            break;
-                    }
-                    Log("타격 이벤트: " + clip.name + " → " + ev.stringParameter + " " + ev.time.ToString("0.00") + "초");
-                }
-            }
-
-            // 이벤트를 받을 컴포넌트가 없으면 유니티가 "no receiver" 오류를 내므로, Animator 오브젝트에 빈 수신기를 붙인다
-            if (found && animator.GetComponent<HitEventReceiver>() == null)
-            {
-                animator.gameObject.AddComponent<HitEventReceiver>().owner = this;
-            }
-        }
-
-        // 이벤트가 실제로 울린 순간 (개발용: 계산한 판정 시각과 비교 로그)
-        private void OnClipHitEvent(string attackName)
-        {
-            if (DebugView.Enabled)
-            {
-                Log("타격 이벤트 울림: " + attackName);
-            }
-        }
-
-        /// <summary>Animator가 붙은 오브젝트에서 타격 이벤트(OnAttackHit)를 받는 빈 수신기 (판정은 EnemyAI가 미리 계산)</summary>
-        public class HitEventReceiver : MonoBehaviour
-        {
-            [HideInInspector] public EnemyAI owner;
-
-            public void OnAttackHit(string attackName)
-            {
-                if (owner != null)
-                {
-                    owner.OnClipHitEvent(attackName);
-                }
-            }
-        }
-
-        private void UpdateAnimatorSpeed()
-        {
-            if (animator == null || IsHitStopped)
-            {
-                return;
-            }
-
-            float value = 0f;
-            if (state == State.Wander || state == State.Chase)
-            {
-                if (moveSpeed > 0.01f)
-                {
-                    // 배회 속도 = 걷기 값, 추적 속도 = 달리기 값 (사이는 보간)
-                    float t = Mathf.InverseLerp(wanderSpeed, Mathf.Max(wanderSpeed + 0.01f, chaseSpeed), moveSpeed);
-                    value = moveSpeed <= wanderSpeed
-                        ? walkAnimSpeedValue * moveSpeed / Mathf.Max(0.01f, wanderSpeed)
-                        : Mathf.Lerp(walkAnimSpeedValue, runAnimSpeedValue, t);
-                }
-            }
-            SetAnimFloat(SpeedHash, value, true);
-
-            // 방향 이동 (원거리 병사용 2D 블렌드): 몸 기준 좌우(X)·앞뒤(Z) 속도 m/s
-            Vector3 local = Vector3.zero;
-            if ((state == State.Wander || state == State.Chase) && moveSpeed > 0.01f)
-            {
-                local = transform.InverseTransformDirection(moveDirection * moveSpeed);
-            }
-            SetAnimFloat(MoveXHash, local.x, true);
-            SetAnimFloat(MoveZHash, local.z, true);
-        }
-
-        private void SetAnimFloat(int hash, float value, bool damp)
-        {
-            if (animator == null || !animatorParams.Contains(hash) || !animator.isActiveAndEnabled)
-            {
-                return;
-            }
-            if (damp)
-            {
-                animator.SetFloat(hash, value, speedDampTime, Time.deltaTime);
-            }
-            else
-            {
-                animator.SetFloat(hash, value);
-            }
-        }
-
-        private void SetAnimBool(int hash, bool value)
-        {
-            if (animator != null && animatorParams.Contains(hash) && animator.isActiveAndEnabled)
-            {
-                animator.SetBool(hash, value);
-            }
-        }
-
-        private void SetAnimTrigger(int hash)
-        {
-            if (animator != null && animatorParams.Contains(hash) && animator.isActiveAndEnabled)
-            {
-                animator.SetTrigger(hash);
-            }
-        }
-
-        private void ResetAttackTriggers()
-        {
-            if (animator == null || !animator.isActiveAndEnabled)
-            {
-                return;
-            }
-            if (animatorParams.Contains(AttackHash)) animator.ResetTrigger(AttackHash);
-            if (animatorParams.Contains(HeavyAttackHash)) animator.ResetTrigger(HeavyAttackHash);
-            if (animatorParams.Contains(ParriedHash)) animator.ResetTrigger(ParriedHash);
-            if (animatorParams.Contains(FireHash)) animator.ResetTrigger(FireHash);
-            if (animatorParams.Contains(KickHash)) animator.ResetTrigger(KickHash);
-        }
-
-    #endregion
-
-    #region Debug Keys (개발용, 0 키로 켰을 때만)
-
-        // 다른 파트의 테스트 키(플레이어 1·2, 시간역행 테스터 3·4)는 코드를 고치지 않고
-        // 개발용 표시가 켜져 있는 동안만 잠시 꺼 두고, 같은 기능을 여기서 그쪽 공개 함수로 호출한다. 끄면 원래대로 돌려놓는다.
-        private static PlayerController debugPlayer;
-        private static bool savedPlayerHitKeys;
-        private static readonly List<TimeRewindTester> disabledTesters = new List<TimeRewindTester>();
-        private static SteamTank debugSteamTank;
-        private const float DebugSteamAmount = 20f;
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void HookDebugView()
-        {
-            DebugView.Changed -= OnDebugViewChanged;
-            DebugView.Changed += OnDebugViewChanged;
-        }
-
-        private static void OnDebugViewChanged(bool on)
-        {
-            if (on)
-            {
-                debugPlayer = FindAnyObjectByType<PlayerController>();
-                if (debugPlayer != null)
-                {
-                    savedPlayerHitKeys = debugPlayer.debugHitKeys;
-                    debugPlayer.debugHitKeys = false;   // 1·2 가 두 번 들어가지 않게 (끄면 복구)
-                }
-                disabledTesters.Clear();
-                foreach (TimeRewindTester tester in FindObjectsByType<TimeRewindTester>(FindObjectsSortMode.None))
-                {
-                    if (tester.enabled)
-                    {
-                        tester.enabled = false;         // 3·4 가 두 번 들어가지 않게 (끄면 복구)
-                        disabledTesters.Add(tester);
-                    }
-                }
-                debugSteamTank = FindAnyObjectByType<SteamTank>();
-            }
-            else
-            {
-                if (debugPlayer != null)
-                {
-                    debugPlayer.debugHitKeys = savedPlayerHitKeys;
-                }
-                foreach (TimeRewindTester tester in disabledTesters)
-                {
-                    if (tester != null)
-                    {
-                        tester.enabled = true;
-                    }
-                }
-                disabledTesters.Clear();
-            }
-        }
-
-        private static bool Pressed(Keyboard kb, int number)
-        {
-            switch (number)
-            {
-                case 1: return kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame;
-                case 2: return kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame;
-                case 3: return kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame;
-                case 4: return kb.digit4Key.wasPressedThisFrame || kb.numpad4Key.wasPressedThisFrame;
-                case 5: return kb.digit5Key.wasPressedThisFrame || kb.numpad5Key.wasPressedThisFrame;
-                case 6: return kb.digit6Key.wasPressedThisFrame || kb.numpad6Key.wasPressedThisFrame;
-                case 7: return kb.digit7Key.wasPressedThisFrame || kb.numpad7Key.wasPressedThisFrame;
-                default: return false;
-            }
-        }
-
-        // 같은 프레임에 여러 적이 처리하지 않도록 한 번만 실행
-        private void HandleDebugKeys()
-        {
-            Keyboard kb = Keyboard.current;
-            if (kb == null || debugKeyFrame == Time.frameCount)
-            {
-                return;
-            }
-            debugKeyFrame = Time.frameCount;
-
-            // 1·2: 플레이어 경직 / 대경직 (PlayerController.TakeHit)
-            if (Pressed(kb, 1) || Pressed(kb, 2))
-            {
-                if (debugPlayer == null)
-                {
-                    debugPlayer = FindAnyObjectByType<PlayerController>();
-                }
-                if (debugPlayer != null)
-                {
-                    int damage = Pressed(kb, 1) ? 1 : 2;
-                    Transform pt = debugPlayer.transform;
-                    debugPlayer.TakeHit(damage, pt.position + pt.forward);
-                    Debug.Log("[CHG 테스트] " + damage + " → 플레이어 " + (damage == 1 ? "경직" : "대경직") + " (피해 " + damage + ")", debugPlayer);
-                }
-                else
-                {
-                    Debug.Log("[CHG 테스트] 플레이어(NGH_PlayerController)를 찾지 못했습니다.");
-                }
-            }
-
-            // 3·4: 증기 소비 / 회복 (SteamTank)
-            if (Pressed(kb, 3) || Pressed(kb, 4))
-            {
-                if (debugSteamTank == null)
-                {
-                    debugSteamTank = FindAnyObjectByType<SteamTank>();
-                }
-                if (debugSteamTank != null)
-                {
-                    if (Pressed(kb, 3))
-                    {
-                        bool ok = debugSteamTank.TryConsume(DebugSteamAmount);
-                        Debug.Log("[CHG 테스트] 3 → 증기 소비 " + DebugSteamAmount + (ok ? " 성공" : " 부족") + " (" + debugSteamTank.CurrentPressure.ToString("0.#") + "/" + debugSteamTank.MaxPressure.ToString("0") + ")", debugSteamTank);
-                    }
-                    else
-                    {
-                        debugSteamTank.Refill(DebugSteamAmount);
-                        Debug.Log("[CHG 테스트] 4 → 증기 회복 " + DebugSteamAmount + " (" + debugSteamTank.CurrentPressure.ToString("0.#") + "/" + debugSteamTank.MaxPressure.ToString("0") + ")", debugSteamTank);
-                    }
-                }
-                else
-                {
-                    Debug.Log("[CHG 테스트] 증기통(YPH_SteamTank)을 찾지 못했습니다.");
-                }
-            }
-
-            // 5·6·7: 대상 적 (락온 대상, 없으면 가장 가까운 적)
-            bool parry = Pressed(kb, 5);
-            bool weakness = Pressed(kb, 6);
-            bool hpBar = Pressed(kb, 7);
-            if (!(parry || weakness || hpBar))
-            {
-                return;
-            }
-
-            EnemyAI target = FindDebugTarget(out _);
-            if (target == null)
-            {
-                Debug.Log("[CHG 테스트] 살아 있는 적이 없습니다.");
-                return;
-            }
-
-            if (parry)
-            {
-                Debug.Log("[CHG 테스트] 5 → " + target.name + " 패링당함", target);
-                target.ForceParried();
-            }
-            if (weakness && target.health != null)
-            {
-                Debug.Log("[CHG 테스트] 6 → " + target.name + " 약점 노출", target);
-                target.health.ExposeWeakness();
-            }
-            if (hpBar)
-            {
-                EnemyHpBar bar = target.GetComponent<EnemyHpBar>();
-                Debug.Log("[CHG 테스트] 7 → " + target.name + (bar != null ? " 체력바 표시" : " 체력바(chg_EnemyHpBar) 없음"), target);
-                if (bar != null)
-                {
-                    bar.Activate();
-                }
-            }
-        }
-
-        // 좌측 상단 개발용 설명 + 대상 정보 상자 — 살아 있는 적 중 한 마리만 그림
-        private void OnGUI()
-        {
-            if (!DebugView.Enabled || activeEnemies.Count == 0 || activeEnemies[0] != this)
-            {
-                return;
-            }
-
-            Rect help = DebugView.DrawBox(
-                "<b>개발용 표시 ON</b>  (0: 끄기)\n" +
-                "<b>플레이어</b>\n" +
-                "  <b>1</b>  경직 (피해 1)      <b>2</b>  대경직 (피해 2)\n" +
-                "  <b>3</b>  증기 -" + DebugSteamAmount + "          <b>4</b>  증기 +" + DebugSteamAmount + "\n" +
-                "  <b>Ctrl</b>  패링 (chg_PlayerParry 필요 · 증기 10 · 동심원이 겹칠 때)\n" +
-                "<b>대상 적</b>  (락온 대상, 없으면 가장 가까운 적)\n" +
-                "  <b>5</b>  패링당함 (비틀거림 + 약점 노출)\n" +
-                "  <b>6</b>  약점 노출 (다음 공격 1회 3배)\n" +
-                "  <b>7</b>  체력바 표시\n" +
-                "\n" +
-                "<b>바닥 원</b>  노랑 인지 범위(전투 중 주황) · 옅은 노랑 놓침 범위\n" +
-                "    근접: 빨강 공격 사거리 · 자주 강공격 시작 거리\n" +
-                "    원거리: 빨강 물러남 · 자주 킥 거리 · 초록 유지 거리 · 옅은 초록 사격 가능 거리\n" +
-                "<b>선</b>  주황 추적 중인 플레이어 · 노랑/회색 원거리 시야(열림/막힘)\n" +
-                "<b>빨간 상자</b>  공격 판정이 살아 있는 순간\n" +
-                "<b>레이저</b>  빨강 조준 중 · 노랑 실제 발사 방향",
-                new Vector2(0f, 0f));
-
-            // 대상 정보 상자 (설명 상자 오른쪽)
-            EnemyAI target = FindDebugTarget(out bool byLockOn);
-            string info;
-            if (target == null)
-            {
-                info = "<b>대상 적</b>\n  없음";
-            }
-            else
-            {
-                EnemyHealth h = target.health;
-                info = "<b>대상 적</b>  (" + (byLockOn ? "락온" : "가장 가까움") + ")\n" +
-                       "  이름   " + target.name + "\n" +
-                       "  종류   " + (target.IsRanged ? "원거리" : "근접") + "\n" +
-                       "  상태   " + StateLabel(target.state) + "\n" +
-                       (h != null ? "  HP     " + Mathf.CeilToInt(h.CurrentHp) + " / " + Mathf.CeilToInt(h.MaxHp) + "\n" : "") +
-                       "  약점   " + (h != null && h.IsWeaknessExposed ? "<color=#ffcc44>노출 중</color>" : "없음");
-            }
-
-            PlayerController pc = debugPlayer != null ? debugPlayer : FindAnyObjectByType<PlayerController>();
-            if (pc != null)
-            {
-                info += "\n\n<b>플레이어</b>\n  HP     " + pc.Hp + " / " + pc.maxHp;
-                if (debugSteamTank != null)
-                {
-                    info += "\n  증기   " + debugSteamTank.CurrentPressure.ToString("0") + " / " + debugSteamTank.MaxPressure.ToString("0");
-                }
-            }
-
-            DebugView.DrawBox(info, new Vector2(help.xMax, 0f));
-        }
-
-        private static string StateLabel(State s)
-        {
-            switch (s)
-            {
-                case State.Wander: return "비전투";
-                case State.Chase: return "추적";
-                case State.Attack: return "공격";
-                case State.Parried: return "패링당함";
-                default: return s.ToString();
-            }
-        }
-
-        // 테스트 대상: 플레이어가 락온한 적이면 그 적, 아니면 플레이어와 가장 가까운 살아 있는 적
-        private EnemyAI FindDebugTarget(out bool byLockOn)
-        {
-            byLockOn = false;
-            PlayerController pc = debugPlayer != null ? debugPlayer : FindAnyObjectByType<PlayerController>();
-            if (pc != null && pc.LockTarget != null)
-            {
-                EnemyAI locked = pc.LockTarget.GetComponentInParent<EnemyAI>();
-                if (locked != null && locked.enabled && (locked.health == null || locked.health.IsAlive))
-                {
-                    byLockOn = true;
-                    return locked;
-                }
-            }
-
-            Vector3 origin = player != null ? player.position
-                : (Camera.main != null ? Camera.main.transform.position : transform.position);
-
-            EnemyAI best = null;
-            float bestDistance = float.MaxValue;
-            foreach (EnemyAI enemy in activeEnemies)
-            {
-                if (enemy == null || !enemy.enabled || (enemy.health != null && !enemy.health.IsAlive))
-                {
-                    continue;
-                }
-                float d = (enemy.transform.position - origin).sqrMagnitude;
-                if (d < bestDistance)
-                {
-                    bestDistance = d;
-                    best = enemy;
-                }
-            }
-            return best;
-        }
-
-    #endregion
-
-    #region Utility
-
         private void SetState(State next)
         {
-            if (state == next)
+            if (_state == next)
             {
                 return;
             }
-
-            Log(state + " → " + next);
-            state = next;
-
+            Log(_state + " → " + next);
+            _state = next;
             if (next != State.Attack)
             {
-                isLunging = false;
-                parryWindowOpen = false;
-                isAiming = false;
-                superArmor = false;
-                SetAnimFloat(KickSpeedHash, 1f, false);
+                _motor.Stop();
+                CloseParryWindow();
+                _superArmor = false;
+                _animation?.SetKickSpeed(1f);
             }
-
             if (next == State.Wander)
             {
-                hasWanderTarget = false;
-                wanderWaitTimer = Random.Range(wanderWaitMin, wanderWaitMax);
+                _hasWanderTarget = false;
+                _wanderWaitTimer = Random.Range(_wanderWaitMin, _wanderWaitMax);
             }
         }
-
-        private static Vector3 Flat(Vector3 vector)
+        internal static Vector3 Flat(Vector3 value) => new Vector3(value.x, 0f, value.z);
+        internal void Log(string message)
         {
-            vector.y = 0f;
-            return vector;
-        }
-
-        private static float FlatDistance(Vector3 a, Vector3 b)
-        {
-            return Flat(a - b).magnitude;
-        }
-
-        private void Log(string message)
-        {
-            if (logStateChanges)
+            if (_logStateChanges)
             {
                 Debug.Log("[CHG_EnemyAI:" + name + "] " + message, this);
             }
         }
-
-    #endregion
-
-    #region Gizmos
-
-        private void OnDrawGizmos()
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        internal void DrawDebugLines()
         {
-            if (!DebugView.ShowGizmos)
+            Vector3 center = transform.position + Vector3.up * 0.05f;
+            DebugView.Circle(_homePosition, _wanderRadius, Color.cyan);
+            DebugView.Circle(center, _detectRange, _isAware ? new Color(1f, 0.4f, 0.1f) : Color.yellow);
+            DebugView.Circle(center, _loseRange, new Color(1f, 0.9f, 0.1f, 0.3f));
+            if (_isAware && Player != null)
             {
-                return;
-            }
-
-            Vector3 center = transform.position;
-            Vector3 home = Application.isPlaying && hasHome ? homePosition : transform.position;
-
-            // 배회 범위 (하늘색)
-            Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.6f);
-            DrawCircle(home, wanderRadius);
-
-            // 인지 범위 (노랑, 인지 중이면 주황)
-            Gizmos.color = isAware ? new Color(1f, 0.4f, 0.1f, 1f) : new Color(1f, 0.9f, 0.1f, 1f);
-            DrawCircle(center, detectRange);
-
-            // 놓치는 범위 (옅은 노랑)
-            Gizmos.color = new Color(1f, 0.9f, 0.1f, 0.25f);
-            DrawCircle(center, loseRange);
-
-            if (rangedAttack != null && rangedAttack.enabled)
-            {
-                // 원거리: 물러나는 거리(빨강), 유지 거리(초록), 사격 가능 거리(옅은 초록)
-                Gizmos.color = Color.red;
-                DrawCircle(center, rangedAttack.retreatDistance);
-                Gizmos.color = new Color(0.2f, 0.9f, 0.3f, 1f);
-                DrawCircle(center, rangedAttack.preferredMaxDistance);
-                Gizmos.color = new Color(0.2f, 0.9f, 0.3f, 0.35f);
-                DrawCircle(center, rangedAttack.maxFireDistance);
-            }
-            else
-            {
-                // 공격 사거리 (빨강)
-                Gizmos.color = Color.red;
-                DrawCircle(center, attackRange);
-            }
-
-            // 강공격 시작 거리 (자주)
-            if (heavyAttack != null && heavyAttack.enabled)
-            {
-                Gizmos.color = new Color(0.8f, 0.2f, 0.6f, 0.8f);
-                DrawCircle(center, heavyAttack.startRange);
-            }
-
-            if (!Application.isPlaying)
-            {
-                return;
-            }
-
-            if (isAware && player != null)
-            {
-                Gizmos.color = new Color(1f, 0.4f, 0.1f, 1f);
-                Gizmos.DrawLine(center, player.position);
-            }
-            else if (state == State.Wander && hasWanderTarget)
-            {
-                Gizmos.color = new Color(0.2f, 0.8f, 1f, 1f);
-                Gizmos.DrawLine(center, wanderTarget);
-                Gizmos.DrawWireSphere(wanderTarget, 0.2f);
+                DebugView.Line(center, Player.position, Color.yellow);
             }
         }
-
+#endif
+#if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
-            if (!DebugView.ShowGizmos)
+            if (Application.isPlaying)
             {
                 return;
             }
-
-            if (rangedAttack != null && rangedAttack.enabled)
-            {
-                DrawRangedGizmos();
-                return;
-            }
-
-            // 공격 전진 거리 미리보기 (보라)
-            if (attackLungeDistance > 0f)
-            {
-                Vector3 start = transform.position;
-                Vector3 end = start + Flat(transform.forward).normalized * attackLungeDistance;
-                Gizmos.color = new Color(0.8f, 0.3f, 1f, 1f);
-                Gizmos.DrawLine(start, end);
-                Gizmos.DrawWireSphere(end, 0.15f);
-            }
-
-            // 공격 히트박스 미리보기 (빨강)
-            DrawHitboxGizmo(attackHitboxOffset, attackHitboxSize, new Color(1f, 0f, 0f, 0.3f), Color.red);
-
-            // 강공격 히트박스 미리보기 (자주)
-            if (heavyAttack != null && heavyAttack.enabled)
-            {
-                DrawHitboxGizmo(heavyAttack.hitboxOffset, heavyAttack.hitboxSize, new Color(0.8f, 0.2f, 0.6f, 0.25f), new Color(0.8f, 0.2f, 0.6f, 1f));
-            }
+            EnemyDebugTools.DrawCircle(transform.position, _wanderRadius, Color.cyan);
+            EnemyDebugTools.DrawCircle(transform.position, _detectRange, Color.yellow);
+            EnemyDebugTools.DrawCircle(transform.position, _loseRange, new Color(1f, 0.9f, 0.1f, 0.3f));
         }
-
-        // 원거리: 총구 위치(주황 구), 정면 사격 가능 거리(주황 선), 플레이 중엔 플레이어 조준선(시야 열림 노랑 / 막힘 회색)
-        private void DrawRangedGizmos()
-        {
-            Vector3 from = GetFirePosition();
-            Gizmos.color = new Color(1f, 0.55f, 0.1f, 1f);
-            Gizmos.DrawWireSphere(from, 0.06f);
-            Gizmos.color = new Color(1f, 0.55f, 0.1f, 0.5f);
-            Gizmos.DrawLine(from, from + Flat(transform.forward).normalized * rangedAttack.maxFireDistance);
-
-            if (rangedAttack.kickEnabled)
-            {
-                // 킥 판정 미리보기 (자주)
-                DrawHitboxGizmo(rangedAttack.kickHitboxOffset, rangedAttack.kickHitboxSize, new Color(0.8f, 0.2f, 0.6f, 0.25f), new Color(0.8f, 0.2f, 0.6f, 1f));
-            }
-
-            if (Application.isPlaying && player != null)
-            {
-                Gizmos.color = hasLineOfSight ? new Color(1f, 0.9f, 0.2f, 0.8f) : new Color(0.5f, 0.5f, 0.5f, 0.8f);
-                Gizmos.DrawLine(from, PlayerAimPoint);
-            }
-        }
-
-        private void DrawHitboxGizmo(Vector3 offset, Vector3 size, Color fill, Color wire)
-        {
-            Gizmos.matrix = Matrix4x4.TRS(transform.TransformPoint(offset), transform.rotation, Vector3.one);
-            Gizmos.color = fill;
-            Gizmos.DrawCube(Vector3.zero, size);
-            Gizmos.color = wire;
-            Gizmos.DrawWireCube(Vector3.zero, size);
-            Gizmos.matrix = Matrix4x4.identity;
-        }
-
-        private static void DrawCircle(Vector3 center, float radius, int segments = 48)
-        {
-            if (radius <= 0f)
-            {
-                return;
-            }
-
-            Vector3 previous = center + new Vector3(radius, 0f, 0f);
-            for (int i = 1; i <= segments; i++)
-            {
-                float angle = i * Mathf.PI * 2f / segments;
-                Vector3 next = center + new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
-                Gizmos.DrawLine(previous, next);
-                previous = next;
-            }
-        }
-
-    #endregion
+#endif
     }
 }
