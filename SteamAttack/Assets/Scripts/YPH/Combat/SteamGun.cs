@@ -19,8 +19,8 @@ namespace YPH
         [SerializeField, Tooltip("사격선이 시작되는 총구입니다. 실제 명중 판정은 조준 카메라에서 시작합니다.")]
         private Transform _muzzle;
         // 옛 씬의 탄약 비용·피해·사거리 대신 확정된 기본값을 쓰도록 새 직렬화 이름을 사용합니다.
-        [SerializeField, Min(0.001f), Tooltip("한 발마다 쓸 증기입니다. 기획 기본값은 10이며, 높이면 같은 증기로 쏠 수 있는 횟수가 줄어듭니다.")]
-        private float _steamCostPerShot = 10f;
+        [SerializeField, Min(0.001f), Tooltip("한 발마다 쓸 증기입니다. 기본 5(임시, 10.15 회의)이며, 높이면 같은 증기로 쏠 수 있는 횟수가 줄어듭니다. 명중으로 증기를 회복하지 않습니다.")]
+        private float _steamCostPerShot = 5f;
         [SerializeField, Min(0f), Tooltip("발사 후 재장전을 시작하기까지의 초입니다. 높이면 다음 발까지 더 오래 기다리며, 0이면 즉시 재장전으로 넘어갑니다. 실행 중 변경도 반영됩니다.")]
         private float _fireInterval = 0.25f;
         [SerializeField, Min(0f), Tooltip("재장전에 걸리는 초입니다. 다음 발까지 발사 간격과 이 시간이 필요합니다. 높이면 연사가 느려지고 0이면 재장전 대기를 생략합니다.")]
