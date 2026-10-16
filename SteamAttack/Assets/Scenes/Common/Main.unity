@@ -114786,7 +114786,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a19313a9e692c9c43a6b6c47777cb0d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamHitRefill
-  _tank: {fileID: 853362089}
+  _tank: {fileID: 1697300254}
   _refillPerHit: 10
   _heavyAttackCost: 30
 --- !u!114 &714863297
@@ -135282,91 +135282,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 853299807}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1001 &853362088
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.36
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.36000004
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.3600001
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -0.0000000081490725
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.19712926
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -0.024980426
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.7071067
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6198444632936752713, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-      propertyPath: m_Name
-      value: YPH_SteamBackpack
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
---- !u!114 &853362089 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7483665503542910460, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-  m_PrefabInstance: {fileID: 853362088}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 859c1b08aad2f7b4fbc65921b304789a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamTank
---- !u!4 &853362090 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 12999870038545649, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
-  m_PrefabInstance: {fileID: 853362088}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &853502555
 GameObject:
   m_ObjectHideFlags: 0
@@ -233173,9 +233088,6 @@ PrefabInstance:
       addedObject: {fileID: 714863298}
     - targetCorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 853362090}
-    - targetCorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 4532869924255765040}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
@@ -271779,6 +271691,17 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1696312408}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1697300254 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1814699502616274456, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 1442819858}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 859c1b08aad2f7b4fbc65921b304789a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamTank
 --- !u!1 &1697366047
 GameObject:
   m_ObjectHideFlags: 0
@@ -355265,7 +355188,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec63797958198fa419fd9461dfea17ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamGun
-  _tank: {fileID: 853362089}
+  _tank: {fileID: 1697300254}
   _aimOrigin: {fileID: 1062913327}
   _ignoreRoot: {fileID: 1442819863}
   _muzzle: {fileID: 1442819862}
