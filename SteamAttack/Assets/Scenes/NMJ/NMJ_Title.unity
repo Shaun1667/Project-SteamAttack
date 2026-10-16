@@ -300,6 +300,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2116303577}
   - component: {fileID: 2116303576}
+  - component: {fileID: 2116303578}
   m_Layer: 0
   m_Name: NMJ_TitleScreen
   m_TagString: Untagged
@@ -325,9 +326,7 @@ MonoBehaviour:
   music: {fileID: 0}
   musicVolume: 0.7
   gameScene: NMJ_Main
-  OnSettings:
-    m_PersistentCalls:
-      m_Calls: []
+  settings: {fileID: 2116303578}
   font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
   glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
   logoText: "\u7384\u6B66"
@@ -358,6 +357,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2116303578
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2116303575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0028c9301e4df04abaaac807245796c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.SettingsMenu
+  font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  dimColor: {r: 0.06, g: 0.06, b: 0.07, a: 0.6}
+  panelColor: {r: 0.06, g: 0.06, b: 0.07, a: 1}
+  brassColor: {r: 0.94, g: 0.73, b: 0.16, a: 1}
+  textColor: {r: 0.96, g: 0.95, b: 0.92, a: 1}
+  redColor: {r: 0.82, g: 0.18, b: 0.1, a: 1}
+  trackColor: {r: 0.22, g: 0.22, b: 0.24, a: 1}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -25,7 +25,8 @@ namespace NMJ
     /// - ESC로 열고 닫는다. 열면 게임이 멈추고(시간·소리) 마우스 커서가 보인다.
     /// - NGH 조작 안내(ControlsOverlay)는 더 이상 ESC로 열리지 않고, 이 메뉴의 '조작법'에서 같은 이미지를 보여 준다.
     /// - 플레이어 입력·카메라는 ControlsOverlay.IsOpen을 보고 멈춘다 (이 메뉴가 ControlsOverlay.MenuOpen을 켠다).
-    /// - '타이틀로'는 타이틀 씬이 빌드 설정에 들어오기 전까지 흐리게 '준비 중'으로 보인다. '환경 설정'도 만들기 전까지 '준비 중'.
+    /// - '환경 설정'은 같은 오브젝트의 SettingsMenu를 연다 (없으면 '준비 중'으로 흐리게).
+    /// - '타이틀로'는 타이틀 씬이 빌드 설정에 없으면 흐리게 '준비 중'으로 보인다.
     /// - 쓰러져 Game Over 화면이 떠 있는 동안에는 열리지 않는다.
     ///
     /// UI는 실행할 때 코드로 만들어진다. 플레이어(NGH_Player)에 붙여 둔다.
@@ -49,8 +50,8 @@ namespace NMJ
         [SerializeField] private string titleScene = "NMJ_Title";
 
         [Header("환경 설정")]
-        [Tooltip("환경 설정 화면을 여는 곳. 비어 있으면 '환경 설정'은 '준비 중'으로 흐리게 보인다")]
-        public UnityEvent OnSettings = new UnityEvent();
+        [Tooltip("환경 설정 화면. 비우면 같은 오브젝트에서 찾는다. 없으면 '환경 설정'은 '준비 중'으로 흐리게 보인다")]
+        [SerializeField] private SettingsMenu settings;
 
         [Header("글자")]
         [SerializeField] private string title = "玄武";
@@ -78,7 +79,7 @@ namespace NMJ
         /// <summary>ESC 메뉴(또는 그 안의 조작법·확인 창)가 열려 있음</summary>
         public static bool IsOpen => ControlsOverlay.MenuOpen;
 
-        private enum Page { Closed, Main, Controls, Confirm }
+        private enum Page { Closed, Main, Controls, Confirm, Settings }
 
         private Page page = Page.Closed;
         private float prevTimeScale = 1f;
@@ -102,6 +103,7 @@ namespace NMJ
         private void Awake()
         {
             if (player == null) player = GetComponentInParent<PlayerController>();
+            if (settings == null) settings = GetComponent<SettingsMenu>();
             BuildUi();
             SetVisible(0f);
         }
@@ -149,6 +151,9 @@ namespace NMJ
                 case Page.Confirm:
                     ShowPage(Page.Main);
                     break;
+                case Page.Settings:
+                    settings.Close();   // 닫히면 메뉴로 돌아온다 (OnSettingsPressed의 콜백)
+                    break;
             }
         }
 
@@ -185,6 +190,7 @@ namespace NMJ
         {
             if (page == Page.Closed) return;
             page = Page.Closed;   // 화면은 페이드가 끝나면 숨긴다
+            if (settings != null && settings.IsOpen) settings.Close();
 
             ControlsOverlay.MenuOpen = false;
             Time.timeScale = prevTimeScale > 0f ? prevTimeScale : 1f;
@@ -240,8 +246,10 @@ namespace NMJ
 
         private void OnSettingsPressed()
         {
-            if (OnSettings.GetPersistentEventCount() == 0) return;
-            OnSettings.Invoke();
+            if (settings == null) return;
+            page = Page.Settings;
+            ShowPageObjects();   // 메뉴 판은 숨기고 어둠만 남긴다
+            settings.Open(() => { if (page == Page.Settings) ShowPage(Page.Main); }, false);
         }
 
         private void OnTitle()
@@ -276,7 +284,7 @@ namespace NMJ
         private void RefreshAvailability()
         {
             SetEnabled(titleButton, !string.IsNullOrEmpty(titleScene) && Application.CanStreamedLevelBeLoaded(titleScene), style);
-            SetEnabled(settingsButton, OnSettings.GetPersistentEventCount() > 0, style);
+            SetEnabled(settingsButton, settings != null, style);
             LinkColumn(mainButtons);
         }
 

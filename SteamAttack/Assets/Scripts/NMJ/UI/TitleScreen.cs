@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Events;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static NMJ.NmjMenuUi;
@@ -26,7 +26,7 @@ namespace NMJ
     ///   Background  : 배경 그림 (UI_TitleBG, 1920×1080). 넣으면 임시 배경(어둠 + 멈춘 눈송이) 대신 보인다.
     ///   Music       : 타이틀 배경음 (반복)
     /// - '게임 시작'은 Game Scene을 불러온다. 빌드 설정에 없으면 '준비 중'으로 흐리게 보인다.
-    /// - '환경 설정'은 OnSettings에 연결하기 전까지 '준비 중'.
+    /// - '환경 설정'은 같은 오브젝트의 SettingsMenu를 연다 (없으면 '준비 중'). 열려 있을 때 ESC = 닫기.
     ///
     /// UI는 실행할 때 코드로 만들어진다. NMJ_Title 씬의 빈 오브젝트에 붙여 둔다.
     /// </summary>
@@ -46,8 +46,8 @@ namespace NMJ
         [Header("연결")]
         [Tooltip("'게임 시작'으로 불러올 씬 이름 (빌드 설정에 있어야 함)")]
         [SerializeField] private string gameScene = "NMJ_Main";
-        [Tooltip("환경 설정 화면을 여는 곳. 비어 있으면 '환경 설정'은 '준비 중'으로 흐리게 보인다")]
-        public UnityEvent OnSettings = new UnityEvent();
+        [Tooltip("환경 설정 화면. 비우면 같은 오브젝트에서 찾는다. 없으면 '환경 설정'은 '준비 중'으로 흐리게 보인다")]
+        [SerializeField] private SettingsMenu settings;
         [Tooltip("한글·한자 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
         [SerializeField] private TMP_FontAsset font;
         [Tooltip("한자(玄武·命·討) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
@@ -107,7 +107,8 @@ namespace NMJ
         {
             EnsureEventSystem();
             SetEnabled(startButton, !string.IsNullOrEmpty(gameScene) && Application.CanStreamedLevelBeLoaded(gameScene), style);
-            SetEnabled(settingsButton, OnSettings.GetPersistentEventCount() > 0, style);
+            if (settings == null) settings = GetComponent<SettingsMenu>();
+            SetEnabled(settingsButton, settings != null, style);
             LinkColumn(buttons);
             Select(startButton.enabled ? startButton : buttons.Find(b => b.enabled));
 
@@ -116,7 +117,8 @@ namespace NMJ
                 var src = gameObject.AddComponent<AudioSource>();
                 src.clip = music;
                 src.loop = true;
-                src.volume = musicVolume;
+                src.playOnAwake = false;
+                gameObject.AddComponent<NmjMusic>().Volume = musicVolume;   // 환경 설정의 배경음 볼륨을 따른다
                 src.Play();
             }
         }
@@ -136,6 +138,10 @@ namespace NMJ
             introTimer += dt;
             if (leaveTimer < 0f) fade.alpha = 1f - Mathf.Clamp01(introTimer / 1.2f);
             group.alpha = 1f;
+
+            // 환경 설정이 열려 있으면 ESC로 닫는다
+            Keyboard kb = Keyboard.current;
+            if (settings != null && settings.IsOpen && kb != null && kb.escapeKey.wasPressedThisFrame) settings.Close();
 
             UpdateButtons(buttons, style);
             UpdateSnow(dt);
@@ -175,8 +181,9 @@ namespace NMJ
 
         private void OnSettingsPressed()
         {
-            if (OnSettings.GetPersistentEventCount() == 0) return;
-            OnSettings.Invoke();
+            if (settings == null || leaveTimer >= 0f) return;
+            group.interactable = false;   // 뒤의 타이틀 버튼은 쉬게
+            settings.Open(() => { group.interactable = true; Select(settingsButton); });
         }
 
         private void OnQuit()
