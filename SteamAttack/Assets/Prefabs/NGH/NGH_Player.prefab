@@ -5914,7 +5914,7 @@ MonoBehaviour:
   rewindSeconds: 5
   recordInterval: 0.02
   rewindKey: 31
-  steamCost: 0
+  steamCost: 70
   consumeSteam: 1
   lockControlDuringEffect: 1
   allowWhileDead: 0
