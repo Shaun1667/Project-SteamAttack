@@ -60,6 +60,14 @@ YPH가 `EnemyAI`(2,170줄)를 역할별 컴포넌트로 나누면서 설정값�
 - YPH 계획: E0 적 AI 구조 분리, E1 변이 포졸 (YPH 개인 계획서)
 - 관련 결정: D-052(적 AI는 YPH), D-061(받아치기 담당)
 
+### 2026-10-15 E0 구현 결과 (YPH)
+
+- 판단은 `EnemyAI`, 이동은 `EnemyMotor`, 근접·킥은 `EnemyMeleeAttack`, 사격은 `EnemyRangedAttack`, 애니메이션 연결은 `EnemyAnimatorLink`로 분리했습니다. 개발용 키는 씬마다 자동 생성되는 `EnemyDebugTools`가 처리합니다.
+- 설정은 새 컴포넌트의 `_camelCase` 필드로 옮겼으며 자동 이관은 하지 않습니다. `[RequireComponent]`만으로 기존 씬의 부품과 값을 복구할 수는 없습니다. **E0만 먼저 병합해 옛 적을 그대로 실행하지 말고 E1 프리팹과 함께 교체해 주세요.**
+- YPH_EnemyTest만 분리 전 값을 복원했습니다. Main·NGH_EnemyTest·BossArena는 저장하지 않았습니다. E1 프리팹은 아직 이번 작업에 포함되지 않습니다.
+- EnemyAI 공개 API와 IParryTarget·ParryTargets 계약은 유지했습니다. 기존 NGH 입력·동심원은 수정 없이 컴파일됐고 Ctrl 받아치기 회귀 검사를 수행했습니다.
+- 부품 구성·Inspector·검증 범위: [적 AI 기능 문서](../../Features/적AI.md).
+
 ---
 
 ## 처리 기록 (받는 사람이 작성)
