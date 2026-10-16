@@ -17960,6 +17960,7 @@ GameObject:
   - component: {fileID: 6347576647544692311}
   - component: {fileID: 6460336230677581138}
   - component: {fileID: 4990473850159392292}
+  - component: {fileID: 4412064709674172395}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -22295,6 +22296,43 @@ MonoBehaviour:
   lowPulseDepth: 0.28
   dripAmount: 1
   dripGravity: 520
+--- !u!114 &4412064709674172395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3104297047625066499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 795e0f5270a84bb8ae64553d2a2eeb6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.SteamCylinderGauge
+  tank: {fileID: 6342032219919825200}
+  font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  position: {x: 60, y: 22}
+  size: {x: 540, y: 58}
+  gunCost: 5
+  strongCost: 30
+  rewindCost: 70
+  gunLabel: "\u9283"
+  strongLabel: "\u5F37"
+  rewindLabel: "\u9006"
+  ironColor: {r: 0.17, g: 0.15, b: 0.14, a: 1}
+  brassColor: {r: 0.62, g: 0.44, b: 0.19, a: 1}
+  inkColor: {r: 0.05, g: 0.05, b: 0.06, a: 1}
+  glassColor: {r: 0.1, g: 0.11, b: 0.12, a: 1}
+  steamColor: {r: 0.95, g: 0.95, b: 0.93, a: 1}
+  tickOnColor: {r: 0.94, g: 0.73, b: 0.25, a: 1}
+  tickOffColor: {r: 0.43, g: 0.38, b: 0.32, a: 1}
+  warnColor: {r: 0.85, g: 0.15, b: 0.1, a: 1}
+  drainSpeed: 1.6
+  refillSpeed: 0.8
+  swirlSpeed: 0.04
+  puffsPer10: 2
+  failShake: 6
+  seed: 5
+  testKeys: 1
 --- !u!1 &3153274227430968840
 GameObject:
   m_ObjectHideFlags: 0
