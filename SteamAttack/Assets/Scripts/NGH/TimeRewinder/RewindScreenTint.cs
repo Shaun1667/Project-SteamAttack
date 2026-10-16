@@ -6,7 +6,7 @@ using UnityEngine.Rendering.Universal;
 namespace NGH
 {
     /// <summary>
-    /// 시간 역행 화면 연출: 역행하는 동안 화면에 옅은 황금색 필터를 씌움.
+    /// 시간 역행 화면 연출: 역행하는 동안 화면에 옅은 청색(오방색 청 = 시간) 필터를 씌움.
     ///  - TimeRewind.RewindStarted 에 서서히 켜지고, RewindFinished 에 서서히 꺼짐
     ///  - URP 후처리(Color Adjustments 색 필터 + 채도 + 가장자리 비네트)를 코드로 만든 전역 Volume 으로 적용 (씬에 에셋 추가 없음)
     ///  - 카메라의 Post Processing 이 꺼져 있으면 연출 동안만 켰다가 원래대로 돌려 놓음
@@ -20,14 +20,16 @@ namespace NGH
         public Camera targetCamera;
 
         [Header("색")]
-        [Tooltip("화면에 곱해지는 색 (흰색 = 변화 없음). 옅은 황금색")]
-        public Color tintColor = new Color(1f, 0.93f, 0.75f);
+        [Tooltip("시간 역행 색. 오방색에서 청은 시간을 뜻함 (기본 YPH.ObangColors.Cheong)")]
+        public Color hue = YPH.ObangColors.Cheong;
+        [Tooltip("화면에 곱하는 색을 흰색에서 위 색 쪽으로 섞는 비율 (0 = 변화 없음, 1 = 위 색 그대로라 화면이 매우 어두워짐)")]
+        [Range(0f, 1f)] public float tintStrength = 0.3f;
         [Tooltip("채도 변화 (-100 ~ 100). 살짝 빼면 오래된 사진처럼 바랜 느낌")]
         [Range(-100f, 100f)] public float saturation = -10f;
         [Tooltip("밝기 변화 (노출, EV)")]
         [Range(-2f, 2f)] public float exposure = 0.15f;
-        [Tooltip("가장자리 비네트 색")]
-        public Color vignetteColor = new Color(0.55f, 0.38f, 0.1f);
+        [Tooltip("가장자리 비네트 밝기 (위 색에 곱함. 낮을수록 가장자리가 어두운 청색)")]
+        [Range(0f, 1f)] public float vignetteBrightness = 0.5f;
         [Tooltip("가장자리 비네트 세기 (0 = 끔)")]
         [Range(0f, 1f)] public float vignetteIntensity = 0.3f;
 
@@ -141,11 +143,11 @@ namespace NGH
                 _volume.weight = 0f;
                 _volume.enabled = false;
             }
-            _color.colorFilter.value = tintColor;
+            _color.colorFilter.value = Color.Lerp(Color.white, hue, tintStrength);
             _color.saturation.value = saturation;
             _color.postExposure.value = exposure;
             _vignette.active = vignetteIntensity > 0f;
-            _vignette.color.value = vignetteColor;
+            _vignette.color.value = new Color(hue.r * vignetteBrightness, hue.g * vignetteBrightness, hue.b * vignetteBrightness, 1f);
             _vignette.intensity.value = vignetteIntensity;
             _vignette.smoothness.value = 0.5f;
             return true;
