@@ -20,6 +20,12 @@ namespace NMJ
         [Tooltip("옮긴 뒤 다시 발동하기까지의 시간(초). 모든 안개문이 함께 쉰다")]
         [SerializeField, Min(0f)] private float cooldown = 1.5f;
         [SerializeField] private bool logTeleport = true;
+        [Header("먹물 화면 전환")]
+        [Tooltip("켜면 화면을 먹으로 덮은 사이에 옮긴다 (끄면 바로 옮김)")]
+        [SerializeField] private bool inkTransition = true;
+        [SerializeField] private InkStyle transitionStyle = InkStyle.Drip;
+        [Tooltip("먹이 다 덮이기까지(초). 먹 흘러내림은 천천히 짙어지므로 넉넉하게")]
+        [SerializeField, Min(0.05f)] private float coverTime = 1.4f;
 
         private static float nextAllowedTime;
         private Collider area;
@@ -66,6 +72,22 @@ namespace NMJ
             Transform body = who.CompareTag(playerTag) ? who : who.root;
             nextAllowedTime = Time.time + cooldown;
 
+            if (inkTransition)
+            {
+                // 먹이 다 덮을 때까지는 다른 안개문도 쉬고, 덮인 순간에 옮긴다
+                nextAllowedTime = float.MaxValue;
+                InkTransition.Play(transitionStyle, () =>
+                {
+                    MoveTo(body);
+                    nextAllowedTime = Time.time + cooldown;
+                }, coverTime);
+                return;
+            }
+            MoveTo(body);
+        }
+
+        private void MoveTo(Transform body)
+        {
             // CharacterController는 꺼야 순간이동이 적용된다
             CharacterController cc = body.GetComponent<CharacterController>();
             bool ccEnabled = cc && cc.enabled;

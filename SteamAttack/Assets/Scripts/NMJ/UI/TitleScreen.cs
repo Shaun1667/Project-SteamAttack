@@ -46,6 +46,9 @@ namespace NMJ
         [Header("연결")]
         [Tooltip("'게임 시작'으로 불러올 씬 이름 (빌드 설정에 있어야 함)")]
         [SerializeField] private string gameScene = "NMJ_Main";
+        [Tooltip("게임 시작 때 먹물 화면 전환을 쓴다 (끄면 검게 어두워짐)")]
+        [SerializeField] private bool inkTransition = true;
+        [SerializeField] private InkStyle startTransition = InkStyle.Brush;
         [Tooltip("환경 설정 화면. 비우면 같은 오브젝트에서 찾는다. 없으면 '환경 설정'은 '준비 중'으로 흐리게 보인다")]
         [SerializeField] private SettingsMenu settings;
         [Tooltip("한글·한자 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
@@ -88,6 +91,7 @@ namespace NMJ
         private float introTimer;
         private float leaveTimer = -1f;
         private string leaveTo;
+        private bool leavingByInk;
 
         // ───────── 시작 ─────────
 
@@ -101,7 +105,9 @@ namespace NMJ
 
             PlayTimer.Stop();   // 타이틀에 있는 동안은 플레이 시간에 넣지 않는다
             BuildUi();
-            fade.alpha = 1f;
+            // 먹물 전환으로 넘어왔으면 먹이 걷히는 것으로 충분하니 검은 막은 건너뛴다
+            fade.alpha = InkTransition.IsBusy ? 0f : 1f;
+            if (InkTransition.IsBusy) introTimer = 10f;
         }
 
         private void Start()
@@ -148,7 +154,7 @@ namespace NMJ
             UpdateSnow(dt);
 
             // 게임 시작: 어두워진 뒤 씬을 불러온다
-            if (leaveTimer >= 0f)
+            if (leaveTimer >= 0f && !leavingByInk)
             {
                 leaveTimer += dt;
                 fade.alpha = Mathf.Clamp01(leaveTimer / 0.7f);
@@ -179,6 +185,11 @@ namespace NMJ
             PlayTimer.Restart();
             leaveTimer = 0f;
             group.interactable = false;
+            if (inkTransition)
+            {
+                leavingByInk = true;
+                InkTransition.Play(startTransition, () => SceneManager.LoadScene(leaveTo));
+            }
         }
 
         private void OnSettingsPressed()

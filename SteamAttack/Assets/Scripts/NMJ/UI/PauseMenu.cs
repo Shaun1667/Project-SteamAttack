@@ -48,6 +48,8 @@ namespace NMJ
         [Header("타이틀")]
         [Tooltip("타이틀 씬 이름. 빌드 설정에 없으면 '타이틀로'는 '준비 중'으로 흐리게 보인다")]
         [SerializeField] private string titleScene = "NMJ_Title";
+        [Tooltip("타이틀로 돌아갈 때의 먹물 화면 전환")]
+        [SerializeField] private InkStyle titleTransition = InkStyle.Bleed;
 
         [Header("환경 설정")]
         [Tooltip("환경 설정 화면. 비우면 같은 오브젝트에서 찾는다. 없으면 '환경 설정'은 '준비 중'으로 흐리게 보인다")]
@@ -256,8 +258,12 @@ namespace NMJ
         {
             Ask("타이틀 화면으로 돌아갈까요?\n<size=70%>지금까지의 진행은 이어지지 않습니다</size>", () =>
             {
-                Close();
-                SceneManager.LoadScene(titleScene);
+                // 먹이 다 덮을 때까지 멈춘 채로 두었다가 넘어간다
+                InkTransition.Play(titleTransition, () =>
+                {
+                    Close();
+                    SceneManager.LoadScene(titleScene);
+                });
             });
         }
 
