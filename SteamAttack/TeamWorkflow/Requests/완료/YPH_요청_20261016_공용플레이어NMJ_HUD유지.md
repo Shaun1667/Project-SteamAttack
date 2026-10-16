@@ -8,7 +8,7 @@
 | 우선순위 | 🟢 여유 |
 | 희망 기한 | 프리팹 수정 때마다 |
 | 관련 기획서 | `Design/UI/인게임UI.md` (D-086) |
-| 상태 | 진행중 |
+| 상태 | 완료 |
 
 ## 1. 한 줄 요약
 
@@ -59,4 +59,5 @@ NMJ가 `NMJ.InkHealthBar`(붓글씨 체력바)와 `NMJ.SteamCylinderGauge`(증�
 
 | 날짜 | 처리자 | 결과 | 비고 |
 |---|---|---|---|
-| 2026-10-16 | YPH | 진행중 | `YPH_HeroPlayerIntegration`의 NMJ HUD는 지우지 않음. **다만 지금 팀 Main(NGH 브랜치)의 플레이어는 `YPH_HeroPlayerIntegration`이 아니라 `NGH_Player`**(10/14 NGH `10a4c1a` 이후, D-081). NMJ 브랜치는 10/13 기준이라 Main이 아직 `YPH_HeroPlayerIntegration`을 씀. 그대로 병합하면 Main에 NMJ HUD가 안 보임 → 요청 `YPH_요청_20261016_NMJ_HUD공용플레이어연결` |
+| 2026-10-16 | YPH | 진행중 | `YPH_HeroPlayerIntegration`의 NMJ HUD는 지우지 않음. **다만 지금 팀 Main(NGH 브랜치)의 플레이어는 `YPH_HeroPlayerIntegration`이 아니라 `NGH_Player`**(10/14 NGH `10a4c1a` 이후, D-081). NMJ 브랜치는 10/13 기준이라 Main이 아직 `YPH_HeroPlayerIntegration`을 씀. 그대로 병합하면 Main에 NMJ HUD가 안 보임 → 요청 `NMJ_요청_20261016_NMJ_HUD공용플레이어연결` |
+| 2026-10-16 | YPH / GPT | 완료 | 실제 YPH 작업본에는 NMJ HUD 두 개가 없고 `chg_PlayerHUD`가 켜져 있었음. NMJ `25b03b4`의 두 컴포넌트·설정·참조를 원래 fileID로 복구하고 옛 HUD를 비활성화함. 플레이어·탱크·폰트·셰이더 연결 확인. 저장하지 않는 임시 씬에서 HUD 단독 Play: 체력바·증기 HUD 각 1개, 옛 HUD 0개, 체력 100→70→100·증기 100→60→100 표시 확인, 오류·경고 0건. 현재 Cloth 씬 복구, Main·BossArena 및 NGH·NMJ 원본 코드 변경 없음. 현재 공용 `NGH_Player` 연결·새 받아치기 신호 구독은 [별도 NMJ 요청](../진행/NMJ_요청_20261016_NMJ_HUD공용플레이어연결.md) 범위. 명령·캡처는 YPH 로컬 `Docs/Archive/2026-10-16_NMJHUD유지/`에 보관 |

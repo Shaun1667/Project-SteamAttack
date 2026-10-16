@@ -86,7 +86,7 @@ private void HandleParry(bool success)
 
 ## 9. 첨부
 
-- NMJ 요청 Y-2·Y-3·Y-4(`NMJ_요청_20261016_받아치기성공신호.md`, `…무기칸정식이름.md`, `…공용플레이어NMJ_HUD유지.md`)의 처리 기록과 이어지는 내용
+- NMJ 요청 Y-2·Y-3·Y-4(`YPH_요청_20261016_받아치기성공신호.md`, `…무기칸정식이름.md`, `…공용플레이어NMJ_HUD유지.md`)의 처리 기록과 이어지는 내용
 - 확인 기준: 2026-10-16 YPH 브랜치(`origin/NGH`와 같음)와 `origin/NMJ`(`25b03b4`) 비교
 
 ---
