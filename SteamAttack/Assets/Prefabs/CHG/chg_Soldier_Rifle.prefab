@@ -462,6 +462,7 @@ MonoBehaviour:
   attackActiveTime: 0.15
   attackCooldown: 1.2
   attackDamage: 22
+  attackStagger: 1
   attackHitboxPrefab: {fileID: 7922252720182429100, guid: b5e9f132443b20c44b02f6e45243f479, type: 3}
   attackHitboxOffset: {x: 0, y: 0.9, z: 1.1}
   attackHitboxSize: {x: 1.2, y: 1.5, z: 1.2}
@@ -473,6 +474,7 @@ MonoBehaviour:
     enabled: 0
     chance: 0.3
     damage: 44
+    stagger: 2
     startRange: 4.5
     windup: 1.62
     activeTime: 0.15
@@ -488,6 +490,7 @@ MonoBehaviour:
     firePoint: {fileID: 3011509703951980884}
     fallbackFireOffset: {x: 0, y: 1.45, z: 0.6}
     damage: 18
+    stagger: 1
     bulletSpeed: 20
     bulletRange: 25
     bulletRadius: 0.12
@@ -500,6 +503,7 @@ MonoBehaviour:
     retreatDistance: 5
     maxFireDistance: 18
     retreatSpeed: 1.1
+    aimAtPlayerBody: 1
     aimHeight: 1.2
     lineOfSightMask:
       serializedVersion: 2
@@ -507,6 +511,7 @@ MonoBehaviour:
     kickEnabled: 1
     kickRange: 2.5
     kickDamage: 25
+    kickStagger: 2
     kickCooldown: 4
     kickPrepTime: 0.7
     kickPrepAnimSpeed: 0.15
@@ -521,6 +526,7 @@ MonoBehaviour:
   hitStopTime: 0.1
   parriedStunTime: 1.8
   animator: {fileID: 0}
+  useClipHitEvents: 1
   walkAnimSpeedValue: 0.5
   runAnimSpeedValue: 1
   speedDampTime: 0.1
