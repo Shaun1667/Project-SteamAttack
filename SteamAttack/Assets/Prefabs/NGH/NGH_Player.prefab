@@ -5962,7 +5962,7 @@ MonoBehaviour:
   blockWhileDrawSheath: 1
   blockWhileRolling: 1
   blockWhileHit: 1
-  showDebugGUI: 1
+  showDebugGUI: 0
   logRewind: 1
 --- !u!114 &6073769695134695137
 MonoBehaviour:
