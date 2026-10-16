@@ -328,6 +328,8 @@ MonoBehaviour:
   _heavyHitboxOffset: {x: 0, y: 0.9, z: 1.1}
   _heavyHitboxSize: {x: 1.4, y: 1.8, z: 1.6}
   _heavyParryable: 1
+  _restTimeMin: 1.5
+  _restTimeMax: 2.5
   _kickEnabled: 0
   _kickRange: 2.5
   _kickDamage: 25
