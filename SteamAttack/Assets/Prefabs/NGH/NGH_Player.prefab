@@ -10051,6 +10051,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NMJ.PauseMenu
   player: {fileID: 5444686568199331752}
   font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
   controlsImage: {fileID: 0}
   titleScene: NMJ_Title
   OnSettings:
@@ -10083,6 +10084,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NMJ.BossDefeatBanner
   boss: {fileID: 0}
   font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
   headline: "\uD604\uBB34 \uD1A0\uBC8C"
   sealText: "\u8A0E"
   subtitle: "\uBA48\uCDC4\uB358 \uB3C4\uC131\uC758 \uC2DC\uAC04\uC774 \uB2E4\uC2DC \uD750\uB978\uB2E4"

@@ -50,6 +50,10 @@ namespace NMJ
         public UnityEvent OnSettings = new UnityEvent();
         [Tooltip("한글·한자 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
         [SerializeField] private TMP_FontAsset font;
+        [Tooltip("한자(玄武·命·討) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
+        [SerializeField] private TMP_FontAsset glyphFont;
+
+        private TMP_FontAsset HanjaFont => glyphFont != null ? glyphFont : font;
 
         [Header("글자 로고 (Logo Image가 없을 때)")]
         [SerializeField] private string logoText = "玄武";
@@ -190,6 +194,7 @@ namespace NMJ
         {
 #if UNITY_EDITOR
             if (font == null) font = FindDefaultFont();
+            if (glyphFont == null) glyphFont = FindGlyphFont();
 #endif
             style = new Style { font = font, textColor = textColor, selectedColor = brassColor, underlineColor = sealColor, buttonHeight = 64f, fontSize = 34f };
 
@@ -263,7 +268,7 @@ namespace NMJ
             bandImg.rectTransform.anchorMin = new Vector2(0.08f, 0.02f);
             bandImg.rectTransform.anchorMax = new Vector2(0.92f, 0.42f);
 
-            TMP_Text main = NewText("Title", logo, font, logoText, 210f, textColor);
+            TMP_Text main = NewText("Title", logo, HanjaFont, logoText, 210f, textColor);
             main.rectTransform.offsetMin = new Vector2(0f, 120f);
             main.characterSpacing = 18f;
 
@@ -276,7 +281,7 @@ namespace NMJ
             Texture2D sealTex = DrawSeal(128, sealColor, textColor, 7f);
             owned.Add(sealTex);
             NewRawImage("Ink", seal, sealTex);
-            NewText("Glyph", seal, font, logoSeal, sealSize * 0.6f, new Color(textColor.r, textColor.g, textColor.b, 0.94f));
+            NewText("Glyph", seal, HanjaFont, logoSeal, sealSize * 0.6f, new Color(textColor.r, textColor.g, textColor.b, 0.94f));
 
             TMP_Text sub = NewText("Subtitle", logo, font, subtitle, 52f, brassColor);
             sub.rectTransform.anchorMin = new Vector2(0f, 0f);
@@ -329,6 +334,7 @@ namespace NMJ
         private void OnValidate()
         {
             if (font == null) font = FindDefaultFont();
+            if (glyphFont == null) glyphFont = FindGlyphFont();
         }
 #endif
     }

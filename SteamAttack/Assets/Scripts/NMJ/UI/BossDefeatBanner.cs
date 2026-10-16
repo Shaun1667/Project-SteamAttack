@@ -33,6 +33,10 @@ namespace NMJ
         [SerializeField] private BossHealth boss;
         [Tooltip("한글 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
         [SerializeField] private TMP_FontAsset font;
+        [Tooltip("한자(玄武·命·討) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
+        [SerializeField] private TMP_FontAsset glyphFont;
+
+        private TMP_FontAsset HanjaFont => glyphFont != null ? glyphFont : font;
 
         [Header("글자")]
         [SerializeField] private string headline = "현무 토벌";
@@ -245,6 +249,7 @@ namespace NMJ
         {
 #if UNITY_EDITOR
             if (font == null) font = FindDefaultFont();
+            if (glyphFont == null) glyphFont = FindGlyphFont();
 #endif
             Canvas canvas = NewCanvas("NMJ_BossDefeatCanvas", transform, 80, out group);   // HUD 위, ESC 메뉴 아래
             group.blocksRaycasts = false;
@@ -284,7 +289,7 @@ namespace NMJ
             sealGroup = sealRect.gameObject.AddComponent<CanvasGroup>();
             sealTex = DrawSeal(128, sealColor, textColor, Random.Range(0f, 100f));
             NewRawImage("Ink", sealRect, sealTex);
-            TMP_Text sealGlyph = NewText("Glyph", sealRect, font, sealText, sealSize * 0.6f, new Color(textColor.r, textColor.g, textColor.b, 0.94f));
+            TMP_Text sealGlyph = NewText("Glyph", sealRect, HanjaFont, sealText, sealSize * 0.6f, new Color(textColor.r, textColor.g, textColor.b, 0.94f));
             sealGlyph.rectTransform.anchoredPosition = new Vector2(0f, -sealSize * 0.02f);
 
             // 아래 글
@@ -305,6 +310,7 @@ namespace NMJ
         private void OnValidate()
         {
             if (font == null) font = FindDefaultFont();
+            if (glyphFont == null) glyphFont = FindGlyphFont();
         }
 #endif
     }

@@ -37,6 +37,10 @@ namespace NMJ
         [SerializeField] private PlayerController player;
         [Tooltip("한글·한자 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
         [SerializeField] private TMP_FontAsset font;
+        [Tooltip("한자(玄武·命·討) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
+        [SerializeField] private TMP_FontAsset glyphFont;
+
+        private TMP_FontAsset HanjaFont => glyphFont != null ? glyphFont : font;
         [Tooltip("조작법 이미지. 비우면 씬에 있는 NGH 조작 안내(ControlsOverlay)의 이미지를 쓴다")]
         [SerializeField] private Texture2D controlsImage;
 
@@ -282,6 +286,7 @@ namespace NMJ
         {
 #if UNITY_EDITOR
             if (font == null) font = FindDefaultFont();
+            if (glyphFont == null) glyphFont = FindGlyphFont();
 #endif
             style = new Style
             {
@@ -320,7 +325,7 @@ namespace NMJ
             head.pivot = new Vector2(0.5f, 1f);
             head.sizeDelta = new Vector2(0f, 150f);
             head.anchoredPosition = new Vector2(0f, -28f);
-            TMP_Text t = NewText("Title", head, font, title, 64f, brassColor);
+            TMP_Text t = NewText("Title", head, HanjaFont, title, 64f, brassColor);
             t.rectTransform.offsetMin = new Vector2(0f, 46f);
             TMP_Text s = NewText("Subtitle", head, font, subtitle, 22f, textColor);
             s.rectTransform.offsetMax = new Vector2(0f, -100f);
@@ -407,6 +412,7 @@ namespace NMJ
         private void OnValidate()
         {
             if (font == null) font = FindDefaultFont();
+            if (glyphFont == null) glyphFont = FindGlyphFont();
         }
 #endif
     }

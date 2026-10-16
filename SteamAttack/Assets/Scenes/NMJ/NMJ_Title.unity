@@ -329,6 +329,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
   logoText: "\u7384\u6B66"
   logoSeal: "\u547D"
   subtitle: "\uC5ED\uB958\uC758 \uC5B4\uBA85"
