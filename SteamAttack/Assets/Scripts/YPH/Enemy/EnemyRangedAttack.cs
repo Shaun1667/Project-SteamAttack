@@ -22,6 +22,7 @@ namespace YPH
         [SerializeField, Tooltip("발사 동작 시간(초)입니다. 이 시간과 장전 시간 동안 움직이지 않습니다.")] private float _fireAnimTime = 0.27f;
         [SerializeField, Tooltip("발사 동작 뒤 장전 시간(초)입니다. 높이면 정지 시간이 길어집니다.")] private float _reloadTime = 3.3f;
         [SerializeField, Tooltip("처음 인지한 뒤 조준 시작까지 대기 시간(초)입니다.")] private float _firstShotDelay = 1f;
+        [SerializeField, Tooltip("켜면 지붕·망루에서 다가가거나 물러나지 않고 몸만 돌리며, 시야가 막히면 기다립니다. 끄면 기존처럼 거리를 유지하며 이동합니다.")] private bool _holdPosition = false;
         [SerializeField, Tooltip("이 거리(m)보다 멀면 접근합니다. 높이면 멀리서 멈춥니다.")] private float _preferredMaxDistance = 14f;
         [SerializeField, Tooltip("이 거리(m)보다 가까우면 후퇴합니다. 높이면 더 멀리 떨어지려 합니다.")] private float _retreatDistance = 5f;
         [SerializeField, Tooltip("사격을 시작할 최대 거리(m)입니다. 높이면 멀리서 조준할 수 있습니다.")] private float _maxFireDistance = 18f;
@@ -34,6 +35,12 @@ namespace YPH
         private float _nextFireTime, _nextLosCheck;
         private bool _hasLineOfSight = true;
         internal bool IsAiming { get; private set; }
+        /// <summary>조준을 시작한 순간 알립니다.</summary>
+        public event System.Action AimStarted;
+        /// <summary>화살 발사 처리 직후 소품에 발사 시점을 알립니다.</summary>
+        public event System.Action Fired;
+        /// <summary>진행 중이던 조준을 취소했을 때만 알립니다.</summary>
+        public event System.Action AimCanceled;
         internal Vector3 FirePosition => _firePoint != null ? _firePoint.position : transform.TransformPoint(_fallbackFireOffset);
         internal Vector3 AimPoint
         {
@@ -82,6 +89,11 @@ namespace YPH
         public override void Cancel()
         {
             StopSequence();
+            if (IsAiming)
+            {
+                Animation?.SetAiming(false);
+                AimCanceled?.Invoke();
+            }
             IsAiming = false;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             _laserFlashUntil = 0f;
@@ -106,6 +118,10 @@ namespace YPH
         }
         internal void MaintainDistance(float distance, float chaseSpeed)
         {
+            if (_holdPosition)
+            {
+                return;
+            }
             if (distance > _preferredMaxDistance || !_hasLineOfSight)
             {
                 Motor.Move(Motor.Facing, chaseSpeed);
@@ -119,10 +135,14 @@ namespace YPH
         private IEnumerator AttackRoutine()
         {
             IsAiming = true;
+            Animation?.SetAiming(true);
+            AimStarted?.Invoke();
             yield return WaitActive(_aimTime, true);
             IsAiming = false;
+            Animation?.SetAiming(false);
             Animation?.Play(EnemyAnimatorLink.FireHash);
             FireBullet();
+            Fired?.Invoke();
             _nextFireTime = Time.time + _fireInterval;
             yield return WaitActive(_fireAnimTime + _reloadTime, true);
             Finish();
