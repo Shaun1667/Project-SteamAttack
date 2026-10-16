@@ -79,7 +79,7 @@ namespace YPH
         private void Update()
         {
             Keyboard keys = Keyboard.current;
-            if (keys != null && ((_parryKey != Key.None && keys[_parryKey].wasPressedThisFrame)
+            if (keys != null && !ControlsOverlay.IsOpen && ((_parryKey != Key.None && keys[_parryKey].wasPressedThisFrame)
                 || (_altParryKey != Key.None && keys[_altParryKey].wasPressedThisFrame)))
             {
                 TryParry();

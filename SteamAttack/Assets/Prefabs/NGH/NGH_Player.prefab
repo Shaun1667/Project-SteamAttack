@@ -5615,6 +5615,7 @@ GameObject:
   - component: {fileID: 2696900861978394591}
   - component: {fileID: 4342040121591807708}
   - component: {fileID: 5435671481806618034}
+  - component: {fileID: 1112613726534638615}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Untagged
@@ -10035,6 +10036,38 @@ MonoBehaviour:
   inkSpeed: 5
   seed: 5
   testKeys: 1
+--- !u!114 &1112613726534638615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc4be56511e3bc948b60fb0bb4fbaa76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.PauseMenu
+  player: {fileID: 5444686568199331752}
+  font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  controlsImage: {fileID: 0}
+  titleScene: Title
+  OnSettings:
+    m_PersistentCalls:
+      m_Calls: []
+  title: "\u7384\u6B66"
+  subtitle: "\uC7A0\uC2DC \uBA48\uCDA4"
+  panelSize: {x: 520, y: 640}
+  buttonHeight: 66
+  buttonFontSize: 32
+  dimColor: {r: 0.06, g: 0.06, b: 0.07, a: 0.72}
+  panelColor: {r: 0.06, g: 0.06, b: 0.07, a: 0.96}
+  brassColor: {r: 0.94, g: 0.73, b: 0.16, a: 1}
+  textColor: {r: 0.96, g: 0.95, b: 0.92, a: 1}
+  selectColor: {r: 0.82, g: 0.18, b: 0.1, a: 1}
+  disabledAlpha: 0.35
+  pauseAudio: 1
+  fadeTime: 0.12
 --- !u!1 &1800097922734459134
 GameObject:
   m_ObjectHideFlags: 0
