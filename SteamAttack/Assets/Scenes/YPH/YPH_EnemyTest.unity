@@ -518,7 +518,7 @@ MonoBehaviour:
   _damagedChaseMaxTime: 10
   _chaseSpeed: 3.5
   _hitStopTime: 0.1
-  _parriedStunTime: 1.8
+  _parriedStunTime: 2
   _parryPoint: {fileID: 0}
   _parryPointHeight: 1.2
   _logStateChanges: 1
@@ -816,6 +816,10 @@ PrefabInstance:
       propertyPath: cameraTransform
       value: 
       objectReference: {fileID: 1237000771}
+    - target: {fileID: 5772974326641473484, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: _judgeHalfWindow
+      value: 0.1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

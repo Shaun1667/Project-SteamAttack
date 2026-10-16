@@ -246,7 +246,7 @@ MonoBehaviour:
   _aimOrigin: {fileID: 8403445457698246789}
   _ignoreRoot: {fileID: 5404594696211051736}
   _muzzle: {fileID: 1385678527175754450}
-  _steamCostPerShot: 10
+  _steamCostPerShot: 5
   _fireInterval: 0.25
   _chamberTime: 0.5
   _damagePerShot: 20
@@ -14150,7 +14150,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c54875b8c054a794ab6fca59735f6eb4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::chg_Weapon
-  weaponName: "\uD14C\uC2A4\uD2B8 \uC6D0\uAC70\uB9AC(\uB77D\uC628 \uBD88\uAC00 \uD655\uC778\uC6A9)"
+  weaponName: "\uD654\uC2B9\uCD1D"
   isMelee: 0
   lightDamage: 0
   heavyDamage: 0
@@ -24673,6 +24673,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamHitRefill
   _tank: {fileID: 6342032219919825200}
   _refillPerHit: 10
+  _heavyAttackCost: 30
 --- !u!114 &5264007956370157604
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -114882,6 +114882,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::YPH_SteamHitRefill
   _tank: {fileID: 853362089}
   _refillPerHit: 10
+  _heavyAttackCost: 30
 --- !u!114 &714863297
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -114897,7 +114898,7 @@ MonoBehaviour:
   player: {fileID: 1442819859}
   weapons: {fileID: 1442819860}
   playerCamera: {fileID: 1062913325}
-  gunWeapon: {fileID: 0}
+  gunWeapon: {fileID: 1442819861}
   grenadeWeapon: {fileID: 0}
   gun: {fileID: 5997541314955066637}
   thrower: {fileID: 0}
@@ -233376,6 +233377,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2384890397531492216, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: slots.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2384890397531492216, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      propertyPath: 'slots.Array.data[1]'
+      value: 
+      objectReference: {fileID: 1442819861}
     - target: {fileID: 2700860348276839539, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 27.440487
@@ -233692,9 +233701,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 955af114af82983489097236f2e2467c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::chg_WeaponHolder
+--- !u!114 &1442819861 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1331308873830520749, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 1442819858}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c54875b8c054a794ab6fca59735f6eb4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.Weapon
+--- !u!4 &1442819862 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8216701855218754986, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 1442819858}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1442819863 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 1442819858}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &1442819864 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 6211967707727368108, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 1442819858}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &1442819865 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 96842545607254723, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 1442819858}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &1442819866 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 6317571546134214182, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 1442819858}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &1442819867 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 9122541551246364149, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 1442819858}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &1442819868 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 3499282986933793220, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
   m_PrefabInstance: {fileID: 1442819858}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1442966350
@@ -346195,9 +346245,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::YPH_GunMuzzleFlashView
   _gun: {fileID: 5997541314955066637}
   _effects:
-  - {fileID: 1152383795787422039}
-  - {fileID: 526280316681024079}
-  - {fileID: 4150071376905201595}
+  - {fileID: 1442819868}
+  - {fileID: 1442819867}
+  - {fileID: 1442819866}
+  - {fileID: 1442819865}
+  - {fileID: 1442819864}
 --- !u!1 &315001930566228664
 GameObject:
   m_ObjectHideFlags: 0
@@ -355743,8 +355795,8 @@ MonoBehaviour:
   _tank: {fileID: 853362089}
   _aimOrigin: {fileID: 1062913327}
   _ignoreRoot: {fileID: 1442819863}
-  _muzzle: {fileID: 8613273616969770521}
-  _steamCostPerShot: 10
+  _muzzle: {fileID: 1442819862}
+  _steamCostPerShot: 5
   _fireInterval: 0.25
   _chamberTime: 0.5
   _damagePerShot: 20
