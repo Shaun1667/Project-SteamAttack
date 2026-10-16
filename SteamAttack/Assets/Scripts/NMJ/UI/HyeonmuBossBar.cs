@@ -19,7 +19,7 @@ namespace NMJ
     ///   (2페이즈 체력바, 신핵 QTE는 보류 — 기획 확정 뒤 이어서 만든다)
     ///
     /// BHS 보스 코드는 수정하지 않고 공개 값만 읽는다.
-    /// UI는 실행할 때 코드로 만들어지므로, 씬에 빈 오브젝트를 만들고 이 컴포넌트만 붙이면 된다.
+    /// UI는 실행할 때 코드로 만들어진다. 보스 프리팹(BHS_Boss)에 붙여 두면 그 보스를 쓰고, 다른 곳에 붙이면 씬에서 보스를 찾는다.
     /// 보스가 없으면 숨긴다. (Test Keys를 켜면 보스 없이 F5 = 다리 한 대, F7 = 처음으로)
     /// </summary>
     [DisallowMultipleComponent]
@@ -91,6 +91,7 @@ namespace NMJ
         private float alpha;
         private float allBrokenTimer;
         private float[] testLegs;
+        private bool bossResolved;
 
         // ───────── 시작 ─────────
 
@@ -149,9 +150,15 @@ namespace NMJ
 
         private void FindBoss()
         {
-            if (boss != null) return;
-            boss = FindAnyObjectByType<BossHealth>();
+            // 보스와 다리를 한 번 다 정했으면 다시 찾지 않는다.
+            // (보스를 인스펙터나 프리팹에서 미리 연결해 둔 경우에도 다리 목록은 여기서 채워야 한다)
+            if (bossResolved && boss != null) return;
+
+            // 보스에 붙어 있으면 그 보스를 쓰고, 아니면 씬에서 찾는다
+            if (boss == null) boss = GetComponentInParent<BossHealth>();
+            if (boss == null) boss = FindAnyObjectByType<BossHealth>();
             if (boss == null) return;
+            bossResolved = true;
 
             if (legs == null || legs.Length == 0)
             {

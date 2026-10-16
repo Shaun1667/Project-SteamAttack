@@ -17959,6 +17959,7 @@ GameObject:
   - component: {fileID: 1862137804631390693}
   - component: {fileID: 6347576647544692311}
   - component: {fileID: 6460336230677581138}
+  - component: {fileID: 4990473850159392292}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -22243,6 +22244,57 @@ MonoBehaviour:
   cooldown: 2
   parryRange: 5
   logParry: 1
+--- !u!114 &4990473850159392292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3104297047625066499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d796dc1f901a4083b1b73a70344b63a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.InkHealthBar
+  player: {fileID: 7706470834897513168}
+  brushShader: {fileID: 4800000, guid: 7157adcec3b447944a9179780ed1c4dd, type: 3}
+  sealFont: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  position: {x: 96, y: 92}
+  size: {x: 520, y: 64}
+  showSeal: 1
+  sealText: "\u547D"
+  sealSize: 48
+  sealAngle: -5
+  thickness: 34
+  headLength: 0.07
+  headBulge: 1.15
+  tailLength: 0.18
+  bristleCount: 64
+  roughness: 1
+  dryness: 0.9
+  splatter: 0.6
+  waviness: 2.2
+  slant: 6
+  rimBristles: 0.14
+  seed: 3
+  inkLight: {r: 0.2, g: 0.19, b: 0.19, a: 1}
+  inkDark: {r: 0.03, g: 0.03, b: 0.04, a: 1}
+  redLight: {r: 0.93, g: 0.18, b: 0.14, a: 1}
+  redDark: {r: 0.42, g: 0.02, b: 0.03, a: 1}
+  trailColor: {r: 0.97, g: 0.7, b: 0.64, a: 0.9}
+  sealColor: {r: 0.78, g: 0.12, b: 0.1, a: 1}
+  paperColor: {r: 0.96, g: 0.93, b: 0.85, a: 1}
+  haloAlpha: 0
+  tearLength: 16
+  fringeLength: 18
+  trailDelay: 0.45
+  trailSpeed: 0.55
+  refillSpeed: 1.2
+  hitShake: 5
+  lowHpRatio: 0.3
+  lowPulseDepth: 0.28
+  dripAmount: 1
+  dripGravity: 520
 --- !u!1 &3153274227430968840
 GameObject:
   m_ObjectHideFlags: 0
@@ -25108,7 +25160,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4093865192818125533
 RectTransform:
   m_ObjectHideFlags: 0
