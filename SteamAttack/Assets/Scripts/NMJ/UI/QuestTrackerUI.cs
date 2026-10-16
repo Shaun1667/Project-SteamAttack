@@ -18,8 +18,14 @@ namespace NMJ
         [Tooltip("메인 퀘스트 제목 앞에 붙일 표식.")]
         [SerializeField] private string mainQuestPrefix = "[어명] ";
 
+        [Tooltip("보스전 중(현무 체력바가 보이는 동안)에는 퀘스트창을 숨긴다. 둘 다 화면 위 가운데라 겹친다.")]
+        [SerializeField] private bool hideDuringBossFight = true;
+        [Tooltip("숨기고 다시 보일 때 서서히 바뀌는 빠르기 (초당 투명도)")]
+        [SerializeField, Min(0.1f)] private float fadeSpeed = 4f;
+
         private readonly StringBuilder builder = new StringBuilder();
         private QuestManager manager;
+        private CanvasGroup fadeGroup;
 
         private void Start()
         {
@@ -46,6 +52,20 @@ namespace NMJ
             manager.QuestStatusChanged -= OnQuestChanged;
             manager.QuestCompleted -= OnQuestChanged;
             manager.ObjectiveProgressed -= OnObjectiveProgressed;
+        }
+
+        private void Update()
+        {
+            if (root == null) return;
+            if (fadeGroup == null)
+            {
+                fadeGroup = root.GetComponent<CanvasGroup>();
+                if (fadeGroup == null) fadeGroup = root.AddComponent<CanvasGroup>();
+            }
+
+            // 보스전 중이면 비켜 준다 (일시정지 중에도 바뀌도록 unscaled 시간 사용)
+            float target = hideDuringBossFight && HyeonmuBossBar.AnyVisible ? 0f : 1f;
+            fadeGroup.alpha = Mathf.MoveTowards(fadeGroup.alpha, target, fadeSpeed * Time.unscaledDeltaTime);
         }
 
         private void OnQuestChanged(QuestProgress _) => Redraw();
