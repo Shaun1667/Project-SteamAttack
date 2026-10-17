@@ -5620,6 +5620,7 @@ GameObject:
   - component: {fileID: 8913662214249980563}
   - component: {fileID: 5130903279594837647}
   - component: {fileID: 8181344850900602600}
+  - component: {fileID: 203965855341721301}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Untagged
@@ -5891,7 +5892,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1766717810704266006}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c5017185ea59596459add2d5d5cbe27c, type: 3}
   m_Name: 
@@ -10188,6 +10189,32 @@ MonoBehaviour:
   parrySlowScale: 0.25
   parrySlowMax: 1.2
   rewindHint: 1
+--- !u!114 &203965855341721301
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74a26516364fafc4f85826c1933ed244, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.DefeatScreen
+  player: {fileID: 5444686568199331752}
+  font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
+  headline: "\uC4F0\uB7EC\uC84C\uB2E4"
+  sealText: "\u547D"
+  subtitle: "\uC5B4\uBA85\uC740 \uC544\uC9C1 \uB05D\uB098\uC9C0 \uC54A\uC558\uB2E4"
+  prompt: "\uC544\uBB34 \uD0A4\uB098 \uB20C\uB7EC \uB2E4\uC2DC \uC77C\uC5B4\uC11C\uAE30"
+  showDelay: 0.3
+  inputDelay: 1.2
+  restartTransition: 0
+  dimColor: {r: 0.03, g: 0.03, b: 0.035, a: 0.62}
+  inkColor: {r: 0.03, g: 0.03, b: 0.035, a: 0.97}
+  textColor: {r: 0.96, g: 0.95, b: 0.92, a: 1}
+  sealColor: {r: 0.82, g: 0.18, b: 0.1, a: 1}
 --- !u!1 &1800097922734459134
 GameObject:
   m_ObjectHideFlags: 0

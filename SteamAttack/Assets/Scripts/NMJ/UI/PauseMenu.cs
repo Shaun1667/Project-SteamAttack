@@ -122,7 +122,7 @@ namespace NMJ
 
         private void Update()
         {
-            if (GameOverScreen.IsShowing) lastGameOverFrame = Time.frameCount;
+            if (GameOverScreen.IsShowing || DefeatScreen.IsShowing) lastGameOverFrame = Time.frameCount;
 
             Keyboard kb = Keyboard.current;
             if (kb != null && kb.escapeKey.wasPressedThisFrame) HandleEscape();
@@ -162,7 +162,7 @@ namespace NMJ
         private bool CanOpen()
         {
             // Game Over 화면이 떠 있거나 방금 닫힌 프레임(같은 ESC로 일어나는 중)에는 열지 않는다
-            if (GameOverScreen.IsShowing || Time.frameCount - lastGameOverFrame <= 1) return false;
+            if (GameOverScreen.IsShowing || DefeatScreen.IsShowing || Time.frameCount - lastGameOverFrame <= 1) return false;
             if (player != null && player.IsDead) return false;
             if (BossDefeatBanner.IsShowing || EndingCredits.IsPlaying) return false;   // 처치 문구 → 엔딩 크레딧 중에는 열지 않는다
             return !ControlsOverlay.GuideOpen;
@@ -197,7 +197,7 @@ namespace NMJ
             ControlsOverlay.MenuOpen = false;
             Time.timeScale = prevTimeScale > 0f ? prevTimeScale : 1f;
             if (pauseAudio) AudioListener.pause = false;
-            if (!GameOverScreen.IsShowing)
+            if (!(GameOverScreen.IsShowing || DefeatScreen.IsShowing))
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;

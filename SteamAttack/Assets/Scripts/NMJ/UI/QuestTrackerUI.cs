@@ -63,8 +63,8 @@ namespace NMJ
                 if (fadeGroup == null) fadeGroup = root.AddComponent<CanvasGroup>();
             }
 
-            // 보스전·보스 처치 문구·엔딩 크레딧 중이면 비켜 준다 (일시정지 중에도 바뀌도록 unscaled 시간 사용)
-            float target = hideDuringBossFight && (HyeonmuBossBar.AnyVisible || BossDefeatBanner.IsShowing || EndingCredits.IsPlaying) ? 0f : 1f;
+            // 보스전·보스 처치 문구·엔딩 크레딧·쓰러진 화면 중이면 비켜 준다 (일시정지 중에도 바뀌도록 unscaled 시간 사용)
+            float target = hideDuringBossFight && (HyeonmuBossBar.AnyVisible || BossDefeatBanner.IsShowing || EndingCredits.IsPlaying || DefeatScreen.IsShowing) ? 0f : 1f;
             fadeGroup.alpha = Mathf.MoveTowards(fadeGroup.alpha, target, fadeSpeed * Time.unscaledDeltaTime);
         }
 
