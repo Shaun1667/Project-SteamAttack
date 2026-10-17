@@ -199,6 +199,7 @@ namespace NMJ
 #endif
             if (glyphShader == null) glyphShader = Shader.Find("TextMeshPro/Distance Field");
             if (player == null) player = GetComponentInParent<NGH.PlayerController>();
+            if (player == null) player = FindAnyObjectByType<NGH.PlayerController>();   // 플레이어와 따로 놓인 HUD 프리팹일 때
             FindTank();
             FindGun();
             BuildUi();
