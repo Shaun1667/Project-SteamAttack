@@ -41,7 +41,7 @@ namespace NMJ
         [SerializeField, Min(0f)] private float showDelay = 0.3f;
         [Tooltip("화면이 뜬 뒤 키를 받기 시작할 때까지 (연타로 바로 넘어가지 않게)")]
         [SerializeField, Min(0f)] private float inputDelay = 1.2f;
-        [SerializeField] private InkStyle restartTransition = InkStyle.Bleed;
+        [SerializeField] private InkStyle restartTransition = InkStyle.Drip;
 
         [Header("색 (오방색)")]
         [SerializeField] private Color dimColor = new Color(0.03f, 0.03f, 0.035f, 0.62f);
@@ -134,7 +134,7 @@ namespace NMJ
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
                 player.Respawn();
-            }, 0.7f);
+            }, 1.2f);
         }
 
         private static bool AnyInput()

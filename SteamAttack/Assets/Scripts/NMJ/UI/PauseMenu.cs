@@ -49,7 +49,7 @@ namespace NMJ
         [Tooltip("타이틀 씬 이름. 빌드 설정에 없으면 '타이틀로'는 '준비 중'으로 흐리게 보인다")]
         [SerializeField] private string titleScene = "NMJ_Title";
         [Tooltip("타이틀로 돌아갈 때의 먹물 화면 전환")]
-        [SerializeField] private InkStyle titleTransition = InkStyle.Bleed;
+        [SerializeField] private InkStyle titleTransition = InkStyle.Drip;
 
         [Header("환경 설정")]
         [Tooltip("환경 설정 화면. 비우면 같은 오브젝트에서 찾는다. 없으면 '환경 설정'은 '준비 중'으로 흐리게 보인다")]

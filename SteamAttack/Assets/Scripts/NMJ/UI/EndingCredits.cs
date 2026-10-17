@@ -62,7 +62,7 @@ namespace NMJ
         [Tooltip("마지막 판에서 키를 누르면 갈 씬. 빌드 설정에 없으면 그 자리에 머문다")]
         [SerializeField] private string titleScene = "NMJ_Title";
         [Tooltip("타이틀로 넘어갈 때의 먹물 화면 전환")]
-        [SerializeField] private InkStyle titleTransition = InkStyle.Bleed;
+        [SerializeField] private InkStyle titleTransition = InkStyle.Drip;
         [Tooltip("한글 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
         [SerializeField] private TMP_FontAsset font;
         [Tooltip("한자(玄武) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결")]
