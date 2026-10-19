@@ -5,11 +5,14 @@ namespace YPH
 {
     /// <summary>
     /// 플레이어 루트에서 총을 든 상체 자세와 사격·받아치기 연출을 연결합니다.
-    /// 실제 피해·증기·입력은 기존 담당자가 처리하고, 이 컴포넌트는 신호를 받아 모션만 재생합니다.
+    /// 실제 피해·증기·입력은 기존 담당자가 처리하고, 이 컴포넌트는 모션과 조준 방향을 맞춥니다.
     /// </summary>
     [DisallowMultipleComponent]
+    // 카메라의 LateUpdate가 정한 이번 프레임 방향을 사용합니다.
+    [DefaultExecutionOrder(100)]
     public class RifleMotion : MonoBehaviour
     {
+        private const float MinFacingDirectionSqr = 0.0001f;
         [Header("연결")]
         [SerializeField, Tooltip("상태와 사격 신호를 읽을 플레이어입니다. 비우면 시작할 때 부모에서 찾습니다.")]
         private PlayerController _player;
@@ -19,6 +22,12 @@ namespace YPH
         private Animator _animator;
         [SerializeField, Tooltip("성공·실패 시도 신호를 받을 받아치기입니다. 비우면 같은 오브젝트에서 찾습니다.")]
         private ParryController _parry;
+
+        [Header("조준 방향")]
+        [SerializeField, Tooltip("조준 상태를 읽을 컴포넌트입니다. Gun과 함께 연결하면 조준·사격 중 몸이 카메라의 좌우 방향을 바라봅니다. 비우면 기존 모션만 재생합니다.")]
+        private AimController _aim;
+        [SerializeField, Tooltip("실제 사격 방향을 읽을 총입니다. 발사 판정 전에 몸과 총구를 같은 좌우 방향으로 돌립니다. Aim과 함께 연결하세요.")]
+        private SteamGun _gun;
 
         [Header("상체 모션")]
         [SerializeField, Tooltip("상체 레이어 이름입니다. Animator와 다르면 경고 후 이 컴포넌트를 끕니다.")]
@@ -37,6 +46,7 @@ namespace YPH
         private int _layerIndex = -1;
         private int _shootHash;
         private int _parryHash;
+        private TimeRewind _rewind;
 
         /// <summary>매 프레임 찾지 않도록 연결과 상태 번호를 시작할 때 준비합니다.</summary>
         private void Awake()
@@ -73,6 +83,7 @@ namespace YPH
             }
             _shootHash = Animator.StringToHash(_layerName + "." + _shootState);
             _parryHash = Animator.StringToHash(_layerName + "." + _parryState);
+            _rewind = _player.GetComponent<TimeRewind>();
         }
 
         /// <summary>켜져 있는 동안에만 실제 사격·받아치기 신호를 받습니다.</summary>
@@ -84,6 +95,10 @@ namespace YPH
             }
             _player.ShotStarted += OnShotStarted;
             _parry.ParryAttempted += OnParryAttempted;
+            if (_gun != null)
+            {
+                _gun.OnStateChanged += OnGunStateChanged;
+            }
         }
 
         /// <summary>교체·납도·피격 등에서는 상체 가중치를 내려 기존 동작이 보이게 합니다.</summary>
@@ -91,6 +106,43 @@ namespace YPH
         {
             float target = IsHoldingRifle() ? 1f : 0f;
             _animator.SetLayerWeight(_layerIndex, Mathf.MoveTowards(_animator.GetLayerWeight(_layerIndex), target, _blendSpeed * Time.deltaTime));
+        }
+
+        /// <summary>이동 회전과 카메라 갱신이 끝난 뒤 조준 방향을 맞춥니다. 조준을 풀어도 진행 중인 사격 모션은 같은 기준을 씁니다.</summary>
+        private void LateUpdate()
+        {
+            if (CanFaceAim() && (_aim.IsAiming || _player.CurrentAction == PlayerController.ActionState.Shot))
+            {
+                FaceAimDirection();
+            }
+        }
+
+        /// <summary>구르기·피격·패링·역행 등 다른 동작이 맡은 회전을 덮어쓰지 않습니다.</summary>
+        private bool CanFaceAim()
+        {
+            return _aim != null && _aim.isActiveAndEnabled && _gun != null && _gun.isActiveAndEnabled
+                && IsHoldingRifle() && !ControlsOverlay.IsOpen && Time.timeScale > 0f
+                && (_rewind == null || !_rewind.IsRewinding)
+                && (_player.CurrentAction == PlayerController.ActionState.None || _player.CurrentAction == PlayerController.ActionState.Shot);
+        }
+
+        /// <summary>사격 판정·총구 이펙트보다 먼저 오는 Firing 전환에서 즉시 회전해, 조준과 클릭이 같은 프레임이어도 옆으로 쏘지 않습니다.</summary>
+        private void OnGunStateChanged(SteamGun.State previous, SteamGun.State current)
+        {
+            if (current == SteamGun.State.Firing && CanFaceAim())
+            {
+                FaceAimDirection();
+            }
+        }
+
+        /// <summary>몸은 세워 두고 좌우 방향만 맞춥니다. 카메라가 수직을 보면 마지막 방향을 유지합니다.</summary>
+        private void FaceAimDirection()
+        {
+            Vector3 direction = Vector3.ProjectOnPlane(_gun.AimDirection, Vector3.up);
+            if (direction.sqrMagnitude > MinFacingDirectionSqr)
+            {
+                _player.transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+            }
         }
 
         /// <summary>구독을 해제하고 상체 자세를 돌려줘 재활성화 때 중복 재생을 막습니다.</summary>
@@ -103,6 +155,10 @@ namespace YPH
             if (_parry != null)
             {
                 _parry.ParryAttempted -= OnParryAttempted;
+            }
+            if (_gun != null)
+            {
+                _gun.OnStateChanged -= OnGunStateChanged;
             }
             // 컴포넌트를 껐을 때 마지막 총 자세가 남지 않게 합니다.
             if (_animator != null && _layerIndex >= 0)

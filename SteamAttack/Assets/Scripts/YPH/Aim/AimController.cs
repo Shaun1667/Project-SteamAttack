@@ -22,13 +22,14 @@ namespace YPH
         private float _aimMoveSpeedMultiplier = 0.5f;
 
         private bool _targetAiming;
+        private NGH.PlayerController _player;
         private float _rawBlend;
         private float _blend;
         private Vector2 _focus = new Vector2(0.5f, 0.5f);
         private Vector2 _focusVelocity;
 
-        /// <summary>입력이 요청한 목표 상태입니다. 연출은 AimBlend에 따라 서서히 변합니다.</summary>
-        public bool IsAiming => _targetAiming;
+        /// <summary>구르기 중에는 입력을 유지해도 조준하지 않습니다. 연출은 AimBlend에 따라 서서히 변합니다.</summary>
+        public bool IsAiming => _targetAiming && (_player == null || _player.CurrentAction != NGH.PlayerController.ActionState.Roll);
         /// <summary>부드러운 곡선을 적용한 0~1 조준 비율입니다.</summary>
         public float AimBlend => _blend;
         /// <summary>왼쪽 아래 (0,0), 오른쪽 위 (1,1) 기준의 화면 초점입니다.</summary>
@@ -45,6 +46,8 @@ namespace YPH
         {
             if (_gun != null && _camera != null)
             {
+                // 카메라에 붙은 조준 효과이므로 총의 부모에서 소유자를 찾습니다. 플레이어 없는 단독 시험도 허용합니다.
+                _player = _gun.GetComponentInParent<NGH.PlayerController>();
                 return;
             }
             Debug.LogError("YPH_AimController: 총과 카메라를 연결하세요.", this);
@@ -54,14 +57,15 @@ namespace YPH
         /// <summary>활성 조준·복구 중에만 비율과 초점을 계산합니다.</summary>
         private void Update()
         {
-            if (!_targetAiming && _rawBlend == 0f)
+            bool aiming = IsAiming;
+            if (!aiming && _rawBlend == 0f)
             {
                 return;
             }
             float previousBlend = _blend;
             Vector2 previousFocus = _focus;
-            float duration = _targetAiming ? _blendInTime : _blendOutTime;
-            float target = _targetAiming ? 1f : 0f;
+            float duration = aiming ? _blendInTime : _blendOutTime;
+            float target = aiming ? 1f : 0f;
             _rawBlend = duration <= 0f ? target : Mathf.MoveTowards(_rawBlend, target, Time.deltaTime / duration);
             _blend = Mathf.SmoothStep(0f, 1f, _rawBlend);
 
