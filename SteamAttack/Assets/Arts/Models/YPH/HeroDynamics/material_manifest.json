@@ -1,0 +1,278 @@
+{
+  "materials": [
+    {
+      "name": "Body_Quad_Skin.001",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Body_Quad_FinalColor_001_Color.png",
+      "normal": "Textures/Body_Quad_FinalNormal_001_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "Boots_Quad_Surface.001",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Boots_Quad_Color_001_Color.png",
+      "normal": "Textures/Boots_Quad_Normal_001_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "Body_Rebuilt_ThighSkin",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Crotch_Skin_Final_png_Color.png",
+      "normal": "",
+      "metallic": 0.0,
+      "smoothness": 0.44999998807907104,
+      "normalScale": 0.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "Head_Quad_Skin.003",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Head_Quad_FinalColor_Color.png",
+      "normal": "Textures/Head_Quad_FinalNormal_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.010",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Choker_BaseColor_png_Color.png",
+      "normal": "Textures/Choker_Normal_png_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "VARCO_OutterChima_BlueOutside_RedInside.001",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/OutterChima_Blue_Exterior_Color.png",
+      "normal": "Textures/OutterChima_UV_Normal_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 0.3499999940395355,
+      "backAlbedo": "Textures/OutterChima_Red_Lining_Lining.png"
+    },
+    {
+      "name": "material_0.003",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_003_Color.png",
+      "normal": "Textures/Image_1_003_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.016",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_016_Color.png",
+      "normal": "Textures/Image_1_016_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.009",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_009_Color.png",
+      "normal": "Textures/Image_1_009_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.007",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_007_Color.png",
+      "normal": "Textures/Image_1_007_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.018",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_018_Color.png",
+      "normal": "Textures/Image_1_018_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.011",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_011_Color.png",
+      "normal": "Textures/Image_1_011_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.012",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_012_Color.png",
+      "normal": "Textures/Image_1_012_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.013",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_013_Color.png",
+      "normal": "Textures/Image_1_013_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.019",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_019_Color.png",
+      "normal": "Textures/Image_1_019_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.014",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_014_Color.png",
+      "normal": "Textures/Image_1_014_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    },
+    {
+      "name": "material_0.004",
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "albedo": "Textures/Image_0_004_Color.png",
+      "normal": "Textures/Image_1_004_Normal.png",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "normalScale": 1.0,
+      "backAlbedo": ""
+    }
+  ],
+  "meshes": [
+    "Body",
+    "Head",
+    "Choker",
+    "OutterChima",
+    "OutterJeogori",
+    "HarnessVest",
+    "GatHatBase",
+    "HeadAccessory1-1",
+    "HeadAccessory1-2",
+    "HeadAccessory2-1",
+    "HeadAccessory2-2",
+    "Earing1-1",
+    "Earing1-2",
+    "SwordHouse",
+    "Sword"
+  ],
+  "heightMeters": 1.24491346,
+  "source": "Character_Bound.blend"
+}
