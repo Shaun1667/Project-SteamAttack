@@ -38,7 +38,7 @@ namespace NMJ
         [SerializeField] private PlayerController player;
         [Tooltip("한글·한자 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
         [SerializeField] private TMP_FontAsset font;
-        [Tooltip("한자(玄武·命·討) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
+        [Tooltip("한자(玄武·命·鎭) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
         [SerializeField] private TMP_FontAsset glyphFont;
 
         private TMP_FontAsset HanjaFont => glyphFont != null ? glyphFont : font;
