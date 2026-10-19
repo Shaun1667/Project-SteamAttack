@@ -114805,14 +114805,17 @@ MonoBehaviour:
   weapons: {fileID: 1442819860}
   playerCamera: {fileID: 1062913325}
   gunWeapon: {fileID: 1442819861}
-  grenadeWeapon: {fileID: 0}
   gun: {fileID: 5997541314955066637}
-  thrower: {fileID: 0}
-  grenadeHandView: {fileID: 0}
   aim: {fileID: 2075778696}
   hitRefill: {fileID: 714863296}
-  chargeKey: 32
-  craftKey: 21
+  parry: {fileID: 0}
+  parrySparkPrefab: {fileID: 3829148448570298021, guid: 66ca61ba445ca654ba2321c0512b317d, type: 3}
+  parrySparkDelay: 0.27
+  parrySparkBladeOffset: 0.55
+  parrySparkHeight: 1.45
+  parrySparkForward: 0.75
+  parrySparkLifetime: 1.5
+  parryHitStop: 0.07
   logActions: 1
 --- !u!4 &714863298
 Transform:

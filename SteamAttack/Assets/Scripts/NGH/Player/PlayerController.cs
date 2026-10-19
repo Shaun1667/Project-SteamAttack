@@ -14,7 +14,7 @@ namespace NGH
     {
         // 새 값은 저장된 씬·프리팹 값이 바뀌지 않도록 항상 끝에 추가
         public enum ActionState { None, Roll, LightAttack, HeavyAttack, Shot, Draw, Sheath, HitSmall, HitLarge, LightCombo2, Death, StandUp,
-                                  LightCombo3, LightCombo4, LightCombo5 }
+                                  LightCombo3, LightCombo4, LightCombo5, Parry }
 
         [Header("참조")]
         public Animator animator;
@@ -147,6 +147,10 @@ namespace NGH
         [Tooltip("공격하거나 락온할 때 발도 동작 없이 즉시 칼을 꺼냄")]
         public bool instantDrawOnAttack = false;   // 끔: 납도 상태에서 공격하면 발도 동작 후 공격
 
+        [Header("받아치기 (칼) — YPH 받아치기 신호를 받아 CombatBridge가 재생")]
+        [Tooltip("환도로 받아칠 때 칼을 앞쪽 위로 쳐올리는 동작. 판정·경직은 YPH.ParryController가 처리하고 여기서는 모션만 재생")]
+        public AttackData parryAction = new AttackData { clipLength = 0.33f, playSpeed = 0.8f, endAt = 1f, hitWindows = new Vector2[0], blendIn = 0.05f };
+
         [Header("피격 — 동작이 재생되는 동안 무적")]
         [Tooltip("피격(넉백) 기준 데미지. 이 값 이상이면 피격(대, 넉백), 미만이면 피격(소)")]
         [Min(1)] public int heavyHitThreshold = 25;
@@ -186,6 +190,7 @@ namespace NGH
         public string sheathState = "Sheath";
         public string hitSmallState = "HitSmall";
         public string hitLargeState = "HitLarge";
+        public string parryState = "Parry";
 
         [Header("발도 중 칼 든 팔 고정")]
         [Tooltip("칼을 뽑고 이동할 때 오른팔을 내린 자세로 덮어쓰는 Animator 레이어 이름 (없으면 무시)")]
@@ -262,6 +267,7 @@ namespace NGH
             if (sheathAction.clipLength <= 0f) sheathAction.clipLength = drawAction.clipLength;
             if (hitSmallAction.clipLength <= 0f) hitSmallAction.clipLength = 1.6f;
             if (hitLargeAction.clipLength <= 0f) hitLargeAction.clipLength = 1.7f;
+            if (parryAction.clipLength <= 0f) parryAction.clipLength = 0.33f;
         }
 
         void Start()
@@ -403,6 +409,25 @@ namespace NGH
             return true;
         }
 
+        /// <summary>
+        /// 환도 받아치기 모션 재생 (YPH 받아치기 신호를 받은 CombatBridge가 호출). 성공·실패 모두 같은 동작.
+        /// 발도 상태에서 근접 무기를 들고 있고, 대기·이동·발도·납도 중일 때만 재생. lookAt이 있으면 그쪽을 보고 받아침.
+        /// </summary>
+        public bool PlayParryMotion(bool success, Vector3? lookAt = null)
+        {
+            if (IsDead || IsStandingUp || IsHitReacting || !drawn || !IsMeleeEquipped()) return false;
+            if (weapons && weapons.IsSwapping) return false;
+            if (action != ActionState.None && action != ActionState.Draw && action != ActionState.Sheath) return false;
+            if (lookAt.HasValue)
+            {
+                Vector3 to = Flat(lookAt.Value - transform.position);
+                if (to.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(to);
+            }
+            StartAction(ActionState.Parry);
+            Debug.Log(success ? "[CHG] 받아치기 성공 모션" : "[CHG] 받아치기 실패 모션");
+            return action == ActionState.Parry;
+        }
+
         void SetHp(int value)
         {
             int v = Mathf.Clamp(value, 0, maxHp);
@@ -531,6 +556,7 @@ namespace NGH
                 case ActionState.Sheath: _attack = sheathAction; state = sheathState; break;
                 case ActionState.HitSmall: _attack = hitSmallAction; state = hitSmallState; break;
                 case ActionState.HitLarge: _attack = hitLargeAction; state = hitLargeState; break;
+                case ActionState.Parry: _attack = parryAction; state = parryState; break;
             }
             if (_attack != null)
             {
@@ -865,6 +891,7 @@ namespace NGH
                 case ActionState.Sheath: return sheathAction;
                 case ActionState.HitSmall: return hitSmallAction;
                 case ActionState.HitLarge: return hitLargeAction;
+                case ActionState.Parry: return parryAction;
                 default: return null;
             }
         }

@@ -196,6 +196,77 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
+--- !u!114 &335216735 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
+  m_PrefabInstance: {fileID: 335216734}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b8d4c44393ddaf4e83f436da6acd103, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::chg_ThirdPersonCamera
+--- !u!1 &376545883
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 376545884}
+  - component: {fileID: 376545885}
+  m_Layer: 0
+  m_Name: NGH_CombatBridge
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &376545884
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 376545883}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 417166758}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &376545885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 376545883}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 475e3a272af4bca439f214f0b1948179, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.CombatBridge
+  player: {fileID: 417166756}
+  weapons: {fileID: 417166757}
+  playerCamera: {fileID: 335216735}
+  gunWeapon: {fileID: 417166759}
+  gun: {fileID: 0}
+  aim: {fileID: 0}
+  hitRefill: {fileID: 0}
+  parry: {fileID: 417166760}
+  parrySparkPrefab: {fileID: 3829148448570298021, guid: 66ca61ba445ca654ba2321c0512b317d, type: 3}
+  parrySparkDelay: 0.27
+  parrySparkBladeOffset: 0.55
+  parrySparkHeight: 1.45
+  parrySparkForward: 0.75
+  parrySparkLifetime: 1.5
+  parryHitStop: 0.07
+  logActions: 1
 --- !u!1001 &417166755
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -534,6 +605,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1297753902}
+    - targetCorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 376545884}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
 --- !u!114 &417166756 stripped
@@ -547,11 +621,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b451237558f54104482dee4a759898ee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::chg_PlayerController
+--- !u!114 &417166757 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2384890397531492216, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 417166755}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 955af114af82983489097236f2e2467c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::chg_WeaponHolder
 --- !u!4 &417166758 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
   m_PrefabInstance: {fileID: 417166755}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &417166759 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1331308873830520749, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 417166755}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c54875b8c054a794ab6fca59735f6eb4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.Weapon
+--- !u!114 &417166760 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5772974326641473484, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 417166755}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 672f893140c3c8b489c450bb86870f08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::YPH.ParryController
 --- !u!1 &496942755
 GameObject:
   m_ObjectHideFlags: 0
