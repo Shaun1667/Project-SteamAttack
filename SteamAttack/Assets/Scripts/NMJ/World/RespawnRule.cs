@@ -18,7 +18,7 @@ namespace NMJ
         [Tooltip("이 안에서 쓰러지면 아레나 입구로 돌아간다")]
         [SerializeField] private Collider arenaArea;
         [SerializeField] private Transform arenaSpawn;
-        [SerializeField] private InkStyle transition = InkStyle.Bleed;
+        [SerializeField] private InkStyle transition = InkStyle.Drip;
         [SerializeField] private bool logRespawn = true;
 
         private bool wasDead;
@@ -53,7 +53,7 @@ namespace NMJ
                 if (on) cc.enabled = true;
                 Physics.SyncTransforms();
                 if (logRespawn) Debug.Log("[NMJ] 아레나에서 쓰러져 아레나 입구로 돌아감", this);
-            }, 0.8f);
+            }, 1.2f);
         }
     }
 }

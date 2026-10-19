@@ -19,7 +19,9 @@ namespace NMJ
     /// <summary>
     /// 먹물 화면 전환. 화면을 먹으로 덮고 → 그 사이에 할 일(씬 불러오기·순간이동 등) → 다시 걷어 낸다.
     ///
-    ///   InkTransition.Play(InkStyle.Bleed, () => SceneManager.LoadScene("NMJ_Main"));
+    ///   InkTransition.Play(InkStyle.Drip, () => SceneManager.LoadScene("NMJ_Main"));
+    ///
+    /// 게임 전체의 화면 전환은 C 먹 흘러내림으로 통일했다 (2026-10-17). A·B는 시안으로 남겨 둠 (숫자패드 6/7로 비교).
     ///
     /// - 씬이 바뀌어도 이어지도록 따로 떨어진 오브젝트(DontDestroyOnLoad)에서 돈다. 처음 부를 때 저절로 만든다.
     /// - 걷어 낼 때는 다른 모양으로 물러난다 (덮인 순간에 잡음 씨앗을 바꿈).
@@ -64,7 +66,7 @@ namespace NMJ
         // ───────── 부르는 곳 ─────────
 
         /// <summary>먹으로 덮고 → atMiddle → 걷어 낸다</summary>
-        public static void Play(InkStyle style, Action atMiddle, float coverTime = 0.9f, float revealTime = 1.1f, float holdTime = 0.2f, Action onDone = null)
+        public static void Play(InkStyle style, Action atMiddle, float coverTime = 1.2f, float revealTime = 1.1f, float holdTime = 0.2f, Action onDone = null)
         {
             InkTransition t = Get();
             if (t == null) { atMiddle?.Invoke(); onDone?.Invoke(); return; }

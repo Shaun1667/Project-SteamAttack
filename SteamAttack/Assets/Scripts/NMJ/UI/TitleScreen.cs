@@ -48,7 +48,7 @@ namespace NMJ
         [SerializeField] private string gameScene = "NMJ_Main";
         [Tooltip("게임 시작 때 먹물 화면 전환을 쓴다 (끄면 검게 어두워짐)")]
         [SerializeField] private bool inkTransition = true;
-        [SerializeField] private InkStyle startTransition = InkStyle.Brush;
+        [SerializeField] private InkStyle startTransition = InkStyle.Drip;
         [Tooltip("환경 설정 화면. 비우면 같은 오브젝트에서 찾는다. 없으면 '환경 설정'은 '준비 중'으로 흐리게 보인다")]
         [SerializeField] private SettingsMenu settings;
         [Tooltip("한글·한자 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
