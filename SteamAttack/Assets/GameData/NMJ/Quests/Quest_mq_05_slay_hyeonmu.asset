@@ -13,17 +13,17 @@ MonoBehaviour:
   m_Name: Quest_mq_05_slay_hyeonmu
   m_EditorClassIdentifier: Assembly-CSharp::SteamAttack.Quests.QuestData
   questId: mq_05_slay_hyeonmu
-  title: "\uD604\uBB34\uB97C \uD1A0\uBC8C\uD558\uB77C"
+  title: "현무를 잠재우라"
   category: 0
-  summary: "\uC5B4\uBA85\uC758 \uB05D. \uBD81\uC7A5\uC744 \uAC10\uC740 \uD604\uBB34\uB97C \uBCA0\uACE0 \uAC74\uCCAD\uAD81\uC73C\uB85C \uB3CC\uC544\uAC00 \uBCF5\uBA85\uD55C\uB2E4."
+  summary: "어명의 끝. 북장을 감은 현무를 다시 잠재우고 건청궁으로 돌아가 복명한다."
   questGiverId: npc_gojong
-  startDialogue: "\uAC00\uB77C. \uC9D0\uC758 \uC774\uB984\uC73C\uB85C, \uBA48\uCD98 \uC815\uC6D4\uC744 \uB3C4\uB85C \uD750\uB974\uAC8C \uD558\uB77C."
+  startDialogue: "가라. 짐의 이름으로, 멈춘 봄을 도로 흐르게 하라."
   completeDialogue: "\u2026\uBC14\uB78C\uC774 \uBD84\uB2E4. \uB208\uC774 \uB2E4\uC2DC \uB0B4\uB9AC\uB294\uAD6C\uB098. \uADF8 \uBE44\uB298\uB85C \uBCBC\uB9B0 \uAC11\uC8FC\uB97C \uB0B4\uB9AC\uB178\uB77C."
   objectives:
   - type: 1
     targetId: boss_hyeonmu
     targetItem: {fileID: 0}
-    description: "\uD604\uBB34\uB97C \uD1A0\uBC8C\uD55C\uB2E4"
+    description: "현무를 잠재운다"
     requiredAmount: 1
   - type: 2
     targetId: 

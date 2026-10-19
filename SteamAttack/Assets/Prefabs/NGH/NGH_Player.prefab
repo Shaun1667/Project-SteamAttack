@@ -10088,10 +10088,10 @@ MonoBehaviour:
   boss: {fileID: 0}
   font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
   glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
-  headline: "\uD604\uBB34 \uD1A0\uBC8C"
-  sealText: "\u8A0E"
-  subtitle: "\uBA48\uCDC4\uB358 \uB3C4\uC131\uC758 \uC2DC\uAC04\uC774 \uB2E4\uC2DC \uD750\uB978\uB2E4"
-  caption: BOSS ELIMINATED
+  headline: "玄武"
+  sealText: "鎭"
+  subtitle: "현무를 잠재웠다"
+  caption: "멈췄던 도성의 시간이 다시 흐른다"
   startDelay: 0.6
   holdTime: 4
   fadeOutTime: 1.5
@@ -10100,7 +10100,7 @@ MonoBehaviour:
   slowTime: 1.2
   inkColor: {r: 0.03, g: 0.03, b: 0.035, a: 0.97}
   textColor: {r: 0.96, g: 0.95, b: 0.92, a: 1}
-  sealColor: {r: 0.82, g: 0.18, b: 0.1, a: 1}
+  sealColor: {r: 0.94, g: 0.73, b: 0.16, a: 1}
   captionColor: {r: 0.94, g: 0.73, b: 0.16, a: 1}
   OnFinished:
     m_PersistentCalls:
