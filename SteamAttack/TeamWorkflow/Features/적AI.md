@@ -416,7 +416,7 @@ E0 검사 기록입니다. R1은 아래 추가 기록과 [받아치기 검증](�
 | 경직 단계 미전달 | `EnemyAttackHitbox`·`EnemyBullet`이 `HitStagger`를 넘기지 않음(코드 TODO) | `*Stagger` 필드를 바꿔도 효과 없음. 경직은 피해 25 기준 | `PlayerController.TakeHit`이 경직 단계를 받게 되면 함께 전달 (NGH 요청 필요) |
 | 개발 키 문구 해결 (2026-10-17) | 2번 피해를 `heavyHitThreshold`로 변경하고 안내문 캐시 | 피해 경로 호출로 HitSmall / HitLarge, HP 100→99→74 확인 | 실제 키 조작 검수는 별도 |
 | 판정 폭 이중 | 옛 `TryParry`는 ±0.15초(`ParryHalfWindow`), 현재 `ParryController`는 ±0.1초(D-084) | 옛 경로를 다시 쓰면 기획과 다름 | 옛 스크립트 삭제 후 옛 API 제거 |
-| 기존 경고 | 다른 HeroPlayer 구성의 GroundClamp Controller 없는 Animator 접근 | R1 시험 씬에서는 재현되지 않음 | [기존 NGH 요청](../Requests/진행/NGH_요청_20261014_GroundClamp컨트롤러없는Animator검사.md) |
+| 기존 경고 | 다른 HeroPlayer 구성의 GroundClamp Controller 없는 Animator 접근 | R1 시험 씬에서는 재현되지 않음 | [기존 NGH 요청](../Requests/완료/NGH_요청_20261014_GroundClamp컨트롤러없는Animator검사.md) |
 | 컴파일 경고 | Unity 6.6은 DEVELOPMENT_BUILD를 구식으로 표시 | 컴파일은 성공하지만 UAC0009 발생 | 팀 차원의 조건 정책 변경 시 함께 대응 |
 | 시험 한계 | 캡슐 적과 NGH_Player 사용 | 실제 적 모델의 공격 동작 미검증 | E1 프리팹·모델 연결 후 확인 |
 | 다음 작업 | E1-b 보행 보정, E2 궁수 (D-074) | 포졸 모델·모션 연결 완료. 보행 속도 결정과 궁수는 남음 | [변이 포졸 문서](변이포졸.md)와 확정 계획에 따라 구현 |
