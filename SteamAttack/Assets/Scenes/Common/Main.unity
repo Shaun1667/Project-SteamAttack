@@ -138093,6 +138093,7 @@ MonoBehaviour:
   visual: {fileID: 0}
   iceColor: {r: 0.62, g: 0.84, b: 0.92, a: 0.82}
   caption: "\uD55C \uD638\uD761\uC5D0, \uD55C \uC810\uC5D0"
+  questId: gate_gwanghwamun
 --- !u!65 &860572628
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -151186,6 +151187,7 @@ MonoBehaviour:
   visual: {fileID: 0}
   iceColor: {r: 0.62, g: 0.84, b: 0.92, a: 0.82}
   caption: 
+  questId: 
 --- !u!65 &939733744
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -167282,8 +167284,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ba6b70f004acbe439c89eb71e212965, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SteamAttack.Quests.QuestManager
-  database: {fileID: 11400000, guid: b6d5c2dd2784fc7468d16f386754f84a, type: 2}
-  startingQuest: {fileID: 11400000, guid: 148aee3d85c941b47afd4a74af2849e2, type: 2}
+  database: {fileID: 11400000, guid: 7dba6cfeb6ac6e2479f8e8133c2db2e7, type: 2}
+  startingQuest: {fileID: 11400000, guid: 79b4b8346ad26de468158a5f0e67e7e9, type: 2}
   autoAcceptMainQuests: 1
 --- !u!4 &1024570246
 Transform:
@@ -213775,6 +213777,63 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1314023860}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1001 &1314069375
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 802946073718595484, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_Name
+      value: NMJ_QuestZones
+      objectReference: {fileID: 0}
+    - target: {fileID: 8124516008489654398, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8124516008489654398, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8124516008489654398, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8124516008489654398, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8124516008489654398, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8124516008489654398, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8124516008489654398, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8124516008489654398, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8124516008489654398, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8124516008489654398, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 1e172a4ee0f3ed04db1692746740ac93, type: 3}
 --- !u!1 &1315714636
 GameObject:
   m_ObjectHideFlags: 0
@@ -367805,3 +367864,4 @@ SceneRoots:
   - {fileID: 946123929}
   - {fileID: 2058315070}
   - {fileID: 4444845317753099425}
+  - {fileID: 1314069375}

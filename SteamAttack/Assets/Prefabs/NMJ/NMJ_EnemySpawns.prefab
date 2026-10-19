@@ -3274,13 +3274,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 594731681413096763}
   m_SourcePrefab: {fileID: 100100000, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
 --- !u!4 &8139727231747721105 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8447182195599149519, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
   m_PrefabInstance: {fileID: 417838303427202654}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &8222393524378315506 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+  m_PrefabInstance: {fileID: 417838303427202654}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &594731681413096763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8222393524378315506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 668ffb63ef4579b47b9272cf36e54492, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.QuestKillReporter
+  enemyId: enemy_yukjo
+  countPerKill: 1
 --- !u!1001 &2326485052897755384
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3336,13 +3358,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5141867529811559471}
   m_SourcePrefab: {fileID: 100100000, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
 --- !u!4 &6157334006695921975 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8447182195599149519, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
   m_PrefabInstance: {fileID: 2326485052897755384}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6313746742162760788 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+  m_PrefabInstance: {fileID: 2326485052897755384}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5141867529811559471
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6313746742162760788}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 668ffb63ef4579b47b9272cf36e54492, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.QuestKillReporter
+  enemyId: enemy_gwanghwa
+  countPerKill: 1
 --- !u!1001 &3061825275588325802
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3406,13 +3450,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8968660365012069007, guid: bf87bdd96589dbf409b11f3bd2801050, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3858020260542886814}
   m_SourcePrefab: {fileID: 100100000, guid: bf87bdd96589dbf409b11f3bd2801050, type: 3}
 --- !u!4 &429792739087790295 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3425875809261289853, guid: bf87bdd96589dbf409b11f3bd2801050, type: 3}
   m_PrefabInstance: {fileID: 3061825275588325802}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6200010592144218917 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8968660365012069007, guid: bf87bdd96589dbf409b11f3bd2801050, type: 3}
+  m_PrefabInstance: {fileID: 3061825275588325802}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3858020260542886814
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6200010592144218917}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 668ffb63ef4579b47b9272cf36e54492, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.QuestKillReporter
+  enemyId: enemy_gwanghwa
+  countPerKill: 1
 --- !u!1001 &4089911947094609020
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3468,13 +3534,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6375143608648952534}
   m_SourcePrefab: {fileID: 100100000, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
 --- !u!4 &5618278247247791539 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8447182195599149519, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
   m_PrefabInstance: {fileID: 4089911947094609020}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5698729041141262544 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+  m_PrefabInstance: {fileID: 4089911947094609020}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6375143608648952534
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5698729041141262544}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 668ffb63ef4579b47b9272cf36e54492, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.QuestKillReporter
+  enemyId: enemy_gwanghwa
+  countPerKill: 1
 --- !u!1001 &6294397212176249377
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3538,8 +3626,30 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8968660365012069007, guid: bf87bdd96589dbf409b11f3bd2801050, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2366199162103374085}
   m_SourcePrefab: {fileID: 100100000, guid: bf87bdd96589dbf409b11f3bd2801050, type: 3}
+--- !u!1 &3111184695490123950 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8968660365012069007, guid: bf87bdd96589dbf409b11f3bd2801050, type: 3}
+  m_PrefabInstance: {fileID: 6294397212176249377}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2366199162103374085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111184695490123950}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 668ffb63ef4579b47b9272cf36e54492, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.QuestKillReporter
+  enemyId: enemy_yukjo
+  countPerKill: 1
 --- !u!4 &8705764911858774876 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3425875809261289853, guid: bf87bdd96589dbf409b11f3bd2801050, type: 3}
@@ -3600,8 +3710,30 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6939495054554893130}
   m_SourcePrefab: {fileID: 100100000, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+--- !u!1 &2907666946654981753 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+  m_PrefabInstance: {fileID: 6885336766830471893}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6939495054554893130
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2907666946654981753}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 668ffb63ef4579b47b9272cf36e54492, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.QuestKillReporter
+  enemyId: enemy_yukjo
+  countPerKill: 1
 --- !u!4 &3078151231935144730 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8447182195599149519, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
@@ -3666,13 +3798,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8966196884717701395}
   m_SourcePrefab: {fileID: 100100000, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
 --- !u!4 &1546508850560559801 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8447182195599149519, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
   m_PrefabInstance: {fileID: 6938963906934727542}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1701124847658584026 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+  m_PrefabInstance: {fileID: 6938963906934727542}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8966196884717701395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1701124847658584026}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 668ffb63ef4579b47b9272cf36e54492, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.QuestKillReporter
+  enemyId: enemy_yukjo
+  countPerKill: 1
 --- !u!1001 &8870737016576332770
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3728,8 +3882,30 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2061295459864949203}
   m_SourcePrefab: {fileID: 100100000, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+--- !u!1 &922264515606673230 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8635576288341271724, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+  m_PrefabInstance: {fileID: 8870737016576332770}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2061295459864949203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 922264515606673230}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 668ffb63ef4579b47b9272cf36e54492, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.QuestKillReporter
+  enemyId: enemy_gwanghwa
+  countPerKill: 1
 --- !u!4 &1018195196262865453 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8447182195599149519, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
