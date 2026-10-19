@@ -327,7 +327,7 @@ MonoBehaviour:
   musicVolume: 0.7
   gameScene: Main
   inkTransition: 1
-  startTransition: 1
+  startTransition: 2
   settings: {fileID: 2116303578}
   font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
   glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}

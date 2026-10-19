@@ -144788,7 +144788,7 @@ MonoBehaviour:
   player: {fileID: 0}
   arenaArea: {fileID: 902135698}
   arenaSpawn: {fileID: 147747031}
-  transition: 0
+  transition: 2
   logRespawn: 1
 --- !u!65 &902135698
 BoxCollider:
