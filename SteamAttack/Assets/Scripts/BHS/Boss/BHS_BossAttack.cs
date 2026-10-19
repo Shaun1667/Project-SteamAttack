@@ -10,6 +10,15 @@ public abstract class BossAttack : MonoBehaviour
     [Min(0f)] public float minUseDistance = 3f;
     [Min(0f)] public float maxUseDistance = 5f;
 
+    [Header("실제 공격 발생 기준점")]
+    [Tooltip("뱀 브레스는 입 위치를 연결합니다. 비우면 FSM이 전달한 실행 기준점을 사용합니다. 패턴 선택 거리의 기준점과는 별개입니다.")]
+    public Transform attackOrigin;
+
+    public Vector3 GetOriginPosition(Transform fallback)
+    {
+        return attackOrigin != null ? attackOrigin.position : fallback.position;
+    }
+
     [Header("공격 시간")]
     [Min(0f)] public float readyTime = 1.5f;
     [Tooltip("근거리/브레스의 지속 시간. 돌진은 이동거리와 속도로 자동 계산합니다.")]
@@ -51,7 +60,7 @@ public abstract class BossAttack : MonoBehaviour
         return isActiveAndEnabled && distance >= minimum && distance <= maximum;
     }
 
-    // BossFSM에서만 호출한다. 예고 시작 순간의 위치와 방향을 저장한다.
+    // BossFSM 또는 SnakeFSM에서 호출한다. 예고 시작 순간의 위치와 방향을 저장한다.
     public bool BeginAttack(Transform owner, Transform target,
         float allowedHeight, Action<float> onHit)
     {
@@ -60,7 +69,7 @@ public abstract class BossAttack : MonoBehaviour
 
         Owner = owner;
         Target = target;
-        Origin = owner.position;
+        Origin = GetOriginPosition(owner);
         Direction = owner.rotation;
         heightTolerance = Mathf.Max(0f, allowedHeight);
         reportHit = onHit;
@@ -73,7 +82,7 @@ public abstract class BossAttack : MonoBehaviour
         return false;
     }
 
-    // 공격 컴포넌트에는 Update가 없다. 전체 흐름은 BossFSM이 진행시킨다.
+    // 공격 컴포넌트에는 Update가 없다. 담당 FSM 한 개만 이 공격을 진행시킨다.
     public void TickAttack(float deltaTime)
     {
         if (!IsRunning) return;

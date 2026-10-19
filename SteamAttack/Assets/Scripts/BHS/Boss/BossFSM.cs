@@ -5,12 +5,20 @@ public class BossFSM : MonoBehaviour
 {
     public enum State
     {
-        Idle, SearchPlayer, LookAtPlayer, SelectAttack, Attack, Recovery
+        Idle, SearchPlayer, LookAtPlayer, SelectAttack, Attack, Recovery,
+        WaitForSnake
     }
 
     [Header("현재 상태 - 확인용")]
     [SerializeField] private State currentState;
     [SerializeField] private Transform player;
+    [SerializeField] private bool dashReserved;
+    [SerializeField] private bool combatStopped;
+
+    [Header("거북이 거리 기준 / 뱀 FSM")]
+    [Tooltip("몸통 중앙의 빈 오브젝트. 비우면 이 오브젝트 위치를 사용합니다.")]
+    public Transform rangeOrigin;
+    public SnakeFSM snakeFSM;
 
     [Header("플레이어 탐색 / 회전")]
     [Min(0.1f)] public float detectRange = 8f;
@@ -18,37 +26,57 @@ public class BossFSM : MonoBehaviour
     [Min(1f)] public float turnSpeed = 180f;
     [Min(0f)] public float heightTolerance = 2f;
 
-    [Header("사용할 패턴 목록 - 지금은 브레스 한 개만 연결")]
-    [Tooltip("위에서부터 확인해서 현재 거리에서 사용할 수 있는 첫 패턴을 실행합니다.")]
+    [Header("거북이 패턴만 등록 - 뱀 브레스는 SnakeFSM에 등록")]
+    [Tooltip("위에서부터 현재 거리에서 사용할 수 있는 첫 패턴을 선택합니다.")]
     public BossAttack[] patterns = new BossAttack[0];
+
+    public Transform Player => player;
+    public bool IsCombatActive => isActiveAndEnabled && !combatStopped;
+    public bool IsSnakeAttackBlocked => !IsCombatActive || dashReserved;
 
     private BossAttack activeAttack;
     private float stateTimer;
     private float recoveryDuration;
+    private float playerSearchTimer;
+    private Vector3 RangePosition => rangeOrigin != null ? rangeOrigin.position : transform.position;
+
+    private void Awake()
+    {
+        if (snakeFSM == null) snakeFSM = GetComponentInChildren<SnakeFSM>(true);
+    }
 
     private void OnEnable()
     {
-        player = null;
         activeAttack = null;
+        dashReserved = false;
+        combatStopped = false;
+        playerSearchTimer = 0f;
         ChangeState(State.Idle);
     }
 
     private void Update()
     {
+        if (!IsCombatActive) return;
+        RefreshPlayer();
         stateTimer += Time.deltaTime;
+
         switch (currentState)
         {
             case State.Idle:
                 if (stateTimer >= searchInterval) ChangeState(State.SearchPlayer);
                 break;
             case State.SearchPlayer:
-                SearchPlayer();
+                ChangeState(IsPlayerInRange() ? State.LookAtPlayer : State.Idle);
                 break;
             case State.LookAtPlayer:
-                LookAtPlayer();
+                if (!IsPlayerInRange()) ChangeState(State.Idle);
+                else if (TurnTowardsPlayer()) SelectAttack();
                 break;
             case State.SelectAttack:
                 SelectAttack();
+                break;
+            case State.WaitForSnake:
+                UpdateWaitForSnake();
                 break;
             case State.Attack:
                 UpdateAttack();
@@ -59,49 +87,47 @@ public class BossFSM : MonoBehaviour
         }
     }
 
-    private void SearchPlayer()
+    // 거북이 감지 범위 밖에 있어도 뱀은 같은 플레이어를 자신의 범위로 판단합니다.
+    private void RefreshPlayer()
     {
-        if (player == null || !player.gameObject.activeInHierarchy)
-        {
-            GameObject found = GameObject.FindGameObjectWithTag("Player");
-            player = found != null ? found.transform : null;
-        }
-        ChangeState(IsPlayerInRange() ? State.LookAtPlayer : State.Idle);
+        if (player != null && player.gameObject.activeInHierarchy) return;
+        player = null;
+        playerSearchTimer -= Time.deltaTime;
+        if (playerSearchTimer > 0f) return;
+        playerSearchTimer = searchInterval;
+        GameObject found = GameObject.FindGameObjectWithTag("Player");
+        player = found != null ? found.transform : null;
     }
 
     private bool IsPlayerInRange()
     {
         if (player == null || !player.gameObject.activeInHierarchy) return false;
-        Vector3 offset = player.position - transform.position;
+        Vector3 offset = player.position - RangePosition;
         if (Mathf.Abs(offset.y) > heightTolerance) return false;
         offset.y = 0f;
         return offset.sqrMagnitude <= detectRange * detectRange;
     }
 
-    private void LookAtPlayer()
+    private float PlayerDistance()
     {
-        if (!IsPlayerInRange())
-        {
-            ChangeState(State.Idle);
-            return;
-        }
+        Vector3 offset = player.position - RangePosition;
+        offset.y = 0f;
+        return offset.magnitude;
+    }
 
-        Vector3 direction = player.position - transform.position;
+    private bool TurnTowardsPlayer()
+    {
+        Vector3 direction = player.position - RangePosition;
         direction.y = 0f;
         if (direction.sqrMagnitude < 0.0001f)
             direction = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
         if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
-
         Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
-        if (Quaternion.Angle(transform.rotation, targetRotation) <= 1f)
-        {
-            transform.rotation = targetRotation;
-            // 회전이 완료된 순간의 거리로 선택한다.
-            ChangeState(State.SelectAttack);
-            SelectAttack();
-        }
+        if (Quaternion.Angle(transform.rotation, targetRotation) > 1f) return false;
+        transform.rotation = targetRotation;
+        return true;
     }
 
     private void SelectAttack()
@@ -112,35 +138,62 @@ public class BossFSM : MonoBehaviour
             return;
         }
 
-        Vector3 offset = player.position - transform.position;
-        offset.y = 0f;
-        float distance = offset.magnitude;
         activeAttack = null;
-
-        // 특정 공격 이름을 알 필요 없이 목록에 등록된 패턴을 확인한다.
+        float distance = PlayerDistance();
         if (patterns != null)
         {
             foreach (BossAttack pattern in patterns)
             {
                 if (pattern == null || !pattern.CanUse(distance)) continue;
+                // 같은 공격 컴포넌트를 두 FSM에서 실행하지 않습니다.
+                if (snakeFSM != null && snakeFSM.ContainsPattern(pattern)) continue;
                 activeAttack = pattern;
                 break;
             }
         }
 
-        // 현재 거리에서 사용할 패턴이 없으면 대기하며 다시 탐색한다.
         if (activeAttack == null)
         {
             ChangeState(State.Idle);
             return;
         }
 
-        if (!activeAttack.BeginAttack(
-            transform, player, heightTolerance, DamagePlayer))
+        if (activeAttack is BossDashAttack)
         {
-            Debug.LogWarning("선택한 공격을 시작하지 못했습니다: " + activeAttack.GetType().Name +
-                ". 공격 컴포넌트와 설정을 확인하세요.", this);
+            // 선택 즉시 뱀의 새 공격만 막습니다. 진행 중인 공격은 유지합니다.
+            dashReserved = true;
+            ChangeState(State.WaitForSnake);
+            UpdateWaitForSnake();
+            return;
+        }
+        BeginSelectedAttack();
+    }
+
+    private void UpdateWaitForSnake()
+    {
+        // 대기 중 플레이어가 사라지거나 사거리 밖으로 나가면 예약을 해제합니다.
+        if (activeAttack == null || !IsPlayerInRange() || !activeAttack.CanUse(PlayerDistance()))
+        {
             activeAttack = null;
+            dashReserved = false;
+            ChangeState(State.Idle);
+            return;
+        }
+        if (snakeFSM != null && snakeFSM.IsBusy) return;
+
+        // 뱀 복귀 후 방향을 다시 맞춥니다. Ready Time은 BeginAttack부터 시작합니다.
+        if (TurnTowardsPlayer()) BeginSelectedAttack();
+    }
+
+    private void BeginSelectedAttack()
+    {
+        Transform victim = player;
+        if (!activeAttack.BeginAttack(transform, victim, heightTolerance,
+            amount => DamagePlayer(victim, amount)))
+        {
+            Debug.LogWarning("선택한 공격을 시작하지 못했습니다: " + activeAttack.GetType().Name, this);
+            activeAttack = null;
+            dashReserved = false;
             recoveryDuration = 1f;
             ChangeState(State.Recovery);
             return;
@@ -148,31 +201,36 @@ public class BossFSM : MonoBehaviour
         ChangeState(State.Attack);
     }
 
-    // 공격이 명중하면 플레이어의 피격 함수를 직접 호출한다.
-    private void DamagePlayer(float damage)
+    // 두 FSM의 명중을 이 함수 하나로 전달합니다. 실제 플레이어를 우선 사용합니다.
+    public void DamagePlayer(Transform victim, float damage)
     {
-        if (player == null) return;
-        /*테스트용*/
-        PlayerHitTeleport receiverA = player.GetComponentInParent<PlayerHitTeleport>();
-        receiverA.TakeDamage(damage);
-
-        PlayerHealth receiver = player.GetComponentInParent<PlayerHealth>();
-
-        receiver.TakeDamage(damage);
+        if (!IsCombatActive || victim == null || !victim.gameObject.activeInHierarchy) return;
+        PlayerHealth receiver = victim.GetComponentInParent<PlayerHealth>();
+        if (receiver != null)
+        {
+            receiver.TakeDamage(damage);
+            return;
+        }
+        PlayerHitTeleport testReceiver = victim.GetComponentInParent<PlayerHitTeleport>();
+        if (testReceiver != null) testReceiver.TakeDamage(damage);
+        else Debug.LogWarning("PlayerHealth 또는 테스트용 PlayerHitTeleport가 없습니다.", victim);
     }
 
     private void UpdateAttack()
     {
-        if (activeAttack != null)
+        BossAttack attack = activeAttack;
+        if (attack != null)
         {
-            activeAttack.TickAttack(Time.deltaTime);
-            if (!isActiveAndEnabled) return;
-            if (activeAttack.IsRunning) return;
-            recoveryDuration = Mathf.Max(0f, activeAttack.recoveryTime);
+            attack.TickAttack(Time.deltaTime);
+            if (!IsCombatActive || activeAttack != attack) return;
+            if (attack != null && attack.IsRunning) return;
+            recoveryDuration = attack != null ? Mathf.Max(0f, attack.recoveryTime) : 0f;
         }
         else recoveryDuration = 0f;
 
         activeAttack = null;
+        // 돌진 이동 종료 후 뱀은 재개. 거북이 자신의 회복은 별도로 진행합니다.
+        dashReserved = false;
         ChangeState(State.Recovery);
     }
 
@@ -182,11 +240,23 @@ public class BossFSM : MonoBehaviour
         stateTimer = 0f;
     }
 
-    private void OnDisable()
+    // 보스 체력 스크립트의 사망 처리에서 호출하세요. 체력 계산은 기존 코드를 사용합니다.
+    public void StopCombat()
+    {
+        combatStopped = true;
+        CancelCombat();
+    }
+
+    private void CancelCombat()
     {
         if (activeAttack != null) activeAttack.CancelAttack();
         activeAttack = null;
+        dashReserved = false;
+        if (snakeFSM != null) snakeFSM.StopFromBody();
+        ChangeState(State.Idle);
     }
+
+    private void OnDisable() => CancelCombat();
 
     private void OnValidate()
     {

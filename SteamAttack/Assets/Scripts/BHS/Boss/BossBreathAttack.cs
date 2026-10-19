@@ -368,8 +368,9 @@ public class BossBreathAttack : BossAttack
             Vector4 shape = GetShape();
             if (IsShapeValid(shape))
             {
-                Vector3 floor = new Vector3(transform.position.x,
-                    groundY + hitboxBottomOffset, transform.position.z);
+                Vector3 previewOrigin = GetOriginPosition(transform);
+                Vector3 floor = new Vector3(previewOrigin.x,
+                    groundY + hitboxBottomOffset, previewOrigin.z);
                 Gizmos.matrix = Matrix4x4.TRS(floor,
                     Quaternion.Euler(0f, transform.eulerAngles.y, 0f), Vector3.one);
                 int count = Mathf.CeilToInt(shape.z / shape.w);
