@@ -22,6 +22,10 @@ namespace NMJ
     /// - 칼 적중 등으로 증기가 차면 무기 패 쪽에서 김이 실린더로 빨려 들어간다.
     /// - 증기를 쓰면 밸브에서 쓴 양만큼 김이 뿜어지고, 부족하면 게이지가 덜컹하며 붉게 번쩍인다.
     /// - Tab으로 무기를 바꾸면 패의 글자를 붓으로 다시 쓰듯 왼쪽부터 드러난다. 납도 중에는 패가 흐려진다.
+    /// - 화승총의 탄은 증기다 (YPH SteamGun: 발사 1회 = 증기 5, 탄창 없음). 총을 들면 실린더가 5칸씩 나뉘고
+    ///   패 위에 쏠 수 있는 발 수(×N), 모자라면 "증기 부족"이 붉게 맥박친다.
+    ///   증기가 모자란데 쏘려 하면 화면 가운데(조준점 아래)에 "증기 부족 · 칼로 베어 채우기"가 뜨고 게이지가 덜컹인다.
+    /// - 받아치기 성공 신호는 YPH.ParryController.ParryAttempted(새 패링)와 NGH.PlayerParry.ParryAttempted(옛 패링) 둘 다 듣는다.
     ///
     /// 데이터는 공개 값만 읽는다: YPH.SteamTank(증기), NGH.PlayerController·WeaponHolder(든 무기, 발도 여부),
     /// NGH.PlayerParry.ParryAttempted(받아치기 성공). 다른 사람 코드는 고치지 않는다.
@@ -64,6 +68,16 @@ namespace NMJ
         [SerializeField, Range(0f, 1f)] private float sheathedAlpha = 0.45f;
         [Tooltip("받아치기 성공 뒤 強이 붉게 빛나는 시간(초). 적 경직 시간에 맞춘다 (회의 2.1: 미정)")]
         [SerializeField, Min(0.1f)] private float strongChanceTime = 1.2f;
+
+        [Header("화승총 (YPH SteamGun — 발사 1회에 증기)")]
+        [Tooltip("비우면 플레이어 아래에서 YPH.SteamGun을 찾는다 (빈 발사 알림용)")]
+        [SerializeField] private SteamGun gun;
+        [Tooltip("비우면 플레이어 아래에서 YPH.ParryController를 찾는다 (받아치기 성공 → 強 번쩍)")]
+        [SerializeField] private ParryController parry;
+        [Tooltip("증기가 모자라 못 쏠 때 화면 가운데 안내")]
+        [SerializeField] private string emptyText = "증기 부족 · 칼로 베어 채우기";
+        [Tooltip("화면 가운데 안내가 떠 있는 시간(초)")]
+        [SerializeField, Min(0.3f)] private float emptyPromptTime = 1.8f;
 
         [Header("색")]
         [SerializeField] private Color ironColor = new Color(0.17f, 0.15f, 0.14f, 1f);
@@ -152,6 +166,14 @@ namespace NMJ
         private bool weaponShownOnce;
         private float revealTimer = RevealTime;
 
+        // 화면 가운데 "증기 부족 · 칼로 베어 채우기"
+        private CanvasGroup promptGroup;
+        private float promptTimer;
+        // 증기가 모자란데 쏘려 했는지 확인 (사격 동작 시작 → 2프레임 안에 실제 발사가 없으면)
+        private int shotCheckFrames = -1;
+        private bool firedSinceShot;
+        private bool gunSubscribed, playerSubscribed, parrySubscribed;
+
         // 코드로 만든 재질·텍스처 (OnDestroy에서 지움)
         private Material wetMat, dryMat, plaqueMat;
         private Texture2D dryTex;
@@ -176,17 +198,87 @@ namespace NMJ
             AutoAssign();
 #endif
             if (glyphShader == null) glyphShader = Shader.Find("TextMeshPro/Distance Field");
-            FindTank();
             if (player == null) player = GetComponentInParent<NGH.PlayerController>();
+            if (player == null) player = FindAnyObjectByType<NGH.PlayerController>();   // 플레이어와 따로 놓인 HUD 프리팹일 때
+            FindTank();
+            FindGun();
             BuildUi();
         }
 
-        // 플레이어에 붙어 있으면 그 플레이어의 탱크를 먼저 쓴다 (씬에 탱크가 여럿일 수 있음)
+        // 총·받아치기는 씬에서 플레이어에 덧붙이는 경우가 있어 플레이어 → 최상위 → 씬 순서로 찾는다
+        private void FindGun()
+        {
+            Transform from = player != null ? player.transform : transform;
+            if (gun == null) gun = from.GetComponentInChildren<SteamGun>(true);
+            if (gun == null) gun = from.root.GetComponentInChildren<SteamGun>(true);
+            if (gun == null) gun = FindAnyObjectByType<SteamGun>();
+            if (parry == null) parry = from.GetComponentInChildren<ParryController>(true);
+            if (parry == null) parry = from.root.GetComponentInChildren<ParryController>(true);
+        }
+
+        private void SubscribeGunAndPlayer()
+        {
+            if (gun != null && !gunSubscribed) { gun.OnFired += HandleGunFired; gun.OnFireBlocked += HandleFireBlocked; gunSubscribed = true; }
+            if (player != null && !playerSubscribed) { player.ShotStarted += HandleShotStarted; playerSubscribed = true; }
+            if (parry != null && !parrySubscribed) { parry.ParryAttempted += HandleYphParry; parrySubscribed = true; }
+        }
+
+        private void UnsubscribeGunAndPlayer()
+        {
+            if (gunSubscribed && gun != null) { gun.OnFired -= HandleGunFired; gun.OnFireBlocked -= HandleFireBlocked; }
+            if (playerSubscribed && player != null) player.ShotStarted -= HandleShotStarted;
+            if (parrySubscribed && parry != null) parry.ParryAttempted -= HandleYphParry;
+            gunSubscribed = playerSubscribed = parrySubscribed = false;
+        }
+
+        private void HandleGunFired(Vector3 muzzle, Vector3 end, bool hitEnemy) => firedSinceShot = true;
+
+        // 입력 담당(CombatBridge)이 사격을 거절했을 때 — 증기 부족이면 크게 알림 (재장전 중 거절은 무시)
+        private void HandleFireBlocked()
+        {
+            if (SteamShort) ShowEmptyPrompt();
+        }
+
+        private void HandleShotStarted(NGH.Weapon weapon)
+        {
+            if (weapon == null || weapon.isMelee) return;
+            firedSinceShot = false;
+            shotCheckFrames = 2;
+        }
+
+        private void HandleYphParry(bool success)
+        {
+            if (success) FlashStrongChance(strongChanceTime);
+        }
+
+        /// <summary>화승총 한 발 쏠 증기도 없는지</summary>
+        private bool SteamShort => (tank != null ? tank.CurrentPressure : testPressure) + 0.0001f < gunCost;
+
+        /// <summary>증기가 모자라 못 쏜다고 크게 알린다: 화면 가운데 안내 + 게이지 덜컹·붉게</summary>
+        private void ShowEmptyPrompt()
+        {
+            promptTimer = emptyPromptTime;
+            shakeTimer = 0.3f;
+            flashTimer = 0.35f;
+        }
+
+        // 플레이어 아래에서 가장 얕은 곳의 탱크를 쓴다.
+        // 씬에서 플레이어 바로 아래에 붙인 탱크(총·받아치기가 쓰는 것)와 캐릭터 뼈대 안 가방의 탱크가 함께 있을 수 있어서.
+        // 인스펙터에서 직접 연결하면 그것을 쓴다.
         private void FindTank()
         {
             if (tank != null) return;
-            tank = GetComponentInParent<SteamTank>();
-            if (tank == null) tank = transform.root.GetComponentInChildren<SteamTank>(true);
+            Transform from = player != null ? player.transform.root : transform.root;
+            int bestDepth = int.MaxValue, count = 0;
+            foreach (SteamTank t in from.GetComponentsInChildren<SteamTank>(true))
+            {
+                count++;
+                int depth = 0;
+                for (Transform p = t.transform; p != null && p != from; p = p.parent) depth++;
+                if (depth < bestDepth) { bestDepth = depth; tank = t; }
+            }
+            if (count > 1)
+                Debug.LogWarning($"[NMJ] 증기 게이지: 플레이어 아래 증기통이 {count}개입니다. 가장 바깥의 '{tank.name}'을 씁니다.", this);
             if (tank == null) tank = FindAnyObjectByType<SteamTank>();
         }
 
@@ -199,6 +291,7 @@ namespace NMJ
         {
             NGH.PlayerParry.ParryAttempted -= HandleParry;
             Unsubscribe();
+            UnsubscribeGunAndPlayer();
         }
 
         // 코드로 만든 텍스처·스프라이트·재질은 직접 지워야 메모리에 남지 않는다
@@ -243,6 +336,8 @@ namespace NMJ
 
             if (tank == null) FindTank();
             if (tank != null && !subscribed) Subscribe();
+            if (gun == null && Time.frameCount % 30 == 0) FindGun();   // 총이 늦게 생길 수도 있어 가끔만 다시 찾음
+            SubscribeGunAndPlayer();
 
             HandleTestKeys();
 
@@ -322,17 +417,39 @@ namespace NMJ
 
             plaqueGroup.alpha = Mathf.MoveTowards(plaqueGroup.alpha, drawn ? 1f : sheathedAlpha, dt * 4f);
 
-            // 총이면 실린더를 증기 5씩 칸으로 나누고, 패에 쏠 수 있는 발 수
             gunMode = Mathf.MoveTowards(gunMode, isGun ? 1f : 0f, dt * 6f);
+
+            // 총을 들면 실린더를 증기 5씩 칸으로 나눈다 (칸 수 = 쏠 수 있는 발 수)
             foreach (Image line in cellLines)
                 line.color = new Color(inkColor.r, inkColor.g, inkColor.b, 0.6f * gunMode);
 
             int shots = gunCost > 0f ? Mathf.FloorToInt((current + 0.0001f) / gunCost) : 0;
-            string count = "×" + shots;
+            bool warn = shots <= 0;
+            // 못 쏘면 패 위에 "증기 부족"이 붉게 맥박친다
+            string count = warn ? "증기 부족" : "×" + shots;
+            float pulse = warn ? 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 8f) : 1f;
             if (shotCount.text != count) shotCount.text = count;
-            shotCount.color = new Color(shots > 0 ? inkColor.r : chanceColor.r, shots > 0 ? inkColor.g : chanceColor.g,
-                shots > 0 ? inkColor.b : chanceColor.b, gunMode);
-            shotPaper.color = new Color(paperColor.r, paperColor.g, paperColor.b, 0.75f * gunMode);
+            Color c = warn ? chanceColor : inkColor;
+            shotCount.color = new Color(c.r, c.g, c.b, gunMode * pulse);
+            shotPaper.color = new Color(paperColor.r, paperColor.g, paperColor.b, 0.8f * gunMode);
+
+            UpdatePrompt(dt);
+        }
+
+        // ───────── 화면 가운데 "증기 부족" 안내 ─────────
+
+        private void UpdatePrompt(float dt)
+        {
+            bool shortNow = SteamShort;
+
+            // 사격 동작이 시작됐는데 실제 발사가 없었고 증기가 모자라면 → 크게 알림
+            // (CombatBridge가 OnFireBlocked를 보내지 않는 경우를 위한 대비)
+            if (shotCheckFrames >= 0 && --shotCheckFrames < 0 && !firedSinceShot && shortNow) ShowEmptyPrompt();
+
+            // 증기가 다시 차면 안내는 바로 걷힌다
+            if (!shortNow) promptTimer = Mathf.Min(promptTimer, 0.25f);
+            if (promptTimer > 0f) promptTimer -= dt;
+            promptGroup.alpha = Mathf.Clamp01(promptTimer / 0.3f);
         }
 
         // ───────── 행동 글자 (먹의 농담) ─────────
@@ -611,6 +728,9 @@ namespace NMJ
             // 무기 패
             BuildPlaque(plaqueRect, smudge);
 
+            // 화면 가운데 증기 부족 안내
+            BuildPrompt(canvasGo.transform, smudge);
+
             // 압력계 (몸통 왼쪽 끝 위에 겹침)
             int dialSize = Mathf.RoundToInt(DialRadius * 2f);
             Image dial = NewImage("Dial", root, MakeSprite(DrawDial(dialSize)));
@@ -700,14 +820,35 @@ namespace NMJ
             plaqueGlyph.alignment = TextAlignmentOptions.Center;
             plaqueGlyph.color = inkColor;
 
-            // 쏠 수 있는 발 수는 패 위에 (행동 글자와 같은 줄). 뒤에 한지빛 번짐을 깔아 어두운 배경에서도 읽히게
+            // 쏠 수 있는 발 수(또는 "증기 부족")는 패 위에 (행동 글자와 같은 줄). 뒤에 한지빛 번짐을 깔아 어두운 배경에서도 읽히게
             shotPaper = NewImage("ShotsPaper", root, smudge);
-            Place(shotPaper.rectTransform, new Rect(r.x - 10f, r.yMax - 4f, r.width + 20f, 30f));
+            Place(shotPaper.rectTransform, new Rect(r.center.x - 40f, r.yMax - 4f, 80f, 30f));
             shotPaper.color = Color.clear;
-            shotCount = NewGlyph("Shots", root, "×0", 20f, wetMat);
-            Place(shotCount.rectTransform, new Rect(r.x - 6f, r.yMax - 2f, r.width + 12f, 26f));
+            shotCount = NewGlyph("Shots", root, "×0", 19f, wetMat);
+            Place(shotCount.rectTransform, new Rect(r.center.x - 43f, r.yMax - 2f, 86f, 26f));
             shotCount.alignment = TextAlignmentOptions.Bottom;
             shotCount.color = Color.clear;
+        }
+
+        /// <summary>화면 가운데(조준점 아래) "증기 부족 · 칼로 베어 채우기" 안내</summary>
+        private void BuildPrompt(Transform canvas, Sprite smudge)
+        {
+            RectTransform box = NewRect("EmptyPrompt", canvas);
+            box.anchorMin = box.anchorMax = new Vector2(0.5f, 0.5f);
+            box.pivot = new Vector2(0.5f, 0.5f);
+            box.sizeDelta = new Vector2(520f, 48f);
+            box.anchoredPosition = new Vector2(0f, -120f);
+            promptGroup = box.gameObject.AddComponent<CanvasGroup>();
+            promptGroup.alpha = 0f;
+
+            Image back = NewImage("Paper", box, smudge);
+            back.color = new Color(paperColor.r, paperColor.g, paperColor.b, 0.85f);
+            back.rectTransform.offsetMin = new Vector2(-40f, -16f);
+            back.rectTransform.offsetMax = new Vector2(40f, 16f);
+
+            TMP_Text promptText = NewGlyph("Text", box, emptyText, 30f, wetMat);
+            promptText.alignment = TextAlignmentOptions.Center;
+            promptText.color = chanceColor;
         }
 
         private TMP_Text NewGlyph(string name, Transform parent, string text, float fontSize, Material mat)

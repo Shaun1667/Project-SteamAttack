@@ -66,7 +66,7 @@ namespace NGH
         private void Update()
         {
             Keyboard kb = Keyboard.current;
-            if (kb == null || !useCtrl)
+            if (kb == null || !useCtrl || ControlsOverlay.IsOpen)   // ESC 메뉴·조작 안내 중엔 받아치기 안 함
             {
                 return;
             }

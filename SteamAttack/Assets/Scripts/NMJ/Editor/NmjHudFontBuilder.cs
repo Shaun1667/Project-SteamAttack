@@ -13,14 +13,15 @@ namespace NMJ.EditorTools
     /// 刀 같은 글자는 NGH의 동적 폰트가 실행 중에 채우면서 그 에셋 파일이 계속 바뀐다.
     /// HUD에 필요한 글자만 담은 고정 폰트를 NMJ 폴더에 따로 두면 실행 중에 바뀌는 파일이 없다.
     ///
-    /// 글자를 더하려면 Characters에 넣고 메뉴를 다시 실행하면 된다 (같은 자리에 덮어씀, guid 유지).
+    /// 글자를 더하려면 Characters에 넣고 메뉴를 다시 실행하면 된다 (같은 자리에 파일 내용만 덮어써 guid 유지).
     /// </summary>
     public static class NmjHudFontBuilder
     {
         public const string AssetPath = "Assets/Fonts/NMJ/NMJ_HudGlyphs SDF.asset";
 
-        // 무기 패(刀 銃), 증기 행동 글자(強 銃 逆), 낙관(命), 보스 이름(玄武), 숫자·곱하기
-        private const string Characters = "刀銃強逆命玄武×0123456789";
+        // 무기 패(刀 銃), 증기 행동 글자(強 銃 逆), 낙관(命), 보스 이름(玄武), 숫자·기호,
+        // 화승총 안내("증기 부족 · 칼로 베어 채우기")
+        private const string Characters = "刀銃強逆命玄武討御×0123456789 ·/+증기부족칼로베어채우";
 
         // 앞의 폰트에 글자가 없으면 다음 폰트에서 찾는다
         private static readonly string[] SourceFonts =
@@ -68,30 +69,30 @@ namespace NMJ.EditorTools
             // 면 텍스처(마른 붓)·밑깔림을 쓰려고 Mobile이 아닌 기본 SDF 셰이더를 쓴다
             built.material.shader = Shader.Find("TextMeshPro/Distance Field");
 
-            var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetPath);
-            if (existing != null)
+            // 임시 폴더에 같은 파일 이름으로 새로 저장한다 (에셋 이름이 파일 이름을 따라가므로)
+            string dir = Path.GetDirectoryName(AssetPath).Replace('\\', '/');
+            string tempDir = dir + "/_Temp";
+            AssetDatabase.DeleteAsset(tempDir);
+            AssetDatabase.CreateFolder(dir, "_Temp");
+            string tempPath = tempDir + "/" + Path.GetFileName(AssetPath);
+            AssetDatabase.CreateAsset(built, tempPath);
+            AssetDatabase.AddObjectToAsset(built.atlasTexture, built);
+            AssetDatabase.AddObjectToAsset(built.material, built);
+            EditorUtility.SetDirty(built);
+            AssetDatabase.SaveAssets();
+
+            if (File.Exists(AssetPath))
             {
-                // guid를 지키려고 내용만 바꾼다
-                foreach (Object sub in AssetDatabase.LoadAllAssetRepresentationsAtPath(AssetPath))
-                    Object.DestroyImmediate(sub, true);
-                EditorUtility.CopySerialized(built, existing);
-                AssetDatabase.AddObjectToAsset(built.atlasTexture, existing);
-                AssetDatabase.AddObjectToAsset(built.material, existing);
-                existing.atlasTextures = new[] { built.atlasTexture };
-                existing.material = built.material;
-                EditorUtility.SetDirty(existing);
-                Object.DestroyImmediate(built);
+                // 이미 있으면 파일 내용만 바꿔 guid(.meta)를 지킨다 — 프리팹 등에서 건 참조가 그대로 유지됨
+                File.Copy(tempPath, AssetPath, true);
+                AssetDatabase.ImportAsset(AssetPath, ImportAssetOptions.ForceUpdate);
             }
             else
             {
-                AssetDatabase.CreateAsset(built, AssetPath);
-                AssetDatabase.AddObjectToAsset(built.atlasTexture, built);
-                AssetDatabase.AddObjectToAsset(built.material, built);
-                EditorUtility.SetDirty(built);
+                AssetDatabase.MoveAsset(tempPath, AssetPath);
             }
-
+            AssetDatabase.DeleteAsset(tempDir);
             AssetDatabase.SaveAssets();
-            AssetDatabase.ImportAsset(AssetPath);
             Debug.Log($"[NMJ] HUD 한자 폰트 저장: {AssetPath} ({Characters.Length}자)");
         }
     }

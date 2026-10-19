@@ -6,6 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/NMJ/NMJ_Title.unity
+    guid: 966dc7a665d4bb34f93ab5fa6f81dda3
+  - enabled: 1
+    path: Assets/Scenes/NMJ/NMJ_Main.unity
+    guid: 41f05f0b9e6fcb740ad9af76104acc50
+  - enabled: 1
     path: Assets/Scenes/Common/Main.unity
     guid: ebc872360a4c0114d9a461db8126b68c
   - enabled: 1
