@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: a6a471a13ef731e4d8b185137b8da3b9
+guid: 133454fd952ed2548b641128090adadd
 ModelImporter:
   serializedVersion: 24600
   internalIDToNameTable: []
@@ -8,27 +8,27 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: URPLab_Baked_Gun
-    second: {fileID: 2100000, guid: f8ba83a09aeba89469430934e17a79b4, type: 2}
+    second: {fileID: 2100000, guid: aad5f43fceab35042a3cdcc7e4af64b4, type: 2}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: Gun_BaseColor
-    second: {fileID: 2800000, guid: 58c5a7895e5e2f94eaa20b2c30ae1f0c, type: 3}
+    second: {fileID: 2800000, guid: b3837a0aa4a969f49b8d6a16917a3197, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: Gun_Metallic
-    second: {fileID: 2800000, guid: a27337d46a1691543a155726b16f9540, type: 3}
+    second: {fileID: 2800000, guid: 21b26223f8c24da4888dfba2a5f7108c, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: Gun_Normal
-    second: {fileID: 2800000, guid: 8071045d9402de2489d5cda9771d4350, type: 3}
+    second: {fileID: 2800000, guid: 10daa01ee5f5ed54e9d542cb385b63b4, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: Gun_Roughness
-    second: {fileID: 2800000, guid: f16594f71d536154daa0503ad32373b3, type: 3}
+    second: {fileID: 2800000, guid: 67f07129cc6317d4ea35c1be73544656, type: 3}
   materials:
     materialImportMode: 2
     materialName: 0
