@@ -9,10 +9,10 @@ using BHS;
 namespace NMJ
 {
     /// <summary>
-    /// 현무 보스 체력바 — 1페이즈 [흑철의 가갑] (기획: 압축 기획안 v3 4-3, UI 목록 1번)
+    /// 현무 보스 체력바 — 1페이즈 [북방의 수신] (기획: 세계관 v6 법칙 7·6-2, UI 목록 1번)
     ///
     ///   [ 玄武 현무 | 앞 좌 🔒 / 앞 우 🔒 / 뒤 좌 🔒 / 뒤 우 🔒 ]
-    ///                       흑철의 가갑
+    ///                       북방의 수신
     ///
     /// - 다리(BHS.BossWallHealth) 하나가 맞을 때마다 그 칸이 깎이고, 칸이 다 비면 놋쇠 자물쇠가 풀리며 칸이 깨진다.
     /// - 다리 4개가 모두 깨지면 OnAllLegsBroken 이벤트를 한 번 보내고 바가 사라진다.
@@ -34,7 +34,7 @@ namespace NMJ
 
         [Header("글자")]
         [SerializeField] private string bossName = "玄武  현무";
-        [SerializeField] private string phaseTitle = "흑철의 가갑";
+        [SerializeField] private string phaseTitle = "북방의 수신";
         [SerializeField] private string[] legLabels = { "앞 좌", "앞 우", "뒤 좌", "뒤 우" };
 
         [Header("배치 (화면 1920×1080 기준)")]

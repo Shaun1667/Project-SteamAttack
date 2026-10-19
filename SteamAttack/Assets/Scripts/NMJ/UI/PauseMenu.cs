@@ -165,6 +165,7 @@ namespace NMJ
             if (GameOverScreen.IsShowing || DefeatScreen.IsShowing || Time.frameCount - lastGameOverFrame <= 1) return false;
             if (player != null && player.IsDead) return false;
             if (BossDefeatBanner.IsShowing || EndingCredits.IsPlaying) return false;   // 처치 문구 → 엔딩 크레딧 중에는 열지 않는다
+            if (NmjOpening.IsPlaying || NmjDialogue.IsPlaying || NmjReadable.IsReading) return false;   // 오프닝·대사·글 읽기는 ESC를 각자 쓴다
             return !ControlsOverlay.GuideOpen;
         }
 
