@@ -49,6 +49,24 @@ namespace NMJ
             new Credit { role = "주인공 모델 · 화승총 · 받아치기 · 일반 적", names = new[] { "YPH (이름)" } },
         };
 
+        [Header("수화기제 — 처치 문구 뒤, 크레딧 앞의 대사 (세계관 v6 5장 4:40~5:00)")]
+        [SerializeField] private NmjDialogue.Line[] epilogue =
+        {
+            NmjDialogue.Card("수화기제", "물과 불이 제자리를 찾다", 2.4f),
+            NmjDialogue.Narrate("무사가 혼천의를 등에서 풀어, 현무의 신핵에 물린다."),
+            NmjDialogue.Narrate("증기통의 압력 전부가 혼천의를 거꾸로 돌리고, 현무는 삼킨 시간과 열을 허물처럼 벗는다."),
+            NmjDialogue.Narrate("증기통이 터지며 열이 도성으로 돌아온다. 현무는 연못 아래로 가라앉아 잠든다."),
+            NmjDialogue.Say("백성", "…방금 귀신불이 깜빡였나?"),
+            NmjDialogue.Say("고종", "기억하는 이는 우리뿐이로구나. 그러면 되었다."),
+            NmjDialogue.Say("고종", "불은 끄지 않는다. 다만 물을 거스르지 않게 쓰리라.", 2.6f),
+        };
+
+        [Header("크레딧 끝 — 멈칫하는 눈송이 (현무는 잠들었을 뿐)")]
+        [SerializeField] private bool coda = true;
+        [SerializeField] private string codaPlace = "향원정";
+        [Tooltip("눈송이가 물에 닿기 직전 멈춰 있는 시간(초)")]
+        [SerializeField, Min(0f)] private float codaPause = 1.1f;
+
         [Header("글자")]
         [SerializeField] private string logo = "玄武";
         [SerializeField] private string subtitle = "역류의 어명";
@@ -93,7 +111,7 @@ namespace NMJ
 
         private TMP_FontAsset HanjaFont => glyphFont != null ? glyphFont : font;
 
-        private enum Stage { Idle, FadeIn, Roll, Final, Leaving }
+        private enum Stage { Idle, Epilogue, FadeIn, Roll, Coda, Final, Leaving }
 
         private Stage stage = Stage.Idle;
         private float timer;
@@ -105,6 +123,13 @@ namespace NMJ
 
         private struct Flake { public RectTransform rt; public Image img; public float x, speed, sway, phase; }
         private readonly List<Flake> flakes = new List<Flake>();
+        private float snowSpeed = 1f, snowClock;
+
+        // 크레딧 끝 한 컷
+        private CanvasGroup codaGroup;
+        private RectTransform codaFlake, ripple;
+        private Image codaHalo, rippleImg;
+        private Texture2D glowTex, ringTex;
 
         // ───────── 시작 ─────────
 
@@ -121,6 +146,8 @@ namespace NMJ
         {
             if (banner != null) banner.OnFinished.RemoveListener(Play);
             if (sealTex != null) Destroy(sealTex);
+            if (glowTex != null) Destroy(glowTex);
+            if (ringTex != null) Destroy(ringTex);
             if (IsPlaying) EndControl();
         }
 
@@ -137,11 +164,25 @@ namespace NMJ
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
 
+            // 먼저 풀린 도성 위에서 수화기제 대사 → 끝나면 크레딧
+            if (epilogue != null && epilogue.Length > 0)
+            {
+                stage = Stage.Epilogue;
+                NmjDialogue.Play(epilogue, () => { if (stage == Stage.Epilogue) StartRoll(); });
+                return;
+            }
+            StartRoll();
+        }
+
+        private void StartRoll()
+        {
             group.gameObject.SetActive(true);
             group.alpha = 0f;
             rollGroup.alpha = 1f;
             finalGroup.alpha = 0f;
             promptGroup.alpha = 0f;
+            codaGroup.alpha = 0f;
+            snowSpeed = 1f;
             SetRollY(0f);
             stage = Stage.FadeIn;
             timer = 0f;
@@ -165,7 +206,7 @@ namespace NMJ
 
         private void Update()
         {
-            if (stage == Stage.Idle) return;
+            if (stage == Stage.Idle || stage == Stage.Epilogue) return;
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             timer += dt;
             UpdateSnow(dt);
@@ -187,7 +228,16 @@ namespace NMJ
                     // 키를 누르고 있으면 4배 빠르게, ESC는 마지막 판으로
                     float y = roll.anchoredPosition.y + scrollSpeed * dt * (anyHeld ? 4f : 1f);
                     SetRollY(y);
-                    if (esc || y >= rollHeight + canvasRect.rect.height) ToFinal();
+                    if (esc || y >= rollHeight + canvasRect.rect.height)
+                    {
+                        if (coda) ToCoda();
+                        else ToFinal();
+                    }
+                    break;
+
+                case Stage.Coda:
+                    UpdateCoda();
+                    if (esc) { snowSpeed = 1f; ToFinal(); }
                     break;
 
                 case Stage.Final:
@@ -209,6 +259,67 @@ namespace NMJ
             stage = Stage.Final;
             timer = 0f;
             rollGroup.alpha = 0f;
+            codaGroup.alpha = 0f;
+        }
+
+        // ───────── 크레딧 끝 한 컷: 연못 위로 떨어진 눈송이 하나가 물에 닿기 직전 멈칫했다가 떨어진다 ─────────
+
+        // 들어옴 0~1 → 떨어짐 (fallTime) → 멈칫 (codaPause, 다른 눈도 모두 멈춤) → 닿음 0.3 → 물결 1.6 → 마지막 판
+        private const float CodaFall = 4.2f;
+        private const float CodaStopAbove = 34f;
+
+        private void ToCoda()
+        {
+            stage = Stage.Coda;
+            timer = 0f;
+            rollGroup.alpha = 0f;
+            UpdateCoda();
+        }
+
+        private void UpdateCoda()
+        {
+            float h = canvasRect.rect.height;
+            float water = h * 0.3f;
+            float startY = h + 20f;
+            float stopY = water + CodaStopAbove;
+            float t = timer;
+
+            codaGroup.alpha = Mathf.Clamp01(t / 1f);
+            float pauseStart = CodaFall, pauseEnd = CodaFall + codaPause, touch = pauseEnd + 0.3f;
+            float y;
+            if (t < pauseStart)
+            {
+                // 처음엔 빠르게, 물에 가까워질수록 느려지며 내려온다
+                float k = t / CodaFall;
+                y = Mathf.Lerp(startY, stopY, 1f - (1f - k) * (1f - k));
+                snowSpeed = 1f;
+            }
+            else if (t < pauseEnd)
+            {
+                // 멈칫: 이 눈송이와 함께 화면의 모든 눈이 멈추고, 푸른 빛(시간)이 한 번 스친다
+                y = stopY + Mathf.Sin((t - pauseStart) * 40f) * 0.6f;
+                snowSpeed = 0f;
+            }
+            else
+            {
+                float k = Mathf.Clamp01((t - pauseEnd) / 0.3f);
+                y = Mathf.Lerp(stopY, water, k * k);
+                snowSpeed = Mathf.Clamp01((t - pauseEnd) / 0.6f);
+            }
+
+            float pause = t >= pauseStart && t < pauseEnd ? Mathf.Sin(Mathf.Clamp01((t - pauseStart) / codaPause) * Mathf.PI) : 0f;
+            codaFlake.anchoredPosition = new Vector2(canvasRect.rect.width * 0.5f + Mathf.Sin(t * 0.9f) * 10f * (t < pauseStart ? 1f : 0f), y);
+            codaFlake.GetComponent<Image>().color = new Color(snowColor.r, snowColor.g, snowColor.b, t < touch ? 1f : 0f);
+            codaHalo.rectTransform.anchoredPosition = codaFlake.anchoredPosition;
+            codaHalo.color = new Color(0.45f, 0.72f, 1f, 0.55f * pause);
+
+            // 물결
+            float r = Mathf.Clamp01((t - touch) / 1.6f);
+            ripple.anchoredPosition = new Vector2(canvasRect.rect.width * 0.5f, water);
+            ripple.sizeDelta = new Vector2(Mathf.Lerp(10f, 420f, 1f - (1f - r) * (1f - r)), Mathf.Lerp(3f, 70f, 1f - (1f - r) * (1f - r)));
+            rippleImg.color = new Color(snowColor.r, snowColor.g, snowColor.b, t >= touch ? 0.7f * (1f - r) : 0f);
+
+            if (t >= touch + 2.0f) ToFinal();
         }
 
         private void Leave()
@@ -238,12 +349,13 @@ namespace NMJ
         {
             // 해빙: 멈췄던 눈송이가 다시 천천히 떨어진다
             float h = canvasRect.rect.height, w = canvasRect.rect.width;
-            float t = Time.unscaledTime;
+            snowClock += dt * snowSpeed;
+            float t = snowClock;
             for (int i = 0; i < flakes.Count; i++)
             {
                 Flake f = flakes[i];
                 Vector2 p = f.rt.anchoredPosition;
-                p.y -= f.speed * dt;
+                p.y -= f.speed * dt * snowSpeed;
                 if (p.y < -10f) { p.y = h + 10f; }
                 p.x = f.x * w + Mathf.Sin(t * 0.6f + f.phase) * f.sway;
                 f.rt.anchoredPosition = p;
@@ -280,7 +392,67 @@ namespace NMJ
             }
 
             BuildRoll(canvas.transform);
+            BuildCoda(canvas.transform);
             BuildFinal(canvas.transform);
+        }
+
+        private void BuildCoda(Transform parent)
+        {
+            RectTransform root = NewRect("Coda", parent);
+            codaGroup = root.gameObject.AddComponent<CanvasGroup>();
+            codaGroup.alpha = 0f;
+
+            // 얼음이 풀린 연못: 물 아래는 조금 더 짙게, 수면은 옅은 빛 한 줄
+            Image deep = NewImage("Water", root, new Color(0f, 0f, 0f, 0.35f), Vector2.zero, Vector2.zero);
+            deep.rectTransform.anchorMax = new Vector2(1f, 0.3f);
+            Image surface = NewImage("Surface", root, new Color(snowColor.r, snowColor.g, snowColor.b, 0.22f), Vector2.zero, Vector2.zero);
+            RectTransform sr = surface.rectTransform;
+            sr.anchorMin = new Vector2(0.18f, 0.3f);
+            sr.anchorMax = new Vector2(0.82f, 0.3f);
+            sr.sizeDelta = new Vector2(0f, 2f);
+
+            TMP_Text place = NewText("Place", root, font, codaPlace, 22f, brassColor);
+            place.characterSpacing = 30f;
+            place.alpha = 0.55f;
+            RectTransform pr = place.rectTransform;
+            pr.anchorMin = pr.anchorMax = new Vector2(0.5f, 0.2f);
+            pr.sizeDelta = new Vector2(400f, 40f);
+
+            glowTex = DrawRadial(64, false);
+            ringTex = DrawRadial(128, true);
+            codaHalo = NewImage("Halo", root, Color.clear, Vector2.zero, Vector2.zero);
+            RectTransform hr = codaHalo.rectTransform;
+            hr.anchorMin = hr.anchorMax = Vector2.zero;
+            hr.sizeDelta = new Vector2(90f, 90f);
+            codaHalo.sprite = Sprite.Create(glowTex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f));
+
+            Image flake = NewImage("Flake", root, snowColor, Vector2.zero, Vector2.zero);
+            codaFlake = flake.rectTransform;
+            codaFlake.anchorMin = codaFlake.anchorMax = Vector2.zero;
+            codaFlake.sizeDelta = new Vector2(8f, 8f);
+            codaFlake.localRotation = Quaternion.Euler(0f, 0f, 45f);
+
+            rippleImg = NewImage("Ripple", root, Color.clear, Vector2.zero, Vector2.zero);
+            ripple = rippleImg.rectTransform;
+            ripple.anchorMin = ripple.anchorMax = Vector2.zero;
+            rippleImg.sprite = Sprite.Create(ringTex, new Rect(0, 0, 128, 128), new Vector2(0.5f, 0.5f));
+        }
+
+        /// <summary>둥근 빛(ring = false) 또는 가는 고리(ring = true) — 납작하게 늘리면 물결 타원이 된다</summary>
+        private static Texture2D DrawRadial(int S, bool ring)
+        {
+            var px = new Color32[S * S];
+            for (int y = 0; y < S; y++)
+                for (int x = 0; x < S; x++)
+                {
+                    float d = new Vector2(x + 0.5f - S * 0.5f, y + 0.5f - S * 0.5f).magnitude / (S * 0.5f);
+                    float a = ring ? Mathf.Clamp01(1f - Mathf.Abs(d - 0.9f) / 0.06f) : Mathf.Pow(Mathf.Clamp01(1f - d), 2f);
+                    px[y * S + x] = new Color(1f, 1f, 1f, a);
+                }
+            var tex = new Texture2D(S, S, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.DontSave };
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            return tex;
         }
 
         private void BuildRoll(Transform parent)
