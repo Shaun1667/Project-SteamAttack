@@ -20,6 +20,38 @@ namespace YPH
         [Tooltip("잔량은 있지만 요청량보다 부족하여 소비하지 못했을 때 분출할 파티클 수입니다. 잔량이 0이면 이 값과 관계없이 분출하지 않습니다. 0이면 모든 실패 분출을 끕니다.")]
         [SerializeField, Min(0)] private int _failBurstCount = 8;
 
+        [Tooltip("켜면 증기가 최대치일 때 굴뚝에서 붉은 증기가 계속 피어오르며, 줄어들면 멈춥니다. 기본은 꺼짐입니다.")]
+        [SerializeField] private bool _fullSteamEnabled;
+        [Tooltip("가득 찼을 때 증기 색입니다. 알파를 높이면 진하게 보이며 평소 소비 분출 색은 파티클 설정을 유지합니다.")]
+        [SerializeField] private Color _fullSteamColor = new Color(0.85f, 0.15f, 0.1f, 0.8f);
+        [Tooltip("가득 찼을 때 초당 내보낼 입자 수입니다. 높이면 더 진하게 피어오르며 0이면 분출하지 않습니다.")]
+        [SerializeField, Min(0f)] private float _fullSteamRate = 12f;
+
+        private bool _isFull;
+        private float _fullSteamAccumulator;
+        private ParticleSystem.EmitParams _fullSteamParams = new ParticleSystem.EmitParams();
+
+        /// <summary>가득 찬 동안 시간에 맞춰 붉은 입자를 내보냅니다. 재사용 구조체로 소비 분출 색과 분리합니다.</summary>
+        private void Update()
+        {
+            if (!_fullSteamEnabled || !_isFull || _ventParticles == null)
+            {
+                _fullSteamAccumulator = 0f;
+                return;
+            }
+            _fullSteamAccumulator += Time.deltaTime * _fullSteamRate;
+            _fullSteamParams.startColor = _fullSteamColor;
+            if (_fullSteamAccumulator >= 1f && !_ventParticles.isPlaying)
+            {
+                _ventParticles.Play();
+            }
+            while (_fullSteamAccumulator >= 1f)
+            {
+                _ventParticles.Emit(_fullSteamParams, 1);
+                _fullSteamAccumulator -= 1f;
+            }
+        }
+
         private void Awake()
         {
             // 알림을 보낼 탱크와 실제 분출 대상이 모두 있어야 동작하므로 누락 시 이 뷰만 중단합니다.
@@ -37,7 +69,7 @@ namespace YPH
             {
                 return;
             }
-            // 압력 알림은 빈 탱크의 재생을 멈추는 데만 사용합니다. 분출은 소비 결과 알림에서만 요청합니다.
+            // 압력 알림에서 최대치 여부를 갱신하고, 소비 순간의 분출은 별도 결과 알림으로 처리합니다.
             _tank.OnPressureChanged += OnPressureChanged;
             _tank.OnConsumed += OnConsumed;
             _tank.OnConsumeFailed += OnConsumeFailed;
@@ -46,6 +78,8 @@ namespace YPH
 
         private void OnDisable()
         {
+            _isFull = false;
+            _fullSteamAccumulator = 0f;
             // 꺼진 배출구가 분출하지 않게 하고, 다시 켰을 때 알림이 중복되지 않도록 구독과 재생을 정리합니다.
             if (_tank != null)
             {
@@ -61,6 +95,11 @@ namespace YPH
 
         private void OnPressureChanged(float current, float max)
         {
+            _isFull = max > 0f && current >= max;
+            if (!_isFull)
+            {
+                _fullSteamAccumulator = 0f;
+            }
             // 소비 이벤트보다 먼저 호출됩니다. 마지막 소비로 빈 탱크가 되면 기존 입자까지 즉시 지웁니다.
             // 회복으로 양수가 되어도 여기서는 Play를 호출하지 않아 자동으로 분출하지 않습니다.
             if (current <= 0f)

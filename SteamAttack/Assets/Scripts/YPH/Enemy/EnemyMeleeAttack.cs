@@ -36,6 +36,9 @@ namespace YPH
         [SerializeField, Tooltip("강공격 판정 중심의 로컬 위치(m)입니다.")] private Vector3 _heavyHitboxOffset = new Vector3(0f, 0.9f, 1.1f);
         [SerializeField, Tooltip("강공격 판정 상자의 크기(m)입니다. 높이면 범위가 넓어집니다.")] private Vector3 _heavyHitboxSize = new Vector3(1.4f, 1.8f, 1.6f);
         [SerializeField, Tooltip("켜면 강공격 예고 때 동심원이 나타나며 받아치기를 허용합니다.")] private bool _heavyParryable = true;
+        [Header("공격 뒤 휴식")]
+        [SerializeField, Min(0f), Tooltip("일반·강공격이 끝난 뒤 제자리에서 쉬는 최소 시간(초)입니다. 쉬는 동안 플레이어 쪽만 보고 움직이지 않으며, 높이면 반격할 틈이 길어지고 최소·최대가 모두 0이면 쉬지 않습니다.")] private float _restTimeMin = 0f;
+        [SerializeField, Min(0f), Tooltip("쉬는 최대 시간(초)입니다. 최소와 최대 사이에서 매번 무작위로 정하며, 높이면 긴 휴식이 나올 수 있고 최소보다 작게 설정할 수 없습니다.")] private float _restTimeMax = 0f;
         [Header("원거리 적의 근접 킥")]
         [SerializeField, Tooltip("켜면 원거리 모드에서 가까운 플레이어에게 사격보다 킥을 먼저 사용합니다.")] private bool _kickEnabled;
         [SerializeField, Tooltip("킥 시작 거리(m)입니다. 높이면 더 멀리서 킥을 고릅니다.")] private float _kickRange = 2.5f;
@@ -77,6 +80,7 @@ namespace YPH
             _heavyWindup = Mathf.Max(0f, _heavyWindup);
             _heavyActiveTime = Mathf.Max(0.01f, _heavyActiveTime);
             _heavyRecovery = Mathf.Max(0f, _heavyRecovery);
+            _restTimeMax = Mathf.Max(_restTimeMin, _restTimeMax);
         }
         public override bool CanBegin(float distanceToPlayer)
         {
@@ -109,6 +113,9 @@ namespace YPH
             _nextKickTime = 0f;
         }
 
+        /// <summary>이번 공격 뒤 쉴 시간을 최소~최대 사이에서 무작위로 고릅니다. 둘 다 0이면 0입니다.</summary>
+        private float RestTime() => _restTimeMax > 0f ? Random.Range(_restTimeMin, _restTimeMax) : 0f;
+
         private IEnumerator NormalRoutine()
         {
             Animation?.Play(EnemyAnimatorLink.AttackHash);
@@ -117,6 +124,7 @@ namespace YPH
             Motor.StartLunge(_attackLungeDistance, _attackLungeDuration, false);
             yield return WaitActive(_attackActiveTime);
             yield return WaitActive(_attackCooldown, true);
+            yield return WaitActive(RestTime(), true);
             Finish();
         }
         private IEnumerator HeavyRoutine()
@@ -134,6 +142,8 @@ namespace YPH
             yield return WaitActive(_heavyActiveTime);
             Brain.CloseParryWindow();
             yield return WaitActive(HeavyRecovery);
+            Brain.SetSuperArmor(false); // 쉬는 동안은 반격에 경직되게 합니다.
+            yield return WaitActive(RestTime(), true);
             Finish();
         }
         private IEnumerator KickRoutine()

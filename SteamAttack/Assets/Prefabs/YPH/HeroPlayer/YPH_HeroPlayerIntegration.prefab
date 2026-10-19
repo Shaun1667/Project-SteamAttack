@@ -17952,8 +17952,8 @@ GameObject:
   - component: {fileID: 8779711164100210590}
   - component: {fileID: 1862137804631390693}
   - component: {fileID: 6347576647544692311}
-  - component: {fileID: 8017622153196805412}
-  - component: {fileID: 135110882980336567}
+  - component: {fileID: 4990473850159392292}
+  - component: {fileID: 4412064709674172395}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -22221,106 +22221,6 @@ MonoBehaviour:
   wobble: 0.03
   cameraFadeNear: 0.5
   cameraFadeFar: 1.6
---- !u!114 &8017622153196805412
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3104297047625066499}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d796dc1f901a4083b1b73a70344b63a7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NMJ.InkHealthBar
-  player: {fileID: 7706470834897513168}
-  brushShader: {fileID: 4800000, guid: 7157adcec3b447944a9179780ed1c4dd, type: 3}
-  sealFont: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
-  position: {x: 96, y: 92}
-  size: {x: 520, y: 64}
-  showSeal: 1
-  sealText: "\u547D"
-  sealSize: 48
-  sealAngle: -5
-  thickness: 34
-  headLength: 0.07
-  headBulge: 1.15
-  tailLength: 0.18
-  bristleCount: 64
-  roughness: 1
-  dryness: 0.9
-  splatter: 0.6
-  waviness: 2.2
-  slant: 6
-  rimBristles: 0.14
-  seed: 3
-  inkLight: {r: 0.2, g: 0.19, b: 0.19, a: 1}
-  inkDark: {r: 0.03, g: 0.03, b: 0.04, a: 1}
-  redLight: {r: 0.93, g: 0.18, b: 0.14, a: 1}
-  redDark: {r: 0.42, g: 0.02, b: 0.03, a: 1}
-  trailColor: {r: 0.97, g: 0.7, b: 0.64, a: 0.9}
-  sealColor: {r: 0.78, g: 0.12, b: 0.1, a: 1}
-  paperColor: {r: 0.96, g: 0.93, b: 0.85, a: 1}
-  haloAlpha: 0
-  tearLength: 16
-  fringeLength: 18
-  trailDelay: 0.45
-  trailSpeed: 0.55
-  refillSpeed: 1.2
-  hitShake: 5
-  lowHpRatio: 0.3
-  lowPulseDepth: 0.28
-  dripAmount: 1
-  dripGravity: 520
---- !u!114 &135110882980336567
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3104297047625066499}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 795e0f5270a84bb8ae64553d2a2eeb6e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NMJ.SteamCylinderGauge
-  tank: {fileID: 0}
-  player: {fileID: 7706470834897513168}
-  glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
-  glyphShader: {fileID: 4800000, guid: 68e6db2ebdc24f95958faec2be5558d6, type: 3}
-  position: {x: 60, y: 22}
-  size: {x: 600, y: 58}
-  gunCost: 5
-  strongCost: 30
-  rewindCost: 70
-  gunLabel: "\u9283"
-  strongLabel: "\u5F37"
-  rewindLabel: "\u9006"
-  meleeGlyph: "\u5200"
-  gunGlyph: "\u9283"
-  sheathedAlpha: 0.45
-  strongChanceTime: 1.2
-  gun: {fileID: 0}
-  parry: {fileID: 0}
-  emptyText: "\uC99D\uAE30 \uBD80\uC871 \xB7 \uCE7C\uB85C \uBCA0\uC5B4 \uCC44\uC6B0\uAE30"
-  emptyPromptTime: 1.8
-  ironColor: {r: 0.17, g: 0.15, b: 0.14, a: 1}
-  brassColor: {r: 0.62, g: 0.44, b: 0.19, a: 1}
-  inkColor: {r: 0.05, g: 0.05, b: 0.06, a: 1}
-  dryInkColor: {r: 0.16, g: 0.15, b: 0.14, a: 0.95}
-  paperColor: {r: 0.88, g: 0.83, b: 0.72, a: 1}
-  glassColor: {r: 0.1, g: 0.11, b: 0.12, a: 1}
-  steamColor: {r: 0.95, g: 0.95, b: 0.93, a: 1}
-  chanceColor: {r: 0.8, g: 0.1, b: 0.07, a: 1}
-  warnColor: {r: 0.85, g: 0.15, b: 0.1, a: 1}
-  drainSpeed: 1.6
-  refillSpeed: 0.8
-  swirlSpeed: 0.04
-  puffsPer10: 2
-  failShake: 6
-  inkSpeed: 5
-  seed: 5
-  testKeys: 1
 --- !u!1 &3153274227430968840
 GameObject:
   m_ObjectHideFlags: 0
@@ -25187,7 +25087,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4093865192818125533
 RectTransform:
   m_ObjectHideFlags: 0
@@ -25278,7 +25178,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3421195163988772572}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 77a0306311a3440b9adc643e16cb5474, type: 3}
   m_Name: 
@@ -54285,3 +54185,99 @@ Transform:
   - {fileID: 8824496777217953950}
   m_Father: {fileID: 454106195038044651}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4990473850159392292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3104297047625066499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d796dc1f901a4083b1b73a70344b63a7, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.InkHealthBar
+  player: {fileID: 7706470834897513168}
+  brushShader: {fileID: 4800000, guid: 7157adcec3b447944a9179780ed1c4dd, type: 3}
+  sealFont: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  position: {x: 96, y: 92}
+  size: {x: 520, y: 64}
+  showSeal: 1
+  sealText: "\u547D"
+  sealSize: 48
+  sealAngle: -5
+  thickness: 34
+  headLength: 0.07
+  headBulge: 1.15
+  tailLength: 0.18
+  bristleCount: 64
+  roughness: 1
+  dryness: 0.9
+  splatter: 0.6
+  waviness: 2.2
+  slant: 6
+  rimBristles: 0.14
+  seed: 3
+  inkLight: {r: 0.2, g: 0.19, b: 0.19, a: 1}
+  inkDark: {r: 0.03, g: 0.03, b: 0.04, a: 1}
+  redLight: {r: 0.93, g: 0.18, b: 0.14, a: 1}
+  redDark: {r: 0.42, g: 0.02, b: 0.03, a: 1}
+  trailColor: {r: 0.97, g: 0.7, b: 0.64, a: 0.9}
+  sealColor: {r: 0.78, g: 0.12, b: 0.1, a: 1}
+  paperColor: {r: 0.96, g: 0.93, b: 0.85, a: 1}
+  haloAlpha: 0
+  tearLength: 16
+  fringeLength: 18
+  trailDelay: 0.45
+  trailSpeed: 0.55
+  refillSpeed: 1.2
+  hitShake: 5
+  lowHpRatio: 0.3
+  lowPulseDepth: 0.28
+  dripAmount: 1
+  dripGravity: 520
+--- !u!114 &4412064709674172395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3104297047625066499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 795e0f5270a84bb8ae64553d2a2eeb6e, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.SteamCylinderGauge
+  tank: {fileID: 6342032219919825200}
+  player: {fileID: 7706470834897513168}
+  glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
+  glyphShader: {fileID: 4800000, guid: 68e6db2ebdc24f95958faec2be5558d6, type: 3}
+  position: {x: 60, y: 22}
+  size: {x: 600, y: 58}
+  gunCost: 5
+  strongCost: 30
+  rewindCost: 70
+  gunLabel: "\u9283"
+  strongLabel: "\u5F37"
+  rewindLabel: "\u9006"
+  meleeGlyph: "\u5200"
+  gunGlyph: "\u9283"
+  sheathedAlpha: 0.45
+  strongChanceTime: 1.2
+  ironColor: {r: 0.17, g: 0.15, b: 0.14, a: 1}
+  brassColor: {r: 0.62, g: 0.44, b: 0.19, a: 1}
+  inkColor: {r: 0.05, g: 0.05, b: 0.06, a: 1}
+  dryInkColor: {r: 0.16, g: 0.15, b: 0.14, a: 0.95}
+  paperColor: {r: 0.88, g: 0.83, b: 0.72, a: 1}
+  glassColor: {r: 0.1, g: 0.11, b: 0.12, a: 1}
+  steamColor: {r: 0.95, g: 0.95, b: 0.93, a: 1}
+  chanceColor: {r: 0.8, g: 0.1, b: 0.07, a: 1}
+  warnColor: {r: 0.85, g: 0.15, b: 0.1, a: 1}
+  drainSpeed: 1.6
+  refillSpeed: 0.8
+  swirlSpeed: 0.04
+  puffsPer10: 2
+  failShake: 6
+  inkSpeed: 5
+  seed: 5
+  testKeys: 1

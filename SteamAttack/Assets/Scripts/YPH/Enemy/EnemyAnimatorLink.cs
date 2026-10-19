@@ -15,6 +15,7 @@ namespace YPH
         internal static readonly int AttackHash = Animator.StringToHash("Attack");
         internal static readonly int HeavyAttackHash = Animator.StringToHash("HeavyAttack");
         internal static readonly int FireHash = Animator.StringToHash("Fire");
+        internal static readonly int AimHash = Animator.StringToHash("Aim");
         internal static readonly int KickHash = Animator.StringToHash("Kick");
         internal static readonly int ParriedHash = Animator.StringToHash("Parried");
         private static readonly int _dieHash = Animator.StringToHash("Die");
@@ -131,6 +132,15 @@ namespace YPH
 
         internal void SetKickSpeed(float speed) => SetFloat(_kickSpeedHash, speed, false);
 
+        /// <summary>조준 파라미터가 있는 Animator에만 조준 상태를 전달합니다.</summary>
+        internal void SetAiming(bool aiming)
+        {
+            if (CanSet(AimHash))
+            {
+                _animator.SetBool(AimHash, aiming);
+            }
+        }
+
         internal void Play(int trigger)
         {
             ResetAttackTriggers();
@@ -142,6 +152,7 @@ namespace YPH
 
         internal void StopForDeath()
         {
+            SetAiming(false);
             SetFloat(_speedHash, 0f, false);
             SetFloat(_moveXHash, 0f, false);
             SetFloat(_moveZHash, 0f, false);
