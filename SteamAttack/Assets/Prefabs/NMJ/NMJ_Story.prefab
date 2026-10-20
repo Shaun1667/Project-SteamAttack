@@ -576,7 +576,7 @@ MonoBehaviour:
   dateLine: "\uACE0\uC885 24\uB144(1887) 3\uC6D4"
   placeLine: "\uACBD\uBCF5\uAD81 \uAC74\uCCAD\uAD81 \xB7 \uC870\uC120 \uCD5C\uCD08\uC758 \uC804\uB4F1\uC774 \uCF1C\uC9C0\uB358 \uBC24"
   breathLine: "\uB545\uC18D \uAE4A\uC740 \uACF3\uC5D0\uC11C, \uAC70\uB300\uD55C \uC228 \uD55C \uBC88."
-  breathClip: {fileID: 8300000, guid: e1ff858c42bb8624f8e032398db18ed4, type: 3}
+  breathClip: {fileID: 8300000, guid: c7f1a66b15c8eaa4b92b42b0bf0eb3bb, type: 3}
   breathVolume: 0.9
   breathTime: 5
   lines:

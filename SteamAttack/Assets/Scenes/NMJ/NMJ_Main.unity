@@ -366907,6 +366907,23 @@ MonoBehaviour:
   _gun: {fileID: 5997541314955066637}
   _enemyImpact: {fileID: 1082348705388001236}
   _surfaceImpact: {fileID: 9190251813304780713}
+--- !u!1001 &1730491001
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1730492811562041, guid: 1baf64cd2b61422f8026f240bed01483, type: 3}
+      propertyPath: m_Name
+      value: NMJ_FieldBGM
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 1baf64cd2b61422f8026f240bed01483, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -366927,3 +366944,4 @@ SceneRoots:
   - {fileID: 1937504416}
   - {fileID: 1527262606}
   - {fileID: 134993342}
+  - {fileID: 1730491001}
