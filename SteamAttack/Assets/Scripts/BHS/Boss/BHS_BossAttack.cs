@@ -10,15 +10,6 @@ public abstract class BossAttack : MonoBehaviour
     [Min(0f)] public float minUseDistance = 3f;
     [Min(0f)] public float maxUseDistance = 5f;
 
-    [Header("실제 공격 발생 기준점")]
-    [Tooltip("뱀 브레스는 입 위치를 연결합니다. 비우면 FSM이 전달한 실행 기준점을 사용합니다. 패턴 선택 거리의 기준점과는 별개입니다.")]
-    public Transform attackOrigin;
-
-    public Vector3 GetOriginPosition(Transform fallback)
-    {
-        return attackOrigin != null ? attackOrigin.position : fallback.position;
-    }
-
     [Header("공격 시간")]
     [Min(0f)] public float readyTime = 1.5f;
     [Tooltip("근거리/브레스의 지속 시간. 돌진은 이동거리와 속도로 자동 계산합니다.")]
@@ -60,7 +51,13 @@ public abstract class BossAttack : MonoBehaviour
         return isActiveAndEnabled && distance >= minimum && distance <= maximum;
     }
 
-    // BossFSM 또는 SnakeFSM에서 호출한다. 예고 시작 순간의 위치와 방향을 저장한다.
+    // 위치 조건이 필요한 패턴용. 기존 거리 판정과 거리 기즈모는 그대로 사용한다.
+    public virtual bool CanUse(float distance, Transform target)
+    {
+        return CanUse(distance);
+    }
+
+    // BossFSM에서만 호출한다. 예고 시작 순간의 위치와 방향을 저장한다.
     public bool BeginAttack(Transform owner, Transform target,
         float allowedHeight, Action<float> onHit)
     {
@@ -69,7 +66,7 @@ public abstract class BossAttack : MonoBehaviour
 
         Owner = owner;
         Target = target;
-        Origin = GetOriginPosition(owner);
+        Origin = owner.position;
         Direction = owner.rotation;
         heightTolerance = Mathf.Max(0f, allowedHeight);
         reportHit = onHit;
@@ -82,7 +79,7 @@ public abstract class BossAttack : MonoBehaviour
         return false;
     }
 
-    // 공격 컴포넌트에는 Update가 없다. 담당 FSM 한 개만 이 공격을 진행시킨다.
+    // 공격 컴포넌트에는 Update가 없다. 전체 흐름은 BossFSM이 진행시킨다.
     public void TickAttack(float deltaTime)
     {
         if (!IsRunning) return;
@@ -120,10 +117,22 @@ public abstract class BossAttack : MonoBehaviour
 
     protected void HitOnce(bool checkTargetHeight = true)
     {
+        HitOnce(damage, checkTargetHeight);
+    }
+
+    // 본체 공격과 파동처럼 서로 다른 피해량을 사용하는 단계용.
+    protected void HitOnce(float amount, bool checkTargetHeight = true)
+    {
         if (checkTargetHeight ? !CanHit : !CanHitCollider) return;
-        // 여러 콜라이더가 겹쳐도 같은 공격에는 한 번만 피해를 준다.
+        // 여러 콜라이더가 겹쳐도 같은 피해 단계에서는 한 번만 피해를 준다.
         hasHit = true;
-        reportHit?.Invoke(damage);
+        reportHit?.Invoke(Mathf.Max(0f, amount));
+    }
+
+    // 다음 피해 단계가 시작될 때 한 번만 호출한다. 이전 단계의 판정은 먼저 종료해야 한다.
+    protected void BeginNextHitPhase()
+    {
+        if (currentPhase == Phase.Active) hasHit = false;
     }
 
     public void CancelAttack()
@@ -140,4 +149,5 @@ public abstract class BossAttack : MonoBehaviour
     protected virtual void StartActive() { }
     protected virtual void EndAttack() { }
     protected virtual void OnDisable() => CancelAttack();
+
 }

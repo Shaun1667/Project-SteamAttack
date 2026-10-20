@@ -3,13 +3,23 @@ using UnityEngine.Rendering.Universal;
 
 public class BossBreathAttack : BossAttack
 {
-    [Header("브레스 판정 - 월드 거리")]
-    [Min(0.01f)] public float innerRadius = 3f;
-    [Min(0.02f)] public float outerRadius = 5f;
+    [Header("뱀 FSM - 공격 범위 기즈모 기준")]
+    [Tooltip("비워두면 부모의 SnakeFSM 중 이 브레스가 Patterns에 등록된 것을 찾습니다. 실제 공격 실행은 FSM의 Patterns 등록으로 정합니다.")]
+    public SnakeFSM snakeFSM;
+
+    [Header("브레스 판정 - 예고 시작 시 플레이어 거리 기준")]
+    [Tooltip("플레이어 거리의 앞뒤 폭. 1이면 거리 6에서 5~7m에 판정이 생깁니다. 예고 시작 후에는 고정됩니다.")]
+    [Min(0.01f)] public float halfWidth = 1f;
     [Range(1f, 180f)] public float breathAngle = 60f;
 
+    [Header("공격 전 기즈모 미리보기")]
+    [Tooltip("플레이 전에도 범위를 확인할 대상. 실행 중에는 SnakeFSM의 실제 플레이어를 우선합니다. 실제 공격 대상에는 영향을 주지 않습니다.")]
+    public Transform previewTarget;
+    [Tooltip("미리보기 대상이 없을 때만 사용하는 거리입니다. 실제 공격 사거리는 아닙니다.")]
+    [Min(0f)] public float previewDistance = 4f;
+
     [Header("사다리꼴 기둥 콜라이더")]
-    [Tooltip("60도 / 20도 = 기둥 3개. 나누어떨어지지 않으면 마지막 조각만 작아집니다.")]
+    [Tooltip("기둥 하나의 최대 각도. 60도 / 20도 = 3개. 먼 거리에서 폭이 좁으면 자동으로 더 잘게 나눕니다.")]
     [Range(1f, 60f)] public float segmentAngle = 20f;
     [Min(0.01f)] public float hitboxHeight = 2f;
     public float hitboxBottomOffset = 0f;
@@ -62,11 +72,14 @@ public class BossBreathAttack : BossAttack
             return false;
         }
 
-        Vector4 shape = GetShape();
+        // 실제 공격 발생 위치에서 잰 수평 거리입니다. 높이 차이는 사거리에 더하지 않습니다.
+        Vector3 toPlayer = Target.position - Origin;
+        toPlayer.y = 0f;
+        Vector4 shape = GetShape(toPlayer.magnitude);
         float height = Mathf.Max(0.01f, hitboxHeight);
         if (!IsShapeValid(shape))
         {
-            Debug.LogError("반경 차이에 비해 Segment Angle이 큽니다. 각도를 줄이거나 Outer Radius를 늘려 주세요.", this);
+            Debug.LogError("브레스 범위를 만들 수 없습니다. Half Width와 거리 설정을 확인하세요.", this);
             return false;
         }
         if (!EnsureWarningResources()) return false;
@@ -128,11 +141,20 @@ public class BossBreathAttack : BossAttack
         if (hitboxRoot != null) hitboxRoot.SetActive(false);
     }
 
-    private Vector4 GetShape()
+    private Vector4 GetShape(float targetDistance)
     {
-        float inner = Mathf.Max(0.01f, innerRadius);
-        return new Vector4(inner, Mathf.Max(inner + 0.01f, outerRadius),
-            Mathf.Clamp(breathAngle, 1f, 180f), Mathf.Clamp(segmentAngle, 1f, 60f));
+        float distance = Mathf.Max(0f, targetDistance);
+        float width = Mathf.Max(0.01f, halfWidth);
+        float inner = Mathf.Max(0.01f, distance - width);
+        float outer = Mathf.Max(inner + 0.01f, distance + width);
+
+        // 사다리꼴의 바깥 변은 원의 현입니다. 멀어질수록 더 잘게 나누어
+        // 폭이 좁아도 구간 중앙까지 실제 콜라이더가 포함하도록 합니다.
+        float middle = (inner + outer) * 0.5f;
+        float safeAngle = 2f * Mathf.Acos(Mathf.Clamp01(middle / outer)) * Mathf.Rad2Deg;
+        float pieceAngle = Mathf.Min(Mathf.Clamp(segmentAngle, 1f, 60f),
+            Mathf.Max(0.01f, safeAngle * 0.95f));
+        return new Vector4(inner, outer, Mathf.Clamp(breathAngle, 1f, 180f), pieceAngle);
     }
 
     private static bool IsShapeValid(Vector4 shape)
@@ -350,6 +372,43 @@ public class BossBreathAttack : BossAttack
         DestroyWarningResources();
     }
 
+    // 실행 중인 공격은 실제 hitboxRoot를 그린다.
+    // 아래 함수는 공격 전 미리보기의 위치/방향/거리를 계산한다.
+    private void GetGizmoPose(out Vector3 floor, out Quaternion facing, out float distance)
+    {
+        SnakeFSM source = snakeFSM;
+        if (source == null)
+        {
+            SnakeFSM candidate = GetComponentInParent<SnakeFSM>();
+            if (candidate != null && candidate.ContainsPattern(this)) source = candidate;
+        }
+
+        Transform positionOrigin = transform;
+        Transform directionOrigin = transform;
+        if (source != null)
+        {
+            Transform range = source.rangeOrigin != null ? source.rangeOrigin : source.transform;
+            positionOrigin = source.attackOrigin != null ? source.attackOrigin : range;
+            directionOrigin = range;
+        }
+
+        floor = new Vector3(positionOrigin.position.x,
+            groundY + hitboxBottomOffset, positionOrigin.position.z);
+        facing = Quaternion.Euler(0f, directionOrigin.eulerAngles.y, 0f);
+        distance = Mathf.Max(0f, previewDistance);
+        Transform target = source != null ? source.Player : null;
+        if (target == null || !target.gameObject.activeInHierarchy) target = previewTarget;
+        // 플레이어가 지정되어 있으면 SnakeFSM과 동일하게 발생 위치에서 수평 조준한다.
+        if (target != null && target.gameObject.activeInHierarchy)
+        {
+            Vector3 direction = target.position - positionOrigin.position;
+            direction.y = 0f;
+            distance = direction.magnitude;
+            if (direction.sqrMagnitude >= 0.0001f)
+                facing = Quaternion.LookRotation(direction, Vector3.up);
+        }
+    }
+
     private void OnDrawGizmosSelected()
     {
         if (!showHitboxGizmos) return;
@@ -365,14 +424,11 @@ public class BossBreathAttack : BossAttack
         }
         else
         {
-            Vector4 shape = GetShape();
+            GetGizmoPose(out Vector3 floor, out Quaternion facing, out float distance);
+            Vector4 shape = GetShape(distance);
             if (IsShapeValid(shape))
             {
-                Vector3 previewOrigin = GetOriginPosition(transform);
-                Vector3 floor = new Vector3(previewOrigin.x,
-                    groundY + hitboxBottomOffset, previewOrigin.z);
-                Gizmos.matrix = Matrix4x4.TRS(floor,
-                    Quaternion.Euler(0f, transform.eulerAngles.y, 0f), Vector3.one);
+                Gizmos.matrix = Matrix4x4.TRS(floor, facing, Vector3.one);
                 int count = Mathf.CeilToInt(shape.z / shape.w);
                 for (int i = 0; i < count; i++)
                 {

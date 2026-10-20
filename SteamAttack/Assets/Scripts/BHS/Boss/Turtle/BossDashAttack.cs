@@ -53,8 +53,9 @@ public class BossDashAttack : BossAttack
 
     public override bool CanUse(float distance)
     {
-        return base.CanUse(distance) && distance > Mathf.Max(0f, minUseDistance);
+        return base.CanUse(distance);
     }
+
 
     protected override bool PrepareAttack()
     {

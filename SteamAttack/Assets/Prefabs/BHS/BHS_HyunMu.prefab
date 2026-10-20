@@ -1390,6 +1390,59 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &1005275805674009783
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6891575864124282577}
+  - component: {fileID: 3244175001553706274}
+  m_Layer: 0
+  m_Name: TipCol
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6891575864124282577
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1005275805674009783}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3018206632144835974}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &3244175001553706274
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1005275805674009783}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.25
+  m_Center: {x: 0, y: 0, z: 0.3}
 --- !u!1 &1059137778556575117
 GameObject:
   m_ObjectHideFlags: 0
@@ -5711,7 +5764,7 @@ Transform:
   m_GameObject: {fileID: 3638912620657522383}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.15}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -8999,11 +9052,16 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5653695456270774476}
+  - component: {fileID: 3061297874250435313}
+  - component: {fileID: 5134090795839151385}
+  - component: {fileID: 8345751117253122671}
+  - component: {fileID: 6266929223434074064}
   - component: {fileID: 8400050354687407924}
   - component: {fileID: 6024116186764242359}
-  - component: {fileID: 6266929223434074064}
-  - component: {fileID: 5721444570083280139}
   - component: {fileID: 8312250876522661485}
+  - component: {fileID: 6538377318132439488}
+  - component: {fileID: 5721444570083280139}
+  - component: {fileID: 4147377630022172925}
   m_Layer: 0
   m_Name: BHS_HyunMu
   m_TagString: Boss
@@ -9028,6 +9086,133 @@ Transform:
   - {fileID: 3533069355476127470}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+--- !u!114 &3061297874250435313
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6762481187753873017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2f1aa7b0cc625142816bbe1b3f18040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossAttackCoordinator
+  commonAttackGap: 0.7
+  currentOwner: {fileID: 0}
+  currentAttack: {fileID: 0}
+--- !u!114 &5134090795839151385
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6762481187753873017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48b4c0ae1f4d4814aac211eda6951d79, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SnakeFSM
+  currentState: 0
+  player: {fileID: 0}
+  rangeOrigin: {fileID: 4088955126659812729}
+  attackOrigin: {fileID: 4088955126659812729}
+  bodyFSM: {fileID: 8400050354687407924}
+  detectRange: 30
+  searchInterval: 0.25
+  turnSpeed: 360
+  heightTolerance: 2
+  patterns:
+  - {fileID: 6266929223434074064}
+  - {fileID: 8345751117253122671}
+  attackCoordinator: {fileID: 0}
+  allowNewAttacks: 1
+  minimumAttackGap: 0.2
+  onPlayerHit:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!114 &8345751117253122671
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6762481187753873017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed73419f591726e4fa6007be6fa56b39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossSnakeBiteAttack
+  minUseDistance: 0
+  maxUseDistance: 5.8
+  readyTime: 0.6
+  attackTime: 1
+  recoveryTime: 1
+  attackEffect: {fileID: 0}
+  damage: 2
+  currentPhase: 0
+  targetController: {fileID: 5761287761894595882}
+  chainIK: {fileID: 7996884896821466730}
+  mouthCollider: {fileID: 3244175001553706274}
+  biteBlockOrigin: {fileID: 3388638934276840461}
+  biteBlockRadius: 2
+  pullbackDistance: 0.35
+  extendTime: 0.2
+  holdTime: 0.1
+  returnTime: 0.35
+  targetHeightOffset: 1
+  extraDistance: 0.2
+  reachRatio: 0.98
+  showBiteGizmos: 1
+  biteBlockGizmoY: 0
+--- !u!114 &6266929223434074064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6762481187753873017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 900fe010544fc154d8928a572eb7dcd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BHS_BossBreathAttack
+  minUseDistance: 5.8
+  maxUseDistance: 10
+  readyTime: 1.5
+  attackTime: 1
+  recoveryTime: 2
+  attackEffect: {fileID: 0}
+  damage: 2
+  currentPhase: 0
+  snakeFSM: {fileID: 0}
+  halfWidth: 1
+  breathAngle: 60
+  previewTarget: {fileID: 0}
+  previewDistance: 4
+  segmentAngle: 20
+  hitboxHeight: 2
+  hitboxBottomOffset: 0
+  showHitboxGizmos: 1
+  warningMaterial: {fileID: 2100000, guid: 959079e4a2b748f4090f899c1f7efe9b, type: 2}
+  warningRenderingLayers:
+    serializedVersion: 0
+    m_Bits: 256
+  warningColor: {r: 1, g: 0.15, b: 0.1, a: 0.5}
+  groundY: 0
+  projectionDepth: 2
 --- !u!114 &8400050354687407924
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9043,13 +9228,20 @@ MonoBehaviour:
   currentState: 0
   player: {fileID: 0}
   detectRange: 20
-  searchInterval: 1.09
+  searchInterval: 1.1
   turnSpeed: 60
   heightTolerance: 2
   patterns:
   - {fileID: 6024116186764242359}
-  - {fileID: 6266929223434074064}
   - {fileID: 8312250876522661485}
+  - {fileID: 6538377318132439488}
+  attackCoordinator: {fileID: 0}
+  showActivationRangeGizmos: 1
+  rangeGizmoGroundY: 0
+  rangeGizmoOpacity: 0.16
+  closeRangeColor: {r: 1, g: 0.35, b: 0.1, a: 1}
+  breathRangeColor: {r: 0.1, g: 0.8, b: 1, a: 1}
+  dashRangeColor: {r: 0.8, g: 0.3, b: 1, a: 1}
 --- !u!114 &6024116186764242359
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9063,7 +9255,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossAreaAttack
   minUseDistance: 0
-  maxUseDistance: 3
+  maxUseDistance: 5
   readyTime: 1
   attackTime: 0.3
   recoveryTime: 1
@@ -9080,7 +9272,17 @@ MonoBehaviour:
   warningColor: {r: 1, g: 0.5, b: 0.05, a: 0.5}
   groundY: 0
   projectionDepth: 2
---- !u!114 &6266929223434074064
+  enableWave: 1
+  waveDelay: 0.3
+  waveMaxRadius: 5
+  waveWidth: 1
+  waveSpeed: 5
+  waveHeight: 0.5
+  waveBottomOffset: 0
+  waveDamage: 2
+  waveColor: {r: 1, g: 0.05098039, b: 0.8230725, a: 0.65}
+  showWaveGizmos: 1
+--- !u!114 &8312250876522661485
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -9089,31 +9291,69 @@ MonoBehaviour:
   m_GameObject: {fileID: 6762481187753873017}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 900fe010544fc154d8928a572eb7dcd6, type: 3}
+  m_Script: {fileID: 11500000, guid: eabb2f6c8a325284292a649ccdd45844, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BHS_BossBreathAttack
-  minUseDistance: 3
-  maxUseDistance: 5
+  m_EditorClassIdentifier: Assembly-CSharp::BHS_BossDashAttack
+  minUseDistance: 8
+  maxUseDistance: 20
   readyTime: 1.5
   attackTime: 1
-  recoveryTime: 2
+  recoveryTime: 1.5
   attackEffect: {fileID: 0}
   damage: 2
   currentPhase: 0
-  innerRadius: 3
-  outerRadius: 5
-  breathAngle: 60
-  segmentAngle: 20
-  hitboxHeight: 2
-  hitboxBottomOffset: 0
-  showHitboxGizmos: 1
+  animator: {fileID: 2769353117312933624}
+  headTarget: {fileID: 1122618377543566272}
+  attackCollider: {fileID: 1415197707235833381}
+  speed: 12
+  extraDistance: 2
+--- !u!114 &6538377318132439488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6762481187753873017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d5876d9186b5b546925280593c13844, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossArtilleryAttack
+  minUseDistance: 4
+  maxUseDistance: 8
+  readyTime: 0.5
+  attackTime: 1
+  recoveryTime: 1
+  attackEffect: {fileID: 0}
+  damage: 2
+  currentPhase: 0
+  bodyFSM: {fileID: 8400050354687407924}
+  requiredStayTime: 3
+  shellCount: 5
+  warningToImpactTime: 1.2
+  shellInterval: 0.4
+  explosionRadius: 1.2
+  explosionHeight: 2
+  explosionBottomOffset: 0
+  firePoints: []
+  fallbackLaunchHeight: 3
+  shellVisualPrefab: {fileID: 0}
+  shellScale: 0.4
+  arcHeight: 5
+  impactEffectPrefab: {fileID: 0}
+  impactDisplayTime: 0.25
   warningMaterial: {fileID: 2100000, guid: 959079e4a2b748f4090f899c1f7efe9b, type: 2}
   warningRenderingLayers:
     serializedVersion: 0
     m_Bits: 256
-  warningColor: {r: 1, g: 0.15, b: 0.1, a: 0.5}
+  warningColor: {r: 0.061138734, g: 0.05098039, b: 1, a: 0.5}
   groundY: 0
   projectionDepth: 2
+  showArtilleryGizmos: 1
+  previewTarget: {fileID: 0}
+  accumulatedStayTime: 0
+  launchedShells: 0
+  landedShells: 0
 --- !u!143 &5721444570083280139
 CharacterController:
   m_ObjectHideFlags: 0
@@ -9139,7 +9379,7 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0.5, z: 0}
---- !u!114 &8312250876522661485
+--- !u!114 &4147377630022172925
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -9148,22 +9388,42 @@ MonoBehaviour:
   m_GameObject: {fileID: 6762481187753873017}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eabb2f6c8a325284292a649ccdd45844, type: 3}
+  m_Script: {fileID: 11500000, guid: 03fbed53626169e4f9035f5165ff81e8, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BHS_BossDashAttack
-  minUseDistance: 5
-  maxUseDistance: 20
-  readyTime: 1.5
-  attackTime: 1
-  recoveryTime: 1.5
-  attackEffect: {fileID: 0}
-  damage: 2
-  currentPhase: 0
-  animator: {fileID: 2769353117312933624}
-  headTarget: {fileID: 1122618377543566272}
-  attackCollider: {fileID: 1415197707235833381}
-  speed: 12
-  extraDistance: 2
+  m_EditorClassIdentifier: Assembly-CSharp::BossPatternRangeGizmo
+  sources:
+  - show: 1
+    displayName: "\uAC70\uBD81\uC774"
+    fsm: {fileID: 8400050354687407924}
+    useCenterOverride: 0
+    centerOverride: {fileID: 0}
+    fillOpacity: 0.12
+    labelAngle: 25
+    showDetectionRange: 1
+    showEmptyRanges: 0
+    patternsField: patterns
+    detectRangeField: detectRange
+    rangeOriginField: rangeOrigin
+  - show: 1
+    displayName: "\uBC40"
+    fsm: {fileID: 5134090795839151385}
+    useCenterOverride: 0
+    centerOverride: {fileID: 0}
+    fillOpacity: 0.12
+    labelAngle: 155
+    showDetectionRange: 1
+    showEmptyRanges: 0
+    patternsField: patterns
+    detectRangeField: detectRange
+    rangeOriginField: rangeOrigin
+  showActivationRangeGizmos: 1
+  alwaysShow: 0
+  showLabels: 1
+  showCenterPoints: 1
+  rangeGizmoGroundY: 0
+  closeRangeColor: {r: 1, g: 0.35, b: 0.1, a: 1}
+  breathRangeColor: {r: 1, g: 0, b: 0, a: 1}
+  dashRangeColor: {r: 0.8, g: 0.3, b: 1, a: 1}
 --- !u!1 &6771827934606674860
 GameObject:
   m_ObjectHideFlags: 0
@@ -10834,7 +11094,7 @@ Transform:
   m_GameObject: {fileID: 7965712196815378929}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.55, z: -0.95}
+  m_LocalPosition: {x: 0, y: 0.55, z: -1.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -11981,7 +12241,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: -0.39}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 6891575864124282577}
   m_Father: {fileID: 1969642807555079412}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &9061087437776623121
