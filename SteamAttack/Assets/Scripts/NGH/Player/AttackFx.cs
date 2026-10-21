@@ -60,6 +60,8 @@ namespace NGH
             public bool useTrail = true;
             [Tooltip("궤적 메시: 휘두르기 시작점 앞쪽으로 같은 원을 따라 꼬리를 더 그릴 각도(도). 이펙트가 짧아 보일 때")]
             [Range(0f, 120f)] public float tailExtend;
+            [Tooltip("궤적 메시: 휘두르기가 끝날 때까지 흐려지지 않고, 지나간 길 전체를 진하게 남김 (8자처럼 긴 궤적을 한 번에 보여줄 때)")]
+            public bool keepWholeTrail;
             [HideInInspector] public Vector3[] pathOuter;   // 칼끝 쪽 가장자리 (플레이어 기준, [꼬리 →] 휘두르기 시작 → 끝)
             [HideInInspector] public Vector3[] pathInner;   // 칼날 안쪽 가장자리
             [HideInInspector] public int pathPrefix;        // 경로 앞의 꼬리 점 개수
@@ -229,7 +231,7 @@ namespace NGH
                 _trailSources[e.prefab] = sources;
             }
             var trail = go.GetComponent<SlashTrail>();
-            trail.Begin(e.pathOuter, e.pathInner, sources, e.pathPrefix);
+            trail.Begin(e.pathOuter, e.pathInner, sources, e.pathPrefix, e.keepWholeTrail);
             _trails.Add(new TrailRun { trail = trail, entry = e, serial = player ? player.ActionSerial : 0 });
             ObjectPool.Despawn(go, fxLifetime);
         }
