@@ -131,6 +131,8 @@ namespace NGH
         [Min(0)] public float comboGraceTime = 0.35f;
         [Tooltip("유예 시간 안에 이어 붙일 때 섞는 시간(초). 이미 대기 자세로 돌아가는 중이라 바로 이어질 때보다 조금 길게")]
         [Min(0)] public float comboResumeBlend = 0.12f;
+        [Tooltip("공격(약·강)이 끝나고 대기·이동 자세로 돌아갈 때 섞는 시간(초). 공격 자세가 낮고 넓어서 짧으면 툭 끊겨 보임")]
+        [Min(0)] public float attackEndBlend = 0.5f;
         [Tooltip("판정 구간보다 이만큼(클립 기준 0~1) 먼저 전진을 시작")]
         [Range(0, 0.2f)] public float lungeLead = 0.04f;
         [Tooltip("락온 대상과 이 거리(m)보다 가까우면 더 파고들지 않음")]
@@ -199,6 +201,8 @@ namespace NGH
         public float swordArmBlendIn = 6f;
         [Tooltip("공격 등으로 팔 고정을 풀 때 속도 (가중치/초)")]
         public float swordArmBlendOut = 20f;
+        [Tooltip("대기·이동 중에 공격(약·강)을 시작할 때 칼 든 팔이 공격 첫 자세로 넘어가는 시간(초). 천천히 출발해 천천히 도착 (짧으면 칼이 휙 튐)")]
+        [Min(0)] public float attackStartArmBlend = 0.26f;
 
         [Header("현재 상태 (확인용)")]
         [SerializeField] bool drawn;
@@ -231,6 +235,8 @@ namespace NGH
         string _locoState = "Locomotion";
         int _swordArmLayer = -1;
         float _swordArmWeight;
+        float _attackEndedAt = -999f, _attackStartedAt = -999f;
+        float _armWeightAtAttackEnd, _armWeightAtAttackStart;
         Vector3 _rollDir;
         ActionState _buffered;
         ActionState _comboLast;          // 이어지지 않고 끝난 마지막 약공격 타 (유예 시간 동안 다음 타로 이어 붙임)
@@ -281,8 +287,22 @@ namespace NGH
         {
             if (!animator || _swordArmLayer < 0) return;
             bool hold = drawn && IsMeleeEquipped() && action == ActionState.None && !IsDead;
-            float target = hold ? 1f : 0f;
-            _swordArmWeight = Mathf.MoveTowards(_swordArmWeight, target, (hold ? swordArmBlendIn : swordArmBlendOut) * Time.deltaTime);
+            float sinceEnd = Time.time - _attackEndedAt, sinceStart = Time.time - _attackStartedAt;
+            if (hold && sinceEnd < attackEndBlend)
+            {
+                // 공격 직후: 몸 전체가 대기 자세로 돌아가는 동안(선형) 팔은 x² 로 처음엔 천천히 올림.
+                // 둘 다 선형이면 곱해져서 칼이 처음에 두 배 속도로 휙 튀고, x² 이면 처음엔 몸과 같이 움직이다가 부드럽게 멈춤
+                float x = sinceEnd / Mathf.Max(0.01f, attackEndBlend);
+                _swordArmWeight = Mathf.Lerp(_armWeightAtAttackEnd, 1f, x * x);
+            }
+            else if (!hold && IsMeleeAttack(action) && sinceStart < attackStartArmBlend)
+            {
+                // 공격 시작: 대기 자세의 칼 든 팔을 공격 첫 자세로 천천히 출발 → 천천히 도착 (smoothstep)
+                float x = sinceStart / Mathf.Max(0.01f, attackStartArmBlend);
+                _swordArmWeight = _armWeightAtAttackStart * (1f - x * x * (3f - 2f * x));
+            }
+            else
+                _swordArmWeight = Mathf.MoveTowards(_swordArmWeight, hold ? 1f : 0f, (hold ? swordArmBlendIn : swordArmBlendOut) * Time.deltaTime);
             animator.SetLayerWeight(_swordArmLayer, _swordArmWeight);
         }
 
@@ -564,6 +584,8 @@ namespace NGH
                 _actionPlaySpeed = _attack.playSpeed;
                 if (isAttack) FaceAttackDirection(moveDir);
             }
+            if (IsMeleeAttack(a)) { _attackStartedAt = Time.time; _armWeightAtAttackStart = _swordArmWeight; }
+            else _attackEndedAt = -999f;   // 구르기·피격 등이 끼어들면 공격 직후 팔 올리기는 취소 (끝난 뒤 가중치가 튀지 않게)
             if (animator)
             {
                 animator.SetFloat(AnimSpeedHash, 1f);
@@ -625,7 +647,9 @@ namespace NGH
                 else
                 {
                     if (IsLightChain(finished)) { _comboLast = finished; _comboEndAt = Time.time; }
-                    if (animator) animator.CrossFadeInFixedTime(locomotionState, 0.2f);
+                    bool attackEnded = IsMeleeAttack(finished);
+                    if (attackEnded) { _attackEndedAt = Time.time; _armWeightAtAttackEnd = _swordArmWeight; }
+                    if (animator) animator.CrossFadeInFixedTime(locomotionState, attackEnded ? attackEndBlend : 0.2f);
                 }
                 _locoState = locomotionState;
             }
@@ -709,6 +733,9 @@ namespace NGH
         static bool IsLightChain(ActionState a) =>
             a == ActionState.LightAttack || a == ActionState.LightCombo2 || a == ActionState.LightCombo3
             || a == ActionState.LightCombo4 || a == ActionState.LightCombo5;
+
+        /// <summary>칼로 하는 공격 (약공격 연타 + 강공격). 사격은 제외</summary>
+        static bool IsMeleeAttack(ActionState a) => IsLightChain(a) || a == ActionState.HeavyAttack;
 
         /// <summary>약공격 연타에서 다음 타. 마지막 타(5타)거나 약공격이 아니면 None</summary>
         static ActionState NextLightCombo(ActionState a)
