@@ -18,7 +18,7 @@ namespace YPH
         private float _focusSmoothTime = 0.03f;
         [SerializeField, Range(0.05f, 1f), Tooltip("완전히 조준했을 때의 감도 배율입니다. 1이면 그대로, 낮추면 느려집니다. 시험 씬에서는 방향키 회전에 적용합니다.")]
         private float _aimSensitivityMultiplier = 0.6f;
-        [SerializeField, Range(0f, 1f), Tooltip("완전히 조준했을 때의 이동 속도 배율입니다. 0이면 제자리 조준입니다. 값만 제공하며 실제 이동 적용은 CHG 연결 후 수행합니다.")]
+        [SerializeField, Range(0f, 1f), Tooltip("완전히 조준했을 때의 이동 속도 배율입니다. 0이면 제자리 조준입니다. 낮출수록 조준 중 이동이 느려지며, NGH.CombatBridge가 플레이어 이동에 적용합니다.")]
         private float _aimMoveSpeedMultiplier = 0.5f;
 
         private bool _targetAiming;
