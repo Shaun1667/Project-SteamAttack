@@ -6,7 +6,7 @@ AnimationClip:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: 12_chg_anim_hit
+  m_Name: 12_anim_hit
   serializedVersion: 8
   m_Legacy: 0
   m_Compressed: 0
