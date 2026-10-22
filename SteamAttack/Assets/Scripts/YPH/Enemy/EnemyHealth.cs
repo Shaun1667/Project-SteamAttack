@@ -53,6 +53,7 @@ namespace YPH
         private Collider[] colliders;
         private Color[] baseColors;
         private Coroutine flashRoutine;
+        // NGH.Damageable이 만드는 표식 이름과 같아야 몸 숨김에서 제외됩니다. 담당자와 함께 변경하세요.
         private const string LockMarkerName = "chg_LockMarker";
 
         private void Awake()
@@ -84,7 +85,7 @@ namespace YPH
             hp = Mathf.Max(0f, hp - amount);
             if (logDamage)
             {
-                Debug.Log("[CHG_EnemyHealth:" + name + "] 피격 -" + amount + " (HP " + hp + "/" + maxHp + ")", this);
+                Debug.Log("[EnemyHealth:" + name + "] 피격 -" + amount + " (HP " + hp + "/" + maxHp + ")", this);
             }
 
             if (hitFlashTime > 0f && hp > 0f)
@@ -120,7 +121,7 @@ namespace YPH
             }
             if (logDamage)
             {
-                Debug.Log("[CHG_EnemyHealth:" + name + "] 부활 (HP " + maxHp + ")", this);
+                Debug.Log("[EnemyHealth:" + name + "] 부활 (HP " + maxHp + ")", this);
             }
             Revived?.Invoke();
         }
@@ -143,7 +144,7 @@ namespace YPH
             alive = false;
             if (logDamage)
             {
-                Debug.Log("[CHG_EnemyHealth:" + name + "] 쓰러짐" + (respawnDelay > 0f ? " → " + respawnDelay + "초 후 부활" : ""), this);
+                Debug.Log("[EnemyHealth:" + name + "] 쓰러짐" + (respawnDelay > 0f ? " → " + respawnDelay + "초 후 부활" : ""), this);
             }
             if (ai != null)
             {

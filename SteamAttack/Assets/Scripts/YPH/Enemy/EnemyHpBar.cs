@@ -61,8 +61,8 @@ namespace YPH
         /// <summary>전투 중이라 체력바를 보여 줘야 하는 상태인지 (화면 밖·가려짐으로 잠시 숨은 경우도 true)</summary>
         public bool IsActive => combatActive;
 
-        private const string CanvasName = "chg_EnemyHpBarCanvas";
-        private const string BarName = "chg_EnemyHpBar";
+        private const string CanvasName = "YPH_EnemyHpBarCanvas";
+        private const string BarName = "YPH_EnemyHpBar";
         private static GameObject canvasTemplate;
         private static GameObject barTemplate;
         private static RectTransform canvasRoot;
@@ -196,7 +196,7 @@ namespace YPH
             }
             if (!combatActive && logState)
             {
-                Debug.Log("[chg_EnemyHpBar:" + name + "] 체력바 켜짐", this);
+                Debug.Log("[EnemyHpBar:" + name + "] 체력바 켜짐", this);
             }
             combatActive = true;
             if (bar == null)
@@ -210,7 +210,7 @@ namespace YPH
         {
             if (combatActive && logState)
             {
-                Debug.Log("[chg_EnemyHpBar:" + name + "] 체력바 꺼짐", this);
+                Debug.Log("[EnemyHpBar:" + name + "] 체력바 꺼짐", this);
             }
             combatActive = false;
         }

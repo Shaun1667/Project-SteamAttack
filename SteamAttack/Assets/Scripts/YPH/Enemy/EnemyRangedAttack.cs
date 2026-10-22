@@ -151,7 +151,7 @@ namespace YPH
         {
             if (_bulletPrefab == null)
             {
-                Debug.LogWarning("[CHG_EnemyAI:" + name + "] 총알 프리팹(Bullet Prefab)이 비어 있어 사격할 수 없습니다.", this);
+                Debug.LogWarning("[EnemyAI:" + name + "] 총알 프리팹(Bullet Prefab)이 비어 있어 사격할 수 없습니다.", this);
                 return;
             }
             Vector3 origin = FirePosition;

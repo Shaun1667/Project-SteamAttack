@@ -65,7 +65,7 @@ namespace YPH
             {
                 damageNumbers.Clear();   // 끄면 떠 있던 데미지 숫자도 바로 사라짐
             }
-            Debug.Log("[chg_DebugView] 개발용 표시 " + (on ? "켜짐" : "꺼짐") + " (0 키)");
+            Debug.Log("[DebugView] 개발용 표시 " + (on ? "켜짐" : "꺼짐") + " (0 키)");
             Changed?.Invoke(on);
         }
 
@@ -310,7 +310,7 @@ namespace YPH
             }
             if (runnerTemplate == null)
             {
-                runnerTemplate = new GameObject("chg_DebugViewRunner");
+                runnerTemplate = new GameObject("YPH_DebugViewRunner");
                 runnerTemplate.SetActive(false);
                 ObjectPool pool = ObjectPool.Instance;
                 if (pool != null)
