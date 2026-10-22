@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-using BHS;
 
 namespace NMJ
 {
@@ -14,7 +13,7 @@ namespace NMJ
     ///   [ 玄武 현무 | 앞 좌 🔒 / 앞 우 🔒 / 뒤 좌 🔒 / 뒤 우 🔒 ]
     ///                       북방의 수신
     ///
-    /// - 다리(BHS.BossWallHealth) 하나가 맞을 때마다 그 칸이 깎이고, 칸이 다 비면 놋쇠 자물쇠가 풀리며 칸이 깨진다.
+    /// - 다리(BossWallHealth) 하나가 맞을 때마다 그 칸이 깎이고, 칸이 다 비면 놋쇠 자물쇠가 풀리며 칸이 깨진다.
     /// - 다리 4개가 모두 깨지면 OnAllLegsBroken 이벤트를 한 번 보내고 바가 사라진다.
     ///   (2페이즈 체력바, 신핵 QTE는 보류 — 기획 확정 뒤 이어서 만든다)
     ///
