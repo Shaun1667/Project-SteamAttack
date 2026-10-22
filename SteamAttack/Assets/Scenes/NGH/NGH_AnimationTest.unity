@@ -3164,6 +3164,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: NGH_Dummy
       objectReference: {fileID: 0}
+    - target: {fileID: 6996952451374426056, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: maxHp
+      value: 30
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

@@ -62,6 +62,10 @@ namespace NGH
             [Range(0f, 120f)] public float tailExtend;
             [Tooltip("궤적 메시: 휘두르기가 끝날 때까지 흐려지지 않고, 지나간 길 전체를 진하게 남김 (8자처럼 긴 궤적을 한 번에 보여줄 때)")]
             public bool keepWholeTrail;
+            [Tooltip("궤적 메시: 휘두르기 시작부터 이 비율(0~1)까지를 중반~후반의 원(반지름·평면 높이)에 맞춰 폄. 시작 부분이 구불구불할 때")]
+            [Range(0f, 1f)] public float straightenStart;
+            [Tooltip("궤적 메시: 베기 원의 중심에서 바깥으로 키우는 배율 (1 = 칼 그대로, 1.3 = 반지름 1.3배로 크고 넓게)")]
+            [Range(0.5f, 2f)] public float trailScale = 1f;
             [HideInInspector] public Vector3[] pathOuter;   // 칼끝 쪽 가장자리 (플레이어 기준, [꼬리 →] 휘두르기 시작 → 끝)
             [HideInInspector] public Vector3[] pathInner;   // 칼날 안쪽 가장자리
             [HideInInspector] public int pathPrefix;        // 경로 앞의 꼬리 점 개수
@@ -397,6 +401,8 @@ namespace NGH
                             e.pathInner[K + i] = tips[i] - blade * trailWidth;
                         }
                         Vector3 axis = Quaternion.Euler(e.localEuler) * Vector3.forward, center = e.localPosition;
+                        if (e.straightenStart > 0.001f) Straighten(e, K, N, center, Quaternion.Euler(e.localEuler));
+                        if (e.trailScale > 0.01f && Mathf.Abs(e.trailScale - 1f) > 0.001f) ScaleTrail(e, K, N, center, Quaternion.Euler(e.localEuler));
                         for (int k = 0; k < K; k++)
                         {
                             var q = Quaternion.AngleAxis(-e.tailExtend * (K - k) / K, axis);
@@ -413,6 +419,49 @@ namespace NGH
                 AnimationMode.StopAnimationMode();
             }
             EditorUtility.SetDirty(this);
+        }
+
+        // 궤적 앞부분(straightenStart 비율)을 뒤쪽 절반의 평균 반지름·평면 높이로 옮겨 원을 따라 매끈하게.
+        // 각도(진행 위치)는 그대로 두어 칼과 시간은 맞음. 앞 60% 는 완전히, 나머지 40% 는 서서히 원래 경로로
+        static void Straighten(Entry e, int K, int N, Vector3 center, Quaternion rot)
+        {
+            var inv = Quaternion.Inverse(rot);
+            void Fix(Vector3[] path)
+            {
+                float rRef = 0f, hRef = 0f;
+                int from = K + N / 2;
+                for (int i = from; i < K + N; i++)
+                {
+                    var q = inv * (path[i] - center);
+                    rRef += new Vector2(q.x, q.y).magnitude; hRef += q.z;
+                }
+                rRef /= K + N - from; hRef /= K + N - from;
+                for (int i = K; i < K + N; i++)
+                {
+                    float s = (i - K) / (N - 1f) / e.straightenStart;
+                    if (s >= 1f) break;
+                    float w = s <= 0.6f ? 1f : 1f - Mathf.SmoothStep(0f, 1f, (s - 0.6f) / 0.4f);
+                    var q = inv * (path[i] - center);
+                    var flat = new Vector2(q.x, q.y);
+                    float r = Mathf.Lerp(flat.magnitude, rRef, w), h = Mathf.Lerp(q.z, hRef, w);
+                    flat = flat.sqrMagnitude > 1e-8f ? flat.normalized * r : flat;
+                    path[i] = center + rot * new Vector3(flat.x, flat.y, h);
+                }
+            }
+            Fix(e.pathOuter);
+            Fix(e.pathInner);
+        }
+
+        // 궤적을 베기 원의 평면 안에서 중심 기준으로 키움 (평면 높이는 그대로)
+        static void ScaleTrail(Entry e, int K, int N, Vector3 center, Quaternion rot)
+        {
+            var inv = Quaternion.Inverse(rot);
+            foreach (var path in new[] { e.pathOuter, e.pathInner })
+                for (int i = K; i < K + N; i++)
+                {
+                    var q = inv * (path[i] - center);
+                    path[i] = center + rot * new Vector3(q.x * e.trailScale, q.y * e.trailScale, q.z);
+                }
         }
 
         void BakeSlash(Entry e, Vector3[] p, float swingSeconds)

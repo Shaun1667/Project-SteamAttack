@@ -131,6 +131,8 @@ namespace NGH
         [Min(0)] public float comboGraceTime = 0.35f;
         [Tooltip("유예 시간 안에 이어 붙일 때 섞는 시간(초). 이미 대기 자세로 돌아가는 중이라 바로 이어질 때보다 조금 길게")]
         [Min(0)] public float comboResumeBlend = 0.12f;
+        [Tooltip("후딜레이(마지막 자세 유지 뒤 기본자세로 돌아가는 부분) 중에 다음 타로 넘어갈 때 섞는 시간(실제 초). 돌아가는 동작과 다음 타 시작을 겹쳐 섞음")]
+        [Min(0)] public float comboChainBlend = 0.2f;
         [Tooltip("공격(약·강)이 끝나고 대기·이동 자세로 돌아갈 때 섞는 시간(초). 공격 자세가 낮고 넓어서 짧으면 툭 끊겨 보임")]
         [Min(0)] public float attackEndBlend = 0.5f;
         [Tooltip("판정 구간보다 이만큼(클립 기준 0~1) 먼저 전진을 시작")]
@@ -239,6 +241,7 @@ namespace NGH
         float _armWeightAtAttackEnd, _armWeightAtAttackStart;
         Vector3 _rollDir;
         ActionState _buffered;
+        bool _chainBlend;   // 다음 StartAction 이 앞 타의 후딜레이에서 바로 이어지는 것인지
         ActionState _comboLast;          // 이어지지 않고 끝난 마지막 약공격 타 (유예 시간 동안 다음 타로 이어 붙임)
         float _comboEndAt = -999f;
         float _blendOverride = -1f;
@@ -531,6 +534,8 @@ namespace NGH
         {
             float blend = _blendOverride;
             _blendOverride = -1f;
+            bool chainBlend = _chainBlend;
+            _chainBlend = false;
             bool isHit = a == ActionState.HitSmall || a == ActionState.HitLarge;
             if (!isHit && weapons && weapons.IsSwapping && a != ActionState.Roll) return;
             if (a == ActionState.Draw && drawn) return;
@@ -590,6 +595,8 @@ namespace NGH
             {
                 animator.SetFloat(AnimSpeedHash, 1f);
                 animator.speed = _actionPlaySpeed;
+                // 전환 시간도 animator.speed 만큼 빨라지므로 실제 초 × 재생 속도로 넘김
+                if (chainBlend && IsLightChain(a)) blend = comboChainBlend * _actionPlaySpeed;
                 animator.CrossFadeInFixedTime(state, blend >= 0f ? blend : _attack != null ? _attack.blendIn : 0.08f);
             }
         }
@@ -643,7 +650,7 @@ namespace NGH
                 action = ActionState.None;
                 _attack = null;
                 if (animator) animator.speed = 1f;
-                if (next != ActionState.None) StartAction(next);
+                if (next != ActionState.None) { _chainBlend = chaining; StartAction(next); }
                 else
                 {
                     if (IsLightChain(finished)) { _comboLast = finished; _comboEndAt = Time.time; }
