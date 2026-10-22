@@ -16,6 +16,7 @@ namespace NMJ
     ///
     ///   무적       체력만 줄지 않는다. 맞는 판정·피격(소/대) 모션·경직은 그대로
     ///   원펀맨     일반 적은 한 대에 쓰러진다. 보스는 맞힌 부위(다리·신핵)만 한 대에 부서진다
+    ///   무한 증기  켜 둔 동안 증기 최대치 고정. 피격·체력 감소는 그대로(무적은 따로 켬). 시작 튜토리얼(충전 시연) 중에는 멈춤
     ///   이동       시작 지점 / 육조거리 / 보스방 입구(안개문 앞, 들어가기 전)
     ///   리젠       지금 구역의 적을 모두 치우고 다시 세운다
     ///              육조거리(보스방 밖) = 일반 적 / 보스방 = 보스
@@ -50,9 +51,10 @@ namespace NMJ
         public static bool BlocksEscape => instance != null && (instance.open || Time.frameCount - instance.closedFrame <= 1);
         public static bool Invincible { get; private set; }
         public static bool OnePunch { get; private set; }
+        public static bool InfiniteSteam { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() { instance = null; Invincible = false; OnePunch = false; }
+        private static void ResetStatics() { instance = null; Invincible = false; OnePunch = false; InfiniteSteam = false; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Create()
@@ -88,7 +90,8 @@ namespace NMJ
         private CanvasGroup group;
         private TMP_Text info;
         private readonly List<MenuButton> buttons = new List<MenuButton>();
-        private MenuButton invincibleButton, onePunchButton;
+        private MenuButton invincibleButton, onePunchButton, steamButton;
+        private SteamTank[] tanks;
         private int closedFrame = -10;
 
         // ───────── 시작 ─────────
@@ -116,6 +119,7 @@ namespace NMJ
             spawnedBosses.Clear();
             killQueue.Clear();
             gun = null;
+            tanks = null;
             FindPlayer();
             hasStart = player != null;
             if (hasStart) { startPos = player.transform.position; startRot = player.transform.rotation; }
@@ -159,6 +163,8 @@ namespace NMJ
 
         private void LateUpdate()
         {
+            if (InfiniteSteam) KeepSteamFull();
+
             // 원펀맨: 맞은 일반 적을 프레임 끝에 쓰러뜨린다 (맞은 그 자리에서 바로 죽이면 Died가 두 번 날 수 있음)
             if (killQueue.Count == 0) return;
             foreach (EnemyHealth e in killQueue)
@@ -216,6 +222,18 @@ namespace NMJ
             PlayerController.RewindState s = p.CaptureRewindState();
             s.hp = hp;
             p.RestoreRewindState(s);
+        }
+
+        // ───────── 무한 증기 ─────────
+
+        /// <summary>켜 둔 동안 증기를 최대치로 고정한다. 쓰는 쪽(사격·강공격·시간 역행)은 그대로 돌고 매 프레임 끝에 다시 채운다.
+        /// 피격·체력은 건드리지 않는다(무적은 따로). 시작 튜토리얼(충전 시연) 중에는 멈춘다</summary>
+        private void KeepSteamFull()
+        {
+            if (NmjStartTutorial.IsRunning) return;
+            if (tanks == null || tanks.Length == 0 || tanks[0] == null) tanks = NmjStartTutorial.FindTanks();   // 플레이어 몸·증기통 탱크 모두
+            foreach (SteamTank t in tanks)
+                if (t != null && t.CurrentPressure < t.MaxPressure) t.RestorePressure(t.MaxPressure);
         }
 
         // ───────── 원펀맨 ─────────
@@ -428,6 +446,7 @@ namespace NMJ
             if (invincibleButton == null) return;
             invincibleButton.label.text = $"무적  <color=#{(Invincible ? "F0BA29>켜짐" : "888888>꺼짐")}</color>";
             onePunchButton.label.text = $"원펀맨  <color=#{(OnePunch ? "F0BA29>켜짐" : "888888>꺼짐")}</color>";
+            steamButton.label.text = $"무한 증기  <color=#{(InfiniteSteam ? "F0BA29>켜짐" : "888888>꺼짐")}</color>" + (InfiniteSteam && NmjStartTutorial.IsRunning ? "  <size=60%>(충전 튜토리얼 중 멈춤)</size>" : "");
         }
 
         private void BuildUi()
@@ -445,7 +464,7 @@ namespace NMJ
 
             Image dim = NewImage("Dim", canvas.transform, new Color(0f, 0f, 0f, 0.55f), Vector2.zero, Vector2.zero);
             dim.raycastTarget = true;
-            RectTransform panel = Panel(canvas.transform, new Vector2(560f, 640f), new Color(0.06f, 0.06f, 0.07f, 0.96f), Brass);
+            RectTransform panel = Panel(canvas.transform, new Vector2(560f, 700f), new Color(0.06f, 0.06f, 0.07f, 0.96f), Brass);
 
             TMP_Text title = NewText("Title", panel, font, "개발자 창", 34f, Brass);
             RectTransform tr = title.rectTransform;
@@ -463,6 +482,7 @@ namespace NMJ
             list.offsetMax = new Vector2(-40f, -116f);
             invincibleButton = AddButton(buttons, list, style, "무적", () => SetInvincible(!Invincible));
             onePunchButton = AddButton(buttons, list, style, "원펀맨", () => SetOnePunch(!OnePunch));
+            steamButton = AddButton(buttons, list, style, "무한 증기", () => { InfiniteSteam = !InfiniteSteam; RefreshLabels(); });
             AddButton(buttons, list, style, "이동 — 시작 지점", MoveToStart);
             AddButton(buttons, list, style, "이동 — 육조거리", MoveToYukjo);
             AddButton(buttons, list, style, "이동 — 보스방 입구", MoveToBossGate);
