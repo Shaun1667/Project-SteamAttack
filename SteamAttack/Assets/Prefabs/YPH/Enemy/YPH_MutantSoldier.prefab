@@ -147,6 +147,7 @@ GameObject:
   - component: {fileID: 8916696518830372064}
   - component: {fileID: 2440564864074483378}
   - component: {fileID: 2774899969034203989}
+  - component: {fileID: 5066337896492474615}
   m_Layer: 0
   m_Name: YPH_MutantSoldier
   m_TagString: Enemy
@@ -338,6 +339,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::YPH.EnemyMotor
   _turnSpeed: 540
   _lungeStopGap: 0.1
+  _useNavMesh: 1
+  _repathInterval: 0.25
 --- !u!114 &2440564864074483378
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -409,6 +412,28 @@ MonoBehaviour:
   _kickHitboxSize: {x: 1, y: 1, z: 1.2}
   _kickParryable: 1
   _kickFacingOffset: 10
+--- !u!195 &5066337896492474615
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8635576288341271724}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 0
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 1
+  m_ObstacleAvoidanceType: 4
 --- !u!1001 &1420058760848991756
 PrefabInstance:
   m_ObjectHideFlags: 0
