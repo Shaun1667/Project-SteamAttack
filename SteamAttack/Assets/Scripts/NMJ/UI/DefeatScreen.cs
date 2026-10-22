@@ -15,7 +15,7 @@ namespace NMJ
     ///      어명은 아직 끝나지 않았다
     ///    아무 키나 눌러 다시 일어서기       ← 잠시 뒤 깜빡이며 나온다
     ///
-    /// - 쓰러지는 동작이 끝나면 화면이 먹빛으로 어두워지며 뜬다.
+    /// - 쓰러지는 동작이 끝나면 화면이 종이 타듯 군데군데 타 들어가며(죽음이 아니라 이 시간선에서 지워짐) 뜬다.
     /// - 키를 누르면 먹물 화면 전환으로 덮고, 그 사이에 그 자리에서 일어난다 (NGH PlayerController.Respawn).
     /// - NGH GameOverScreen은 프리팹에서 꺼 두고, 하던 일(감지·입력·부활)을 여기서 한다.
     ///
@@ -43,6 +43,13 @@ namespace NMJ
         [SerializeField, Min(0f)] private float inputDelay = 1.2f;
         [SerializeField] private InkStyle restartTransition = InkStyle.Drip;
 
+        [Header("종이 타듯 사라짐 (세계관 v6 6-2 — 죽음이 아니라 이 시간선에서 지워짐)")]
+        [SerializeField] private bool burnAway = true;
+        [Tooltip("화면이 타 들어가는 시간")]
+        [SerializeField, Min(0.1f)] private float burnTime = 1.8f;
+        [Tooltip("어디까지 탈지 (0~1). 1이면 화면이 다 타서 검게 된다")]
+        [SerializeField, Range(0f, 1f)] private float burnAmount = 0.6f;
+
         [Header("색 (오방색)")]
         [SerializeField] private Color dimColor = new Color(0.03f, 0.03f, 0.035f, 0.62f);
         [SerializeField] private Color inkColor = new Color(0.03f, 0.03f, 0.035f, 0.97f);
@@ -62,6 +69,14 @@ namespace NMJ
         private TMP_Text headText, subText;
         private Texture2D bandTex, sealTex;
         private float bandWidth = 1500f;
+        private Material burnMat;
+        private RawImage burnImage;
+        private Image dimImage;
+
+        private static readonly int ProgressId = Shader.PropertyToID("_Progress");
+        private static readonly int StyleId = Shader.PropertyToID("_Style");
+        private static readonly int SeedId = Shader.PropertyToID("_Seed");
+        private static readonly int AspectId = Shader.PropertyToID("_Aspect");
 
         private float finishedAt = -1f;   // 쓰러지는 동작이 끝난 시각
         private float shownTime;          // 화면이 뜬 뒤 흐른 시간
@@ -82,6 +97,7 @@ namespace NMJ
         {
             if (bandTex != null) Destroy(bandTex);
             if (sealTex != null) Destroy(sealTex);
+            if (burnMat != null) Destroy(burnMat);
         }
 
         // ───────── 매 프레임 ─────────
@@ -111,6 +127,7 @@ namespace NMJ
             IsShowing = true;
             restarting = false;
             shownTime = 0f;
+            if (burnMat != null) burnMat.SetFloat(SeedId, Random.Range(0f, 100f));   // 매번 다른 자리부터 탄다
             group.gameObject.SetActive(true);
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
@@ -150,7 +167,16 @@ namespace NMJ
         // 어둠 0~1.0 → 먹 띠 0.2~0.7 → 글자 0.5~1.1 → 도장 1.1~1.25 → 아래 글 1.2~1.8 → 안내 inputDelay 뒤
         private void Layout(float t)
         {
-            group.alpha = Mathf.Clamp01(t / 0.6f);
+            // 타는 화면은 처음부터 보이고, 글·띠는 그 위로 서서히
+            if (burnImage != null)
+            {
+                group.alpha = 1f;
+                float b = burnAmount * (1f - Mathf.Pow(1f - Mathf.Clamp01(t / burnTime), 2f));
+                burnMat.SetFloat(ProgressId, b);
+                burnMat.SetFloat(AspectId, Screen.height > 0 ? (float)Screen.width / Screen.height : 1.7778f);
+                dimImage.color = new Color(dimColor.r, dimColor.g, dimColor.b, dimColor.a * 0.55f * Mathf.Clamp01(t / 0.6f));
+            }
+            else group.alpha = Mathf.Clamp01(t / 0.6f);
 
             float band = EaseOut(Mathf.Clamp01((t - 0.2f) / 0.5f));
             reveal.sizeDelta = new Vector2(bandWidth * band, reveal.sizeDelta.y);
@@ -184,7 +210,19 @@ namespace NMJ
             group.blocksRaycasts = false;
             group.interactable = false;
 
-            NewImage("Dim", canvas.transform, dimColor, Vector2.zero, Vector2.zero);
+            dimImage = NewImage("Dim", canvas.transform, dimColor, Vector2.zero, Vector2.zero);
+
+            // 종이 타듯 사라짐: 먹물 전환 셰이더의 Burn 모양을 배경으로 (글·띠 아래)
+            var source = burnAway ? Resources.Load<Material>("NMJ/NMJ_InkTransition") : null;
+            if (source != null)
+            {
+                burnMat = new Material(source) { hideFlags = HideFlags.DontSave };
+                burnMat.SetFloat(StyleId, (float)InkStyle.Burn);
+                burnMat.SetFloat(ProgressId, 0f);
+                burnImage = NewRawImage("Burn", canvas.transform, Texture2D.whiteTexture);
+                burnImage.material = burnMat;
+                burnImage.transform.SetSiblingIndex(dimImage.transform.GetSiblingIndex());   // 어둠 아래
+            }
 
             root = NewRect("Banner", canvas.transform);
             root.anchorMin = root.anchorMax = new Vector2(0.5f, 0.55f);

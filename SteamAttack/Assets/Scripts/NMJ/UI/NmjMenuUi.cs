@@ -354,7 +354,7 @@ namespace NMJ
         }
 
         /// <summary>
-        /// 화면 한자(玄武·命·討 등) 전용 고정 폰트. 조선 폰트에는 한자가 거의 없고, 대신 채워 주는 NGH 동적 폰트는
+        /// 화면 한자(玄武·命·鎭 등) 전용 고정 폰트. 조선 폰트에는 한자가 거의 없고, 대신 채워 주는 NGH 동적 폰트는
         /// 아틀라스가 비면 글자가 안 보이므로 한자만 담은 고정 폰트를 따로 쓴다. 글자를 더하려면 NmjHudFontBuilder.
         /// </summary>
         public static TMP_FontAsset FindGlyphFont()

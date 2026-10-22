@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SteamAttack.Items.ItemData
   itemId: quest_imperial_edict
   displayName: "\uC5B4\uBA85 \uAD50\uC9C0(\u654E\u65E8)"
-  description: "\uC625\uC0C8\uAC00 \uCC0D\uD78C \uAD50\uC9C0. \uBD81\uC7A5\uC744 \uAC10\uC740 \uD604\uBB34\uB97C \uBCA0\uB77C\uB294 \uC5B4\uBA85\uC774 \uC801\uD600 \uC788\uB2E4. \uC885\uC774\uC5D0 \uC11C\uB9AC\uAC00 \uC549\uC544 \uC788\uB2E4."
+  description: "옥새가 찍힌 교지. 북장을 감은 현무를 죽이지 말고 잠재우라는 어명이 적혀 있다. 종이에 서리가 앉아 있다."
   itemType: 4
   grade: 3
   maxStack: 1

@@ -19,9 +19,9 @@ namespace NMJ.EditorTools
     {
         public const string AssetPath = "Assets/Fonts/NMJ/NMJ_HudGlyphs SDF.asset";
 
-        // 무기 패(刀 銃), 증기 행동 글자(強 銃 逆), 낙관(命), 보스 이름(玄武), 숫자·기호,
+        // 무기 패(刀 銃), 증기 행동 글자(強 銃 逆), 낙관(命), 보스 이름(玄武), 처치 도장(鎭), 숫자·기호,
         // 화승총 안내("증기 부족 · 칼로 베어 채우기")
-        private const string Characters = "刀銃強逆命玄武討御×0123456789 ·/+증기부족칼로베어채우";
+        private const string Characters = "刀銃強逆命玄武討御鎭×0123456789 ·/+증기부족칼로베어채우";
 
         // 앞의 폰트에 글자가 없으면 다음 폰트에서 찾는다
         private static readonly string[] SourceFonts =

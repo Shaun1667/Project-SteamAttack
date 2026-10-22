@@ -28,6 +28,10 @@ namespace NMJ
         [SerializeField] private Color iceColor = new Color(0.62f, 0.84f, 0.92f, 0.82f);   // 서리 #D4ECF1에 빙청 #7FD6E8을 섞어 눈밭 위에서도 보이게
         [SerializeField] private string caption = "한 호흡에, 한 점에";
 
+        [Header("퀘스트")]
+        [Tooltip("깨질 때 보고할 Custom 목표 아이디 (비우면 보고 안 함). 예: gate_gwanghwamun")]
+        [SerializeField] private string questId = "";
+
         public bool IsOpen { get; private set; }
 
         private BoxCollider block;
@@ -77,6 +81,7 @@ namespace NMJ
             breakTimer = 0f;
             if (visual != null) visual.SetActive(false);
             if (!string.IsNullOrEmpty(caption)) NmjSubtitle.Caption(caption, 3.5f);
+            if (!string.IsNullOrEmpty(questId) && QuestManager.Instance != null) QuestManager.Instance.ReportCustom(questId);
         }
 
         private void SetOpenImmediate()

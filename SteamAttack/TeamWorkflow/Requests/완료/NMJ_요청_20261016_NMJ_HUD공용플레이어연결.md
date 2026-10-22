@@ -8,7 +8,7 @@
 | 우선순위 | 🟡 보통 |
 | 희망 기한 | 2026-10-18 |
 | 관련 기획서 | `Design/UI/인게임UI.md` (D-086), `Design/전투/패링.md` (D-065, D-082), `Design/00_프로젝트.md` (D-081, D-083) |
-| 상태 | 요청됨 |
+| 상태 | 완료 |
 
 ## 1. 한 줄 요약
 
@@ -95,4 +95,4 @@ private void HandleParry(bool success)
 
 | 날짜 | 처리자 | 결과 | 비고 |
 |---|---|---|---|
-| | | | |
+| 2026-10-19 | NMJ | 완료 | HUD(붓글씨 체력바·증기 실린더)를 `NGH_Player`에 붙임. 받아치기 신호는 `YPH.ParryController.ParryAttempted` 구독(옛 `NGH.PlayerParry`도 남아 있는 동안 같이 들음). `chg_PlayerHUD` 삭제, YPH 임시 HUD 프리팹도 NMJ HUD로 교체(커밋 afa26e3·1a8e021·1efbb77). Common/Main 재생으로 체력바 하나만 나오는 것 확인 |

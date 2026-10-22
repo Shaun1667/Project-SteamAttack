@@ -13,9 +13,11 @@ namespace NMJ
     /// 보스 처치 문구 (회의 1.7, 기획안 v4 4:40~5:00 엔딩의 첫 장면)
     ///
     ///   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━   ← 먹 띠가 왼쪽에서 오른쪽으로 그어진다
-    ///             현무 토벌  [討]            ← 글자가 내려앉고, 붉은 도장이 찍힌다
+    ///               玄武  [鎭]               ← 글자가 내려앉고, 황색 鎭 도장이 찍힌다 (「玄武 鎭」)
+    ///             현무를 잠재웠다             ← 황색
     ///      멈췄던 도성의 시간이 다시 흐른다
-    ///              BOSS ELIMINATED
+    ///
+    /// 죽이지 않고 잠재우는 결말이라 "토벌·제거(Eliminated)"가 아니라 진정시킬 진(鎭)이다 (세계관 v6 6-2).
     ///
     /// - 씬의 BHS 보스(BossHealth)가 살아 있다가 쓰러지면 저절로 뜬다. 다른 곳에서 Show()를 불러도 된다.
     /// - 쓰러지는 순간 잠깐 느리게(슬로 모션) 했다가 원래 빠르기로 돌아온다.
@@ -33,16 +35,19 @@ namespace NMJ
         [SerializeField] private BossHealth boss;
         [Tooltip("한글 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
         [SerializeField] private TMP_FontAsset font;
-        [Tooltip("한자(玄武·命·討) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
+        [Tooltip("한자(玄武·命·鎭) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
         [SerializeField] private TMP_FontAsset glyphFont;
 
         private TMP_FontAsset HanjaFont => glyphFont != null ? glyphFont : font;
 
         [Header("글자")]
-        [SerializeField] private string headline = "현무 토벌";
-        [SerializeField] private string sealText = "討";
-        [SerializeField] private string subtitle = "멈췄던 도성의 시간이 다시 흐른다";
-        [SerializeField] private string caption = "BOSS ELIMINATED";
+        [Tooltip("한자가 들어 있으면 한자 고정 폰트로 쓴다")]
+        [SerializeField] private string headline = "玄武";
+        [SerializeField] private string sealText = "鎭";
+        [Tooltip("큰 글자 바로 아래 (황색)")]
+        [SerializeField] private string subtitle = "현무를 잠재웠다";
+        [Tooltip("맨 아래 작은 글 (비우면 없음)")]
+        [SerializeField] private string caption = "멈췄던 도성의 시간이 다시 흐른다";
 
         [Header("시간 (초, 멈춘 시간과 관계없이 흐른다)")]
         [Tooltip("보스가 쓰러진 뒤 문구가 뜨기까지")]
@@ -60,13 +65,17 @@ namespace NMJ
         [Header("색 (오방색)")]
         [SerializeField] private Color inkColor = new Color(0.03f, 0.03f, 0.035f, 0.97f);      // 흑 (먹 띠)
         [SerializeField] private Color textColor = new Color(0.96f, 0.95f, 0.92f, 1f);        // 백
-        [SerializeField] private Color sealColor = new Color(0.82f, 0.18f, 0.10f, 1f);        // 적 (인주)
+        [SerializeField] private Color sealColor = new Color(0.94f, 0.73f, 0.16f, 1f);        // 황 (어명·신핵 — 鎭 도장)
         [SerializeField] private Color captionColor = new Color(0.94f, 0.73f, 0.16f, 1f);     // 황
 
         [Header("문구가 끝난 뒤 (해빙·엔딩 크레딧 연결용)")]
         public UnityEvent OnFinished = new UnityEvent();
         [Tooltip("문구가 끝나면 불러올 씬 (빌드 설정에 있어야 함). 비우면 그대로 둔다")]
         [SerializeField] private string sceneWhenDone = "";
+
+        [Header("퀘스트")]
+        [Tooltip("문구가 뜰 때 보고할 Kill 목표 아이디 (비우면 보고 안 함)")]
+        [SerializeField] private string questKillId = "boss_hyeonmu";
 
         [Header("테스트")]
         [Tooltip("켜면 숫자패드 9 = 미리 보기")]
@@ -120,6 +129,8 @@ namespace NMJ
             IsShowing = true;
             timer = 0f;
             if (slowMotion && Time.timeScale > 0f) { Time.timeScale = slowScale; slowTimer = 0f; }
+            // 퀘스트 "현무를 잠재운다" (보스 쪽 보고가 없어도 처치 문구가 뜨면 채운다)
+            if (!string.IsNullOrEmpty(questKillId) && QuestManager.Instance != null) QuestManager.Instance.ReportKill(questKillId);
             Layout(0f);
         }
 
@@ -145,6 +156,15 @@ namespace NMJ
 
             float end = startDelay + IntroTime + holdTime + fadeOutTime;
             if (timer >= end) Finish();
+        }
+
+        /// <summary>(개발자 창 리젠) 지켜보던 보스를 잊고 새 보스를 처음부터 지켜본다. 치운 보스로는 처치 문구가 나오지 않는다</summary>
+        public void ForgetBoss()
+        {
+            boss = null;
+            bossSeenAlive = false;
+            shownForBoss = false;
+            findTimer = 0f;
         }
 
         private void WatchBoss()
@@ -232,12 +252,19 @@ namespace NMJ
             float sub = Mathf.Clamp01((t - 1.2f) / 0.6f);
             subText.alpha = sub * 0.9f;
             capText.alpha = sub * 0.8f;
-            capText.characterSpacing = Mathf.Lerp(60f, 30f, EaseOut(sub));
+            capText.characterSpacing = Mathf.Lerp(24f, 8f, EaseOut(sub));
         }
 
         private void SetAlpha(float a)
         {
             if (group != null) group.alpha = a;
+        }
+
+        private static bool HasHanja(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return false;
+            foreach (char c in s) if (c >= '一' && c <= '鿿') return true;
+            return false;
         }
 
         private static float EaseOut(float x) => 1f - (1f - x) * (1f - x) * (1f - x);
@@ -274,8 +301,8 @@ namespace NMJ
             bandRect.pivot = new Vector2(0f, 0.5f);
             bandRect.sizeDelta = new Vector2(bandWidth, 300f);
 
-            // 큰 글자
-            headText = NewText("Headline", root, font, headline, 104f, textColor);
+            // 큰 글자 (玄武 같은 한자는 한자 고정 폰트로)
+            headText = NewText("Headline", root, HasHanja(headline) ? HanjaFont : font, headline, 104f, textColor);
             headText.rectTransform.offsetMin = new Vector2(0f, 70f);
             headText.rectTransform.offsetMax = new Vector2(0f, -20f);
 
@@ -289,17 +316,21 @@ namespace NMJ
             sealGroup = sealRect.gameObject.AddComponent<CanvasGroup>();
             sealTex = DrawSeal(128, sealColor, textColor, Random.Range(0f, 100f));
             NewRawImage("Ink", sealRect, sealTex);
-            TMP_Text sealGlyph = NewText("Glyph", sealRect, HanjaFont, sealText, sealSize * 0.6f, new Color(textColor.r, textColor.g, textColor.b, 0.94f));
+            // 밝은 도장(황)에는 먹 글자, 어두운 도장(적)에는 흰 글자
+            float lum = sealColor.r * 0.3f + sealColor.g * 0.59f + sealColor.b * 0.11f;
+            Color glyphColor = lum > 0.55f ? new Color(inkColor.r, inkColor.g, inkColor.b, 0.94f) : new Color(textColor.r, textColor.g, textColor.b, 0.94f);
+            TMP_Text sealGlyph = NewText("Glyph", sealRect, HanjaFont, sealText, sealSize * 0.6f, glyphColor);
             sealGlyph.rectTransform.anchoredPosition = new Vector2(0f, -sealSize * 0.02f);
 
-            // 아래 글
-            subText = NewText("Subtitle", root, font, subtitle, 30f, textColor);
+            // 아래 글: "현무를 잠재웠다"(황) + 작은 글
+            subText = NewText("Subtitle", root, font, subtitle, 34f, captionColor);
+            subText.characterSpacing = 10f;
             subText.rectTransform.anchorMin = new Vector2(0f, 0f);
             subText.rectTransform.anchorMax = new Vector2(1f, 0f);
             subText.rectTransform.sizeDelta = new Vector2(0f, 40f);
             subText.rectTransform.anchoredPosition = new Vector2(0f, 62f);
 
-            capText = NewText("Caption", root, font, caption, 20f, captionColor);
+            capText = NewText("Caption", root, font, caption, 22f, textColor);
             capText.rectTransform.anchorMin = new Vector2(0f, 0f);
             capText.rectTransform.anchorMax = new Vector2(1f, 0f);
             capText.rectTransform.sizeDelta = new Vector2(0f, 30f);

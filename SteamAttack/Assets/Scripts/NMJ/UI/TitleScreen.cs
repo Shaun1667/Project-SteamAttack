@@ -13,7 +13,7 @@ namespace NMJ
     ///
     ///                 玄武  [命]
     ///               역류의 어명
-    ///        1887년 정월 · 시간이 멈춘 한양
+    ///        1887년 3월 · 시간이 멈춘 한양
     ///
     ///                 게임 시작
     ///                 환경 설정
@@ -53,7 +53,7 @@ namespace NMJ
         [SerializeField] private SettingsMenu settings;
         [Tooltip("한글·한자 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
         [SerializeField] private TMP_FontAsset font;
-        [Tooltip("한자(玄武·命·討) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
+        [Tooltip("한자(玄武·命·鎭) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
         [SerializeField] private TMP_FontAsset glyphFont;
 
         private TMP_FontAsset HanjaFont => glyphFont != null ? glyphFont : font;
@@ -62,7 +62,7 @@ namespace NMJ
         [SerializeField] private string logoText = "玄武";
         [SerializeField] private string logoSeal = "命";
         [SerializeField] private string subtitle = "역류의 어명";
-        [SerializeField] private string tagline = "1887년 정월 · 시간이 멈춘 한양";
+        [SerializeField] private string tagline = "1887년 3월 · 시간이 멈춘 한양";
 
         [Header("아래 글")]
         [SerializeField] private string notice = "이 작품은 실존 인물·사건과 무관한 창작입니다";
