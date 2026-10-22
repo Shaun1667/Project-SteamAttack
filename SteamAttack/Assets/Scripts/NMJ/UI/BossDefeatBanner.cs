@@ -158,6 +158,15 @@ namespace NMJ
             if (timer >= end) Finish();
         }
 
+        /// <summary>(개발자 창 리젠) 지켜보던 보스를 잊고 새 보스를 처음부터 지켜본다. 치운 보스로는 처치 문구가 나오지 않는다</summary>
+        public void ForgetBoss()
+        {
+            boss = null;
+            bossSeenAlive = false;
+            shownForBoss = false;
+            findTimer = 0f;
+        }
+
         private void WatchBoss()
         {
             if (boss == null)
