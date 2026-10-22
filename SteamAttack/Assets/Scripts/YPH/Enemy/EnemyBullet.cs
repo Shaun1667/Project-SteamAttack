@@ -4,7 +4,7 @@ using NGH;
 namespace YPH
 {
     /// <summary>
-    /// 적 총알 (원거리 병사용). CHG_ObjectPool로 꺼내 Fire()로 발사하고, 맞거나 사거리를 넘으면 풀로 반납된다.
+    /// 적 총알 (원거리 병사용). NGH.ObjectPool로 꺼내 Fire()로 발사하고, 맞거나 사거리를 넘으면 풀로 반납된다.
     /// - 매 프레임 이동 거리만큼 SphereCast로 검사하므로 빨라도 벽·플레이어를 뚫지 않는다.
     /// - 플레이어(PlayerController)에 맞으면 TakeHit(데미지, 쏜 위치)를 호출한다.
     ///   구르기 등으로 무적이면 피해 없이 통과한다.
@@ -177,7 +177,7 @@ namespace YPH
                 if (logHits)
                 {
                     string ownerName = owner != null ? owner.name : "Unknown";
-                    Debug.Log("[chg_EnemyBullet] " + ownerName + " → " + player.name + (damaged ? " 명중 (데미지 " + damage + ", 경직 " + stagger + ")" : " 통과 (무적 상태)"), player);
+                    Debug.Log("[EnemyBullet] " + ownerName + " → " + player.name + (damaged ? " 명중 (데미지 " + damage + ", 경직 " + stagger + ")" : " 통과 (무적 상태)"), player);
                 }
                 if (!damaged)
                 {

@@ -77,7 +77,7 @@ namespace YPH
                         case "HeavyAttack": HeavyHitTime = hit.time; HeavyLength = clip.length; break;
                         case "Kick": KickHitTime = hit.time; KickLength = clip.length; break;
                         default:
-                            Debug.LogWarning("[CHG_EnemyAI:" + name + "] 클립 " + clip.name + "의 OnAttackHit String은 Attack / HeavyAttack / Kick 중 하나여야 합니다.", this);
+                            Debug.LogWarning("[EnemyAI:" + name + "] 클립 " + clip.name + "의 OnAttackHit String은 Attack / HeavyAttack / Kick 중 하나여야 합니다.", this);
                             break;
                     }
                     _brain.Log("타격 이벤트: " + clip.name + " → " + hit.stringParameter + " " + hit.time.ToString("0.00") + "초");

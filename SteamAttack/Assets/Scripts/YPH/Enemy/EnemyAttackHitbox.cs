@@ -7,7 +7,7 @@ namespace YPH
 {
     /// <summary>
     /// 적 근접 공격 판정용 히트박스 (NGH)
-    /// - CHG_ObjectPool로 꺼내서 쓰고, 지정된 시간이 지나면 풀에 반납된다.
+    /// - NGH.ObjectPool로 꺼내서 쓰고, 지정된 시간이 지나면 풀에 반납된다.
     /// - 태그는 EnemyAttack. 플레이어 쪽에서는 이 태그로 피격을 판단한다.
     /// - Kinematic Rigidbody가 붙어 있어 상대에게 Rigidbody가 없어도 트리거 이벤트가 발생한다.
     /// - followTarget을 지정하면 공격 중 적이 전진해도 히트박스가 따라간다.
@@ -24,7 +24,7 @@ namespace YPH
         [Tooltip("명중 대상 태그")]
         [SerializeField] private string targetTag = "Player";
         [SerializeField] private bool logHits = true;
-        [Tooltip("명중한 대상이 CHG 플레이어면 피격 함수(TakeHit)를 호출해 실제로 데미지를 준다")]
+        [Tooltip("명중한 대상이 NGH 플레이어면 피격 함수(TakeHit)를 호출해 실제로 데미지를 준다")]
         [SerializeField] private bool applyDamageToPlayer = true;
 
         public int Damage { get; private set; } = 1;
@@ -187,7 +187,7 @@ namespace YPH
             {
                 string ownerName = Owner != null ? Owner.name : "Unknown";
                 string resultText = applyDamageToPlayer && !damaged ? " - 피해 없음 (무적 상태)" : "";
-                Debug.Log("[CHG_EnemyAttackHitbox] " + ownerName + " → " + target.name + " 명중 (데미지 " + Damage + ", 경직 " + Stagger + ")" + resultText, target);
+                Debug.Log("[EnemyAttackHitbox] " + ownerName + " → " + target.name + " 명중 (데미지 " + Damage + ", 경직 " + Stagger + ")" + resultText, target);
             }
 
             OnHit?.Invoke(this, target);

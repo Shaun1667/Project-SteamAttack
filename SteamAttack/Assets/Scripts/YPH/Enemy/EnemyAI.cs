@@ -477,7 +477,7 @@ namespace YPH
         {
             if (_logStateChanges)
             {
-                Debug.Log("[CHG_EnemyAI:" + name + "] " + message, this);
+                Debug.Log("[EnemyAI:" + name + "] " + message, this);
             }
         }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
