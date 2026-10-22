@@ -26,7 +26,7 @@ namespace NMJ
     ///    피격 동작이 끝나면 다시 가득 채운다. 끌 때 원래 최대 체력·체력으로 되돌린다.
     ///  - 원펀맨: 일반 적은 EnemyHealth.AnyDamaged를 받아 그 프레임 끝에 남은 체력만큼 더 준다.
     ///    보스 부위는 지금 플레이어 공격이 닿지 않아서(BHS 테스트 탄환만 닿음), 칼 휘두름·총알 끝점에 부위가 있으면 바로 부순다.
-    ///  - 보스 리젠: 씬에 꺼진 채 놓인 BHS 보스를 본으로 복제해 보스방 표식(NMJ_BossSpawn_Hyeonmu)에 세운다.
+    ///  - 보스 리젠: 보스방의 현무(BHS_HyunMu)를 본으로 복제해 BHS가 놓은 자리에 다시 세운다 (없으면 꺼진 채 놓인 BossHealth 시험 보스를 보스방 표식에).
     /// </summary>
     [DisallowMultipleComponent]
     public class NmjDevWindow : MonoBehaviour
@@ -37,6 +37,7 @@ namespace NMJ
         // 위치 (찾는 이름이 없을 때의 값은 Common/Main 기준)
         private const string BossArenaName = "NMJ_BossArena";
         private const string BossSpawnName = "NMJ_BossSpawn_Hyeonmu";
+        private const string HyeonmuName = "BHS_HyunMu";
         private const string GateFrontName = "NMJ_FogGate_돌아온자리";
         private static readonly Vector3 YukjoPoint = new Vector3(0f, 0.1f, -100f);
         private static readonly Vector3 GateFrontFallback = new Vector3(0f, 0.1f, 74f);
@@ -69,8 +70,11 @@ namespace NMJ
         private Vector3 startPos;
         private Quaternion startRot;
         private bool hasStart;
-        private BossHealth bossTemplate;          // 씬에 꺼진 채 놓인 보스 (복제 본)
-        private readonly List<BossHealth> spawnedBosses = new List<BossHealth>();
+        private GameObject bossTemplate;          // 보스방의 현무(BHS_HyunMu) 또는 꺼진 채 놓인 BossHealth 보스 (복제 본)
+        private Vector3 bossHomePos;
+        private Quaternion bossHomeRot;
+        private bool bossUseHome;               // 보스방 현무는 BHS가 놓은 자리 그대로, 시험용 보스는 보스방 표식 자리
+        private readonly List<GameObject> spawnedBosses = new List<GameObject>();
 
         // 무적
         private int savedMaxHp, savedHp;
@@ -123,13 +127,18 @@ namespace NMJ
             hasStart = player != null;
             if (hasStart) { startPos = player.transform.position; startRot = player.transform.rotation; }
 
-            // 꺼진 채 놓인 보스를 복제 본으로 기억 (켜진 보스밖에 없으면 그것을)
+            // 복제 본: 보스방의 현무(BHS_HyunMu)가 있으면 그것, 없으면 꺼진 채 놓인 BossHealth 보스
             bossTemplate = null;
-            foreach (BossHealth b in FindObjectsByType<BossHealth>(FindObjectsInactive.Include))
-            {
-                if (!b.gameObject.scene.IsValid()) continue;
-                if (bossTemplate == null || !b.gameObject.activeInHierarchy) bossTemplate = b;
-            }
+            bossUseHome = false;
+            foreach (Transform t in FindObjectsByType<Transform>(FindObjectsInactive.Include))
+                if (t.name.StartsWith(HyeonmuName) && t.gameObject.scene.IsValid()) { bossTemplate = t.gameObject; bossUseHome = true; break; }
+            if (bossTemplate == null)
+                foreach (BossHealth b in FindObjectsByType<BossHealth>(FindObjectsInactive.Include))
+                {
+                    if (!b.gameObject.scene.IsValid()) continue;
+                    if (bossTemplate == null || !b.gameObject.activeInHierarchy) bossTemplate = b.gameObject;
+                }
+            if (bossTemplate != null) { bossHomePos = bossTemplate.transform.position; bossHomeRot = bossTemplate.transform.rotation; }
             if (Invincible) ApplyInvincible(true);
         }
 
@@ -370,26 +379,24 @@ namespace NMJ
         /// <summary>보스: 켜진 보스를 모두 치우고(쓰러뜨리지 않고 지움 → 처치 문구·엔딩 없음) 본을 복제해 다시 세운다</summary>
         private void RespawnBoss()
         {
-            if (bossTemplate == null) { Debug.LogWarning("[NMJ 개발자 창] 씬에 BHS 보스(BossHealth)가 없어 다시 세울 수 없습니다"); return; }
+            if (bossTemplate == null) { Debug.LogWarning("[NMJ 개발자 창] 씬에 보스(BHS_HyunMu 또는 BossHealth)가 없어 다시 세울 수 없습니다"); return; }
 
-            foreach (BossHealth b in FindObjectsByType<BossHealth>(FindObjectsInactive.Include))
-            {
-                if (b == bossTemplate) continue;
-                if (b.gameObject.activeInHierarchy || spawnedBosses.Contains(b)) Destroy(b.gameObject);
-            }
+            // 앞서 리젠한 보스와, 켜져 있는 시험용 보스를 치운다 (쓰러뜨리지 않고 지움)
+            foreach (GameObject g in spawnedBosses) if (g != null) Destroy(g);
             spawnedBosses.Clear();
+            foreach (BossHealth b in FindObjectsByType<BossHealth>())
+                if (b.gameObject != bossTemplate && !b.transform.IsChildOf(bossTemplate.transform)) Destroy(b.gameObject);
 
-            // 본이 켜져 있던 보스라면 본은 끄고 복제만 쓴다
-            if (bossTemplate.gameObject.activeInHierarchy) bossTemplate.gameObject.SetActive(false);
+            // 본은 끄고 복제만 쓴다 (본은 다음 리젠에도 깨끗한 상태로 남는다)
+            if (bossTemplate.activeSelf) bossTemplate.SetActive(false);
 
-            Transform spawn = FindInScene(BossSpawnName);
-            Vector3 pos = spawn != null ? spawn.position : bossTemplate.transform.position;
-            Quaternion rot = spawn != null ? spawn.rotation : bossTemplate.transform.rotation;
-            GameObject clone = Instantiate(bossTemplate.gameObject, pos, rot);
-            clone.name = bossTemplate.gameObject.name + " (개발자 리젠)";
+            Transform spawn = bossUseHome ? null : FindInScene(BossSpawnName);
+            Vector3 pos = spawn != null ? spawn.position : bossHomePos;
+            Quaternion rot = spawn != null ? spawn.rotation : bossHomeRot;
+            GameObject clone = Instantiate(bossTemplate, pos, rot, bossTemplate.transform.parent);
+            clone.name = bossTemplate.name + " (개발자 리젠)";
             clone.SetActive(true);
-            BossHealth boss = clone.GetComponent<BossHealth>();
-            if (boss != null) spawnedBosses.Add(boss);
+            spawnedBosses.Add(clone);
 
             foreach (BossDefeatBanner banner in FindObjectsByType<BossDefeatBanner>()) banner.ForgetBoss();
             foreach (HyeonmuBossBar bar in FindObjectsByType<HyeonmuBossBar>()) bar.ResetBar();
