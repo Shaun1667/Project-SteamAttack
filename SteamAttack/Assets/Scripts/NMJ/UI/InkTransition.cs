@@ -14,6 +14,8 @@ namespace NMJ
         Brush = 1,
         /// <summary>C. 먹 흘러내림 — 위에서 먹이 배어 내려오고 먹줄기가 흘러내린다</summary>
         Drip = 2,
+        /// <summary>종이 타듯 사라짐 — 쓰러짐 화면 배경 (세계관 v6 6-2). 화면 전환에는 쓰지 않는다</summary>
+        Burn = 3,
     }
 
     /// <summary>

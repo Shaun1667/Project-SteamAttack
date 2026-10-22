@@ -38,7 +38,7 @@ namespace NMJ
         [SerializeField] private PlayerController player;
         [Tooltip("한글·한자 폰트. 비우면 에디터에서 ChosunCentennial_otf SDF를 자동 연결")]
         [SerializeField] private TMP_FontAsset font;
-        [Tooltip("한자(玄武·命·討) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
+        [Tooltip("한자(玄武·命·鎭) 전용 고정 폰트. 비우면 에디터에서 NMJ_HudGlyphs SDF를 자동 연결. 새 한자를 쓰려면 NmjHudFontBuilder에 글자를 더한다")]
         [SerializeField] private TMP_FontAsset glyphFont;
 
         private TMP_FontAsset HanjaFont => glyphFont != null ? glyphFont : font;
@@ -165,6 +165,8 @@ namespace NMJ
             if (GameOverScreen.IsShowing || DefeatScreen.IsShowing || Time.frameCount - lastGameOverFrame <= 1) return false;
             if (player != null && player.IsDead) return false;
             if (BossDefeatBanner.IsShowing || EndingCredits.IsPlaying) return false;   // 처치 문구 → 엔딩 크레딧 중에는 열지 않는다
+            if (NmjOpening.IsPlaying || NmjDialogue.IsPlaying || NmjReadable.IsReading) return false;   // 오프닝·대사·글 읽기는 ESC를 각자 쓴다
+            if (NmjDevWindow.BlocksEscape) return false;   // 개발자 창이 ESC로 닫히는 중
             return !ControlsOverlay.GuideOpen;
         }
 

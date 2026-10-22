@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4f37ba31b98ec042bb831bafba9e734, type: 3}
+  m_Name: Quest_dq_01_yukjo
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.QuestData
+  questId: dq_01_yukjo
+  title: "\uC721\uC870\uAC70\uB9AC\uB97C \uC9C0\uB098"
+  category: 0
+  summary: "\uBA48\uCD98 \uBC31\uC131 \uC0AC\uC774\uB97C \uC9C0\uB098 \uAD11\uD654\uBB38\uC73C\uB85C \uAC04\uB2E4. \uBCA0\uC778 \uC774\uB294 \uC8FD\uC9C0 \uC54A\uACE0 \uC5BC\uC74C\uC774 \uAE68\uC9C0\uBA70 \uC7A0\uB4E0\uB2E4."
+  questGiverId: 
+  startDialogue: 
+  completeDialogue: 
+  objectives:
+  - type: 1
+    targetId: enemy_yukjo
+    targetItem: {fileID: 0}
+    description: "\uC721\uC870\uAC70\uB9AC\uC758 \uC801\uC744 \uC7A0\uC7AC\uC6B4\uB2E4"
+    requiredAmount: 4
+  - type: 3
+    targetId: loc_gwanghwamun
+    targetItem: {fileID: 0}
+    description: "\uAD11\uD654\uBB38 \uC55E\uC5D0 \uB2FF\uB294\uB2E4"
+    requiredAmount: 1
+  autoComplete: 1
+  consumeCollectedItems: 1
+  reward:
+    items: []
+    exp: 0
+    gold: 0
+    extraInventorySlots: 0
+  prerequisiteQuestIds: []
+  nextQuestId: dq_02_gwanghwamun

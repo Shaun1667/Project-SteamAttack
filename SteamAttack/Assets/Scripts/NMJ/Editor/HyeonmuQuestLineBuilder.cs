@@ -6,10 +6,10 @@ using UnityEngine;
 namespace NMJ
 {
     /// <summary>
-    /// 메인 퀘스트 "고종의 어명을 받아 현무를 토벌한다" 한 줄기와
+    /// 메인 퀘스트 "고종의 어명을 받아 현무를 다시 잠재운다" 한 줄기와
     /// 거기에 쓰이는 아이템 / 데이터베이스 에셋을 한 번에 만들어 주는 에디터 도구.
     ///
-    /// 내용은 HyeonmuWorld_Main 씬(1887 정월, 멈춘 도성)의 장소·인물에 맞춰져 있다.
+    /// 내용은 HyeonmuWorld_Main 씬(1887년 3월, 멈춘 도성)의 장소·인물에 맞춰져 있다.
     /// 메뉴: SteamAttack ▸ 메인 퀘스트 생성 (현무 토벌)
     /// 이미 있는 에셋은 새로 만들지 않고 값만 갱신한다.
     /// </summary>
@@ -36,7 +36,7 @@ namespace NMJ
 
             // ── 아이템 ────────────────────────────────────────
             var edict = CreateItem("quest_imperial_edict", "어명 교지(敎旨)", ItemType.Quest, ItemGrade.Unique, 1,
-                "옥새가 찍힌 교지. 북장을 감은 현무를 베라는 어명이 적혀 있다. 종이에 서리가 앉아 있다.");
+                "옥새가 찍힌 교지. 북장을 감은 현무를 죽이지 말고 잠재우라는 어명이 적혀 있다. 종이에 서리가 앉아 있다.");
 
             var core = CreateItem("mat_firewater_core", "물불 동력핵", ItemType.Material, ItemGrade.Uncommon, 99,
                 "건청궁 물불 증기 발전기에서 뽑아낸 동력핵. 아직 미지근하다. 한기 속에서 기계를 돌리는 유일한 불씨.");
@@ -62,9 +62,9 @@ namespace NMJ
             // ── 메인 퀘스트 5장 ───────────────────────────────
             var mq1 = CreateQuest(
                 "mq_01_royal_edict", "어명(御命)",
-                "건청궁 마당으로 들라. 얼어붙은 전등 아래에서 황제가 기다린다.",
+                "건청궁 마당으로 들라. 얼어붙은 전등 아래에서 임금이 기다린다.",
                 NpcGojong,
-                "보아라. 저것이 북장을 감고 도성의 시간을 삼키고 있다. 전등도, 사람도, 정월도 저기서 멈췄다.\n어명이다 — 현무를 베라.",
+                "보아라. 저것이 북장을 감고 도성의 시간을 삼키고 있다. 전등도, 사람도, 봄눈도 저기서 멈췄다. 어명이다 — 가서, 저것을 다시 잠재우라. 죽이라는 것이 아니다.",
                 "교지를 받들었으면 삼청동으로 가라. 기기창에 아직 불씨가 남아 있다.",
                 new[]
                 {
@@ -93,11 +93,11 @@ namespace NMJ
                 "mq_03_black_water", "운종가의 흑수회",
                 "저잣거리에 제단을 세우고 현무를 신으로 섬기는 자들이 있다. 제단부터 끊어라.",
                 NpcBaekdongsu,
-                "저것을 신으로 모시는 미친 자들이 운종가에 제단을 세웠소. 여덟만 베면 길이 열리오.",
+                "저것을 신으로 모시는 겁먹은 자들이 운종가에 제단을 세웠소. 여덟만 잠재우면 길이 열리오.",
                 "제단이 꺼졌소. 이제 군졸들 차례요.",
                 new[]
                 {
-                    Objective(QuestObjectiveType.Kill, EnemyHeuksu, 8, "흑수회 광신도를 8명 토벌한다", null),
+                    Objective(QuestObjectiveType.Kill, EnemyHeuksu, 8, "흑수회 광신도 8명을 잠재운다", null),
                     Objective(QuestObjectiveType.Reach, LocationHeuksuAltar, 1, "운종가 흑수회 제단에 도달한다", null),
                 },
                 Reward(new[] { (tonic, 5), (core, 3) }, exp: 350, gold: 800, extraSlots: 0),
@@ -121,14 +121,14 @@ namespace NMJ
                 prerequisites: new[] { "mq_03_black_water" });
 
             var mq5 = CreateQuest(
-                "mq_05_slay_hyeonmu", "현무를 토벌하라",
-                "어명의 끝. 북장을 감은 현무를 베고 건청궁으로 돌아가 복명한다.",
+                "mq_05_slay_hyeonmu", "현무를 잠재우라",
+                "어명의 끝. 북장을 감은 현무를 다시 잠재우고 건청궁으로 돌아가 복명한다.",
                 NpcGojong,
-                "가라. 짐의 이름으로, 멈춘 정월을 도로 흐르게 하라.",
+                "가라. 짐의 이름으로, 멈춘 봄을 도로 흐르게 하라.",
                 "…바람이 분다. 눈이 다시 내리는구나. 그 비늘로 벼린 갑주를 내리노라.",
                 new[]
                 {
-                    Objective(QuestObjectiveType.Kill, BossHyeonmu, 1, "현무를 토벌한다", null),
+                    Objective(QuestObjectiveType.Kill, BossHyeonmu, 1, "현무를 잠재운다", null),
                     Objective(QuestObjectiveType.Collect, null, 1, "현무 비늘을 확보한다", scale),
                     Objective(QuestObjectiveType.Talk, NpcGojong, 1, "건청궁으로 돌아가 복명한다", null),
                 },
