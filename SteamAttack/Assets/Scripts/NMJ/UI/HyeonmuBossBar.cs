@@ -187,7 +187,7 @@ namespace NMJ
                 legs = found.ToArray();
             }
             if (legs.Length != cells.Count)
-                Debug.LogWarning($"[NMJ] 현무 체력바: 칸 {cells.Count}개, 보스 다리 {legs.Length}개 — 개수가 다릅니다.", this);
+                Debug.Log($"[NMJ] 현무 체력바: 칸 {cells.Count}개, 보스 다리 {legs.Length}개 — 개수가 다릅니다 (BHS 요청: 보스다리수와체력기준).", this);
             ResetBar();
         }
 

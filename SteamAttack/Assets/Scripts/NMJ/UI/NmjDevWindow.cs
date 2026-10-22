@@ -126,7 +126,7 @@ namespace NMJ
 
             // 꺼진 채 놓인 보스를 복제 본으로 기억 (켜진 보스밖에 없으면 그것을)
             bossTemplate = null;
-            foreach (BossHealth b in FindObjectsByType<BossHealth>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (BossHealth b in FindObjectsByType<BossHealth>(FindObjectsInactive.Include))
             {
                 if (!b.gameObject.scene.IsValid()) continue;
                 if (bossTemplate == null || !b.gameObject.activeInHierarchy) bossTemplate = b;
@@ -360,7 +360,7 @@ namespace NMJ
         {
             killQueue.Clear();
             int n = 0;
-            foreach (EnemyHealth e in FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None))
+            foreach (EnemyHealth e in FindObjectsByType<EnemyHealth>())
             {
                 e.Revive();
                 n++;
@@ -373,7 +373,7 @@ namespace NMJ
         {
             if (bossTemplate == null) { Debug.LogWarning("[NMJ 개발자 창] 씬에 BHS 보스(BossHealth)가 없어 다시 세울 수 없습니다"); return; }
 
-            foreach (BossHealth b in FindObjectsByType<BossHealth>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (BossHealth b in FindObjectsByType<BossHealth>(FindObjectsInactive.Include))
             {
                 if (b == bossTemplate) continue;
                 if (b.gameObject.activeInHierarchy || spawnedBosses.Contains(b)) Destroy(b.gameObject);
@@ -392,14 +392,14 @@ namespace NMJ
             BossHealth boss = clone.GetComponent<BossHealth>();
             if (boss != null) spawnedBosses.Add(boss);
 
-            foreach (BossDefeatBanner banner in FindObjectsByType<BossDefeatBanner>(FindObjectsSortMode.None)) banner.ForgetBoss();
-            foreach (HyeonmuBossBar bar in FindObjectsByType<HyeonmuBossBar>(FindObjectsSortMode.None)) bar.ResetBar();
+            foreach (BossDefeatBanner banner in FindObjectsByType<BossDefeatBanner>()) banner.ForgetBoss();
+            foreach (HyeonmuBossBar bar in FindObjectsByType<HyeonmuBossBar>()) bar.ResetBar();
             Debug.Log("[NMJ 개발자 창] 보스 다시 세움 (리젠으로 치운 보스는 처치·엔딩 없음)");
         }
 
         private static Transform FindInScene(string name)
         {
-            foreach (Transform t in FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (Transform t in FindObjectsByType<Transform>(FindObjectsInactive.Include))
                 if (t.name == name && t.gameObject.scene.IsValid()) return t;
             return null;
         }
@@ -456,7 +456,7 @@ namespace NMJ
             font = FindDefaultFont();
 #endif
             if (font == null)
-                foreach (TMP_Text t in FindObjectsByType<TMP_Text>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                foreach (TMP_Text t in FindObjectsByType<TMP_Text>(FindObjectsInactive.Include))
                     if (t.font != null && t.font.name.Contains("Chosun")) { font = t.font; break; }
 
             style = new Style { font = font, buttonHeight = 54f, fontSize = 28f };

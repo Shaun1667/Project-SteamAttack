@@ -278,7 +278,7 @@ namespace NMJ
                 if (depth < bestDepth) { bestDepth = depth; tank = t; }
             }
             if (count > 1)
-                Debug.LogWarning($"[NMJ] 증기 게이지: 플레이어 아래 증기통이 {count}개입니다. 가장 바깥의 '{tank.name}'을 씁니다.", this);
+                Debug.Log($"[NMJ] 증기 게이지: 플레이어 아래 증기통이 {count}개라 가장 바깥의 '{tank.name}'을 씁니다 (하나로 합치는 요청: NGH_요청_20261017_증기탱크하나로정리).", this);
             if (tank == null) tank = FindAnyObjectByType<SteamTank>();
         }
 
