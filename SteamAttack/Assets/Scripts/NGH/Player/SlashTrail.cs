@@ -27,6 +27,7 @@ namespace NGH
         int _prefix;   // 경로 앞에 덧붙인 꼬리 점 개수 (처음부터 보임). Head 는 그 뒤 칼 경로에만 적용
         float _head, _age;
         bool _dirty;
+        bool _keepWhole;   // 다 그릴 때까지 흐려지지 않고, 꼬리도 진하게 (긴 궤적 전체를 한 번에 보여줄 때)
 
         readonly List<Vector3> _verts = new List<Vector3>();
         readonly List<Vector2> _uvs = new List<Vector2>();
@@ -34,8 +35,9 @@ namespace NGH
         readonly List<int> _tris = new List<int>();
 
         /// <summary>궤적 시작. sources = 머티리얼·색 변화를 가져올 베기 파티클들 (프리팹 원본)</summary>
-        public void Begin(Vector3[] outer, Vector3[] inner, IList<ParticleSystem> sources, int prefix = 0)
+        public void Begin(Vector3[] outer, Vector3[] inner, IList<ParticleSystem> sources, int prefix = 0, bool keepWhole = false)
         {
+            _keepWhole = keepWhole;
             _outer = outer;
             _inner = inner;
             _prefix = Mathf.Clamp(prefix, 0, outer.Length - 2);
@@ -84,7 +86,7 @@ namespace NGH
         void LateUpdate()
         {
             if (_outer == null || _outer.Length < 2) return;
-            _age += Time.deltaTime;
+            if (!_keepWhole || _head >= 1f) _age += Time.deltaTime;
             if (_dirty) Rebuild();
             // 색·투명도 (파티클의 Color over Lifetime 과 같게)
             for (int i = 0; i < _layers.Count; i++)
@@ -116,6 +118,7 @@ namespace NGH
                     Vector3 o = Vector3.LerpUnclamped(_outer[a], _outer[a + 1], f);
                     Vector3 inn = Vector3.LerpUnclamped(_inner[a], _inner[a + 1], f);
                     float u = s / h;   // 0 = 꼬리, 1 = 굵은 끝(현재 칼 위치)
+                    if (_keepWhole) u = Mathf.Lerp(0.55f, 1f, u);   // 꼬리 쪽도 사라지지 않게
                     _verts.Add(o); _uvs.Add(new Vector2(u, 0f));
                     _verts.Add(inn); _uvs.Add(new Vector2(u, 1f));
                 }

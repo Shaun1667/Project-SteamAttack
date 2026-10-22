@@ -3,6 +3,8 @@ using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Animations;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 #endif
 
 namespace NGH
@@ -58,6 +60,8 @@ namespace NGH
             public bool useTrail = true;
             [Tooltip("궤적 메시: 휘두르기 시작점 앞쪽으로 같은 원을 따라 꼬리를 더 그릴 각도(도). 이펙트가 짧아 보일 때")]
             [Range(0f, 120f)] public float tailExtend;
+            [Tooltip("궤적 메시: 휘두르기가 끝날 때까지 흐려지지 않고, 지나간 길 전체를 진하게 남김 (8자처럼 긴 궤적을 한 번에 보여줄 때)")]
+            public bool keepWholeTrail;
             [HideInInspector] public Vector3[] pathOuter;   // 칼끝 쪽 가장자리 (플레이어 기준, [꼬리 →] 휘두르기 시작 → 끝)
             [HideInInspector] public Vector3[] pathInner;   // 칼날 안쪽 가장자리
             [HideInInspector] public int pathPrefix;        // 경로 앞의 꼬리 점 개수
@@ -227,7 +231,7 @@ namespace NGH
                 _trailSources[e.prefab] = sources;
             }
             var trail = go.GetComponent<SlashTrail>();
-            trail.Begin(e.pathOuter, e.pathInner, sources, e.pathPrefix);
+            trail.Begin(e.pathOuter, e.pathInner, sources, e.pathPrefix, e.keepWholeTrail);
             _trails.Add(new TrailRun { trail = trail, entry = e, serial = player ? player.ActionSerial : 0 });
             ObjectPool.Despawn(go, fxLifetime);
         }
@@ -348,21 +352,32 @@ namespace NGH
             var tips = new Vector3[N];
             var grips = new Vector3[N];
             AnimationMode.StartAnimationMode();
+            // 게임 실행 중과 같은 자세로 샘플링하려고 PlayableGraph 를 씀.
+            // SampleAnimationClip 은 Root Transform 을 굽지 않은 클립(제자리 공격)도 원본 파일의 위치·방향 그대로 샘플링해서 궤적이 어긋남
+            var graph = PlayableGraph.Create("NGH AttackFx Bake");
+            graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+            var output = AnimationPlayableOutput.Create(graph, "bake", animator);
             try
             {
                 foreach (var e in entries)
                 {
                     var clip = FindClip(ctrl, StateFor(e.action));
                     if (!clip) { Debug.LogWarning($"[NGH] AttackFx: {e.label} 클립 없음"); continue; }
+                    var playable = AnimationClipPlayable.Create(graph, clip);
+                    playable.SetApplyFootIK(false);
+                    output.SetSourcePlayable(playable);
                     for (int i = 0; i < N; i++)
                     {
                         float u = Mathf.Lerp(e.swingRange.x, e.swingRange.y, i / (N - 1f));
+                        float time = u * clip.length;
                         AnimationMode.BeginSampling();
-                        AnimationMode.SampleAnimationClip(animator.gameObject, clip, u * clip.length);
+                        playable.SetTime(time);
+                        AnimationMode.SamplePlayableGraph(graph, 0, time);
                         AnimationMode.EndSampling();
                         tips[i] = transform.InverseTransformPoint(bone.TransformPoint(tipLocal));
                         grips[i] = transform.InverseTransformPoint(bone.TransformPoint(gripLocal));
                     }
+                    playable.Destroy();
                     float swingSeconds = (e.swingRange.y - e.swingRange.x) * clip.length / Mathf.Max(0.01f, PlaySpeedFor(e.action));
                     e.spawnAt = e.swingRange.x;
                     e.swingSeconds = swingSeconds;
@@ -392,7 +407,11 @@ namespace NGH
                     else BakeThrust(e, tips, grips);
                 }
             }
-            finally { AnimationMode.StopAnimationMode(); }
+            finally
+            {
+                graph.Destroy();
+                AnimationMode.StopAnimationMode();
+            }
             EditorUtility.SetDirty(this);
         }
 
@@ -559,6 +578,7 @@ namespace NGH
             if (!w) return false;
 
             Vector3[] verts;
+            Vector3 hold = Vector3.zero;   // 손으로 쥔 점 (bone 기준). 여기서 가장 먼 점 = 칼끝, 가장 가까운 점 = 손잡이
             var smr = w.GetComponentInChildren<SkinnedMeshRenderer>(true);
             if (smr && smr.sharedMesh)
             {
@@ -579,11 +599,14 @@ namespace NGH
                 if (!mf || !mf.sharedMesh) return false;
                 bone = mf.transform;
                 verts = mf.sharedMesh.vertices;
+                // 메시 원점이 손잡이에 있지 않을 수 있음 (HeroSword_DrawVisual 은 원점이 손에서 약 0.8m 떨어져 있음)
+                // → 메시 원점 대신 무기 오브젝트 위치(손에 붙은 점)를 기준으로 칼끝·손잡이를 고름
+                hold = bone.InverseTransformPoint(w.transform.position);
             }
             float far = -1f, near = float.MaxValue;
             foreach (var v in verts)
             {
-                float d = v.sqrMagnitude;
+                float d = (v - hold).sqrMagnitude;
                 if (d > far) { far = d; tip = v; }
                 if (d < near) { near = d; grip = v; }
             }
