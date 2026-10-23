@@ -27,6 +27,12 @@ namespace NMJ
         private QuestManager manager;
         private CanvasGroup fadeGroup;
 
+        private void Awake()
+        {
+            // 화면에 보여 주기만 하는 판 — 글자가 마우스 클릭을 가로채 ESC 메뉴·개발자 창 버튼이 눌리지 않던 문제
+            foreach (UnityEngine.UI.Graphic g in GetComponentsInChildren<UnityEngine.UI.Graphic>(true)) g.raycastTarget = false;
+        }
+
         private void Start()
         {
             manager = QuestManager.Instance;

@@ -107,8 +107,10 @@ namespace NMJ
         private void Begin(InkStyle style, Action middle, float cover, float reveal, float hold, Action done)
         {
             // 이미 덮인 상태면 이어서, 아니면 처음부터 덮는다
-            atMiddle = middle;
-            onDone = done;
+            // 덮는 중에 또 불리면 앞의 예약을 지우지 않고 함께 실행한다
+            // (예: 오프닝이 끝나며 부른 전환이 안개문 순간이동 예약을 덮어써 순간이동이 사라지던 문제)
+            atMiddle = phase == Phase.Covering ? atMiddle + middle : middle;
+            onDone = phase != Phase.Idle ? onDone + done : done;
             coverTime = Mathf.Max(0.05f, cover);
             revealTime = Mathf.Max(0.05f, reveal);
             holdTime = Mathf.Max(0f, hold);

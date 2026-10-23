@@ -11,17 +11,16 @@ using UnityEngine.UI;
 namespace NMJ
 {
     /// <summary>
-    /// 지금 열려 있는 씬에 인벤토리 / 퀘스트를 통째로 설치한다.
-    ///  - GameSystems (PlayerInventory + QuestManager + QuestDebugTester)
-    ///  - 인벤토리 창 UI, 퀘스트 트래커 UI, EventSystem
+    /// 지금 열려 있는 씬에 메인 퀘스트를 통째로 설치한다. (인벤토리는 2026-10-23 삭제)
+    ///  - GameSystems (QuestManager + QuestDebugTester)
+    ///  - 퀘스트 트래커 UI, EventSystem
     ///  - 씬에 이미 있는 인물 / 장소 오브젝트에 퀘스트 컴포넌트 연결
     ///
-    /// 메뉴: SteamAttack ▸ 현재 씬에 인벤토리·메인퀘스트 설치
+    /// 메뉴: SteamAttack ▸ 현재 씬에 메인퀘스트 설치
     /// 여러 번 눌러도 이미 있는 것은 다시 만들지 않는다.
     /// </summary>
     public static class NmjSceneInstaller
     {
-        private const string SlotPrefabPath = "Assets/Prefabs/NMJ/InventorySlot.prefab";
         private const string DataRoot = "Assets/GameData/NMJ";
 
         private static readonly Color PanelColor = new Color(0.09f, 0.10f, 0.12f, 0.94f);
@@ -29,7 +28,7 @@ namespace NMJ
         private static readonly Color TextColor = new Color(0.92f, 0.90f, 0.84f, 1f);
         private static readonly Color AccentColor = new Color(0.85f, 0.67f, 0.35f, 1f);
 
-        [MenuItem("SteamAttack/현재 씬에 인벤토리·메인퀘스트 설치", false, 1)]
+        [MenuItem("SteamAttack/현재 씬에 메인퀘스트 설치", false, 1)]
         public static void Install()
         {
             var questDatabase = AssetDatabase.LoadAssetAtPath<QuestDatabase>(DataRoot + "/QuestDatabase.asset");
@@ -41,11 +40,9 @@ namespace NMJ
             }
 
             var scene = EditorSceneManager.GetActiveScene();
-            var slotPrefab = LoadOrBuildSlotPrefab();
 
             var systems = Find("GameSystems") ?? new GameObject("GameSystems");
 
-            var playerInventory = GetOrAdd<PlayerInventory>(systems);
             var questManager = GetOrAdd<QuestManager>(systems);
             var tester = GetOrAdd<QuestDebugTester>(systems);
 
@@ -55,11 +52,6 @@ namespace NMJ
                 AssetDatabase.LoadAssetAtPath<QuestData>(DataRoot + "/Quests/Quest_mq_01_royal_edict.asset");
             managerSo.ApplyModifiedPropertiesWithoutUndo();
 
-            var testerSo = new SerializedObject(tester);
-            testerSo.FindProperty("firewaterCore").objectReferenceValue = LoadItem("mat_firewater_core");
-            testerSo.FindProperty("armillaryRing").objectReferenceValue = LoadItem("mat_armillary_ring");
-            testerSo.FindProperty("hyeonmuScale").objectReferenceValue = LoadItem("mat_hyeonmu_scale");
-            testerSo.ApplyModifiedPropertiesWithoutUndo();
 
             if (Object.FindAnyObjectByType<EventSystem>() == null)
                 new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
@@ -77,7 +69,6 @@ namespace NMJ
                 scaler.referenceResolution = new Vector2(1920f, 1080f);
                 scaler.matchWidthOrHeight = 0.5f;
 
-                BuildInventoryPanel(canvasGo.transform, playerInventory, slotPrefab);
                 BuildQuestTracker(canvasGo.transform);
             }
 
@@ -87,8 +78,8 @@ namespace NMJ
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
 
-            Debug.Log($"[SteamAttack] '{scene.name}' 씬에 인벤토리·메인퀘스트를 설치했다. 퀘스트 연결된 오브젝트 {wired}개. " +
-                      "재생 후 I 키로 인벤토리, F1~F11 로 메인 퀘스트를 진행할 수 있다.");
+            Debug.Log($"[SteamAttack] '{scene.name}' 씬에 메인퀘스트를 설치했다. 퀘스트 연결된 오브젝트 {wired}개. " +
+                      "재생 후 F1~F11 로 메인 퀘스트를 진행할 수 있다.");
         }
 
         // ── 씬 오브젝트 연결 ──────────────────────────────────
@@ -279,108 +270,6 @@ namespace NMJ
 
         // ── 인벤토리 창 ───────────────────────────────────────
 
-        private static void BuildInventoryPanel(Transform canvas, PlayerInventory playerInventory,
-            InventorySlotUI slotPrefab)
-        {
-            var uiRoot = new GameObject("InventoryUI", typeof(RectTransform));
-            uiRoot.transform.SetParent(canvas, false);
-            Stretch(uiRoot.GetComponent<RectTransform>());
-
-            var panel = CreateUIObject("Panel", uiRoot.transform);
-            var panelRect = panel.GetComponent<RectTransform>();
-            panelRect.anchorMin = panelRect.anchorMax = new Vector2(1f, 0.5f);
-            panelRect.pivot = new Vector2(1f, 0.5f);
-            panelRect.anchoredPosition = new Vector2(-48f, 0f);
-            panelRect.sizeDelta = new Vector2(640f, 780f);
-            AddImage(panel, PanelColor);
-
-            var title = CreateText(panel.transform, "TitleText", "봇짐", 34, TextAlignmentOptions.Left, AccentColor);
-            var titleRect = title.rectTransform;
-            titleRect.anchorMin = titleRect.anchorMax = new Vector2(0f, 1f);
-            titleRect.pivot = new Vector2(0f, 1f);
-            titleRect.anchoredPosition = new Vector2(24f, -18f);
-            titleRect.sizeDelta = new Vector2(240f, 44f);
-
-            var capacity = CreateText(panel.transform, "CapacityText", "0 / 20 칸", 28, TextAlignmentOptions.Right, TextColor);
-            var capacityRect = capacity.rectTransform;
-            capacityRect.anchorMin = capacityRect.anchorMax = new Vector2(1f, 1f);
-            capacityRect.pivot = new Vector2(1f, 1f);
-            capacityRect.anchoredPosition = new Vector2(-24f, -18f);
-            capacityRect.sizeDelta = new Vector2(280f, 44f);
-
-            var grid = CreateUIObject("SlotGrid", panel.transform);
-            var gridRect = grid.GetComponent<RectTransform>();
-            gridRect.anchorMin = new Vector2(0f, 1f);
-            gridRect.anchorMax = new Vector2(1f, 1f);
-            gridRect.pivot = new Vector2(0.5f, 1f);
-            gridRect.anchoredPosition = new Vector2(0f, -76f);
-            gridRect.sizeDelta = new Vector2(-32f, 500f);
-
-            var layout = grid.AddComponent<GridLayoutGroup>();
-            layout.cellSize = new Vector2(104f, 104f);
-            layout.spacing = new Vector2(10f, 10f);
-            layout.padding = new RectOffset(12, 12, 12, 12);
-            layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            layout.constraintCount = 5;
-
-            var info = CreateUIObject("InfoBox", panel.transform);
-            var infoRect = info.GetComponent<RectTransform>();
-            infoRect.anchorMin = new Vector2(0f, 0f);
-            infoRect.anchorMax = new Vector2(1f, 0f);
-            infoRect.pivot = new Vector2(0.5f, 0f);
-            infoRect.anchoredPosition = new Vector2(0f, 76f);
-            infoRect.sizeDelta = new Vector2(-32f, 180f);
-            AddImage(info, new Color(0f, 0f, 0f, 0.35f));
-
-            var itemName = CreateText(info.transform, "ItemNameText", string.Empty, 30, TextAlignmentOptions.TopLeft, AccentColor);
-            var nameRect = itemName.rectTransform;
-            nameRect.anchorMin = new Vector2(0f, 1f);
-            nameRect.anchorMax = new Vector2(1f, 1f);
-            nameRect.pivot = new Vector2(0.5f, 1f);
-            nameRect.anchoredPosition = new Vector2(0f, -12f);
-            nameRect.sizeDelta = new Vector2(-32f, 40f);
-
-            var itemDesc = CreateText(info.transform, "ItemDescriptionText", string.Empty, 24, TextAlignmentOptions.TopLeft, TextColor);
-            var descRect = itemDesc.rectTransform;
-            descRect.anchorMin = Vector2.zero;
-            descRect.anchorMax = Vector2.one;
-            descRect.pivot = new Vector2(0.5f, 0.5f);
-            descRect.offsetMin = new Vector2(16f, 12f);
-            descRect.offsetMax = new Vector2(-16f, -56f);
-
-            var sortButton = CreateButton(panel.transform, "SortButton", "정리");
-            var buttonRect = sortButton.GetComponent<RectTransform>();
-            buttonRect.anchorMin = buttonRect.anchorMax = new Vector2(1f, 0f);
-            buttonRect.pivot = new Vector2(1f, 0f);
-            buttonRect.anchoredPosition = new Vector2(-24f, 18f);
-            buttonRect.sizeDelta = new Vector2(140f, 48f);
-
-            var dragIcon = CreateUIObject("DragIcon", uiRoot.transform);
-            var dragRect = dragIcon.GetComponent<RectTransform>();
-            dragRect.sizeDelta = new Vector2(88f, 88f);
-            var dragImage = AddImage(dragIcon, new Color(1f, 1f, 1f, 0.85f));
-            dragImage.raycastTarget = false;
-            dragIcon.SetActive(false);
-
-            var inventoryUI = uiRoot.AddComponent<InventoryUI>();
-            var so = new SerializedObject(inventoryUI);
-            so.FindProperty("playerInventory").objectReferenceValue = playerInventory;
-            so.FindProperty("panel").objectReferenceValue = panel;
-            so.FindProperty("slotParent").objectReferenceValue = gridRect;
-            so.FindProperty("slotPrefab").objectReferenceValue = slotPrefab;
-            so.FindProperty("capacityText").objectReferenceValue = capacity;
-            so.FindProperty("itemNameText").objectReferenceValue = itemName;
-            so.FindProperty("itemDescriptionText").objectReferenceValue = itemDesc;
-            so.FindProperty("dragIcon").objectReferenceValue = dragRect;
-            so.FindProperty("dragIconImage").objectReferenceValue = dragImage;
-            so.FindProperty("sortButton").objectReferenceValue = sortButton;
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            panel.SetActive(false); // 시작할 때는 닫아 둔다. I 키로 연다.
-        }
-
-        // ── 퀘스트 트래커 ─────────────────────────────────────
-
         private static void BuildQuestTracker(Transform canvas)
         {
             var trackerRoot = new GameObject("QuestTrackerUI", typeof(RectTransform));
@@ -429,65 +318,6 @@ namespace NMJ
         }
 
         // ── 슬롯 프리팹 ───────────────────────────────────────
-
-        private static InventorySlotUI LoadOrBuildSlotPrefab()
-        {
-            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(SlotPrefabPath);
-            if (existing != null) return existing.GetComponent<InventorySlotUI>();
-
-            EnsureFolder("Assets", "Prefabs");
-            EnsureFolder("Assets/Prefabs", "NMJ");
-
-            var root = CreateUIObject("InventorySlot", null);
-            root.GetComponent<RectTransform>().sizeDelta = new Vector2(104f, 104f);
-            AddImage(root, SlotColor);
-
-            var icon = CreateUIObject("Icon", root.transform);
-            var iconRect = icon.GetComponent<RectTransform>();
-            iconRect.anchorMin = iconRect.anchorMax = new Vector2(0.5f, 0.5f);
-            iconRect.sizeDelta = new Vector2(76f, 76f);
-            var iconImage = icon.AddComponent<Image>();
-            iconImage.preserveAspect = true;
-            iconImage.raycastTarget = false;
-
-            var gradeBar = CreateUIObject("GradeBar", root.transform);
-            var gradeRect = gradeBar.GetComponent<RectTransform>();
-            gradeRect.anchorMin = new Vector2(0f, 0f);
-            gradeRect.anchorMax = new Vector2(1f, 0f);
-            gradeRect.pivot = new Vector2(0.5f, 0f);
-            gradeRect.sizeDelta = new Vector2(-12f, 6f);
-            gradeRect.anchoredPosition = new Vector2(0f, 6f);
-            var gradeImage = gradeBar.AddComponent<Image>();
-            gradeImage.raycastTarget = false;
-
-            var count = CreateText(root.transform, "CountText", string.Empty, 22, TextAlignmentOptions.BottomRight, TextColor);
-            var countRect = count.rectTransform;
-            countRect.anchorMin = Vector2.zero;
-            countRect.anchorMax = Vector2.one;
-            countRect.offsetMin = new Vector2(4f, 10f);
-            countRect.offsetMax = new Vector2(-8f, -4f);
-            count.raycastTarget = false;
-
-            var slotUI = root.AddComponent<InventorySlotUI>();
-            var so = new SerializedObject(slotUI);
-            so.FindProperty("iconImage").objectReferenceValue = iconImage;
-            so.FindProperty("gradeFrame").objectReferenceValue = gradeImage;
-            so.FindProperty("countText").objectReferenceValue = count;
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            Directory.CreateDirectory(Path.GetDirectoryName(SlotPrefabPath));
-            var prefab = PrefabUtility.SaveAsPrefabAsset(root, SlotPrefabPath);
-            Object.DestroyImmediate(root);
-
-            return prefab.GetComponent<InventorySlotUI>();
-        }
-
-        // ── 공용 헬퍼 ─────────────────────────────────────────
-
-        private static ItemData LoadItem(string id)
-        {
-            return AssetDatabase.LoadAssetAtPath<ItemData>($"{DataRoot}/Items/Item_{id}.asset");
-        }
 
         private static void EnsureFolder(string parent, string child)
         {

@@ -5,9 +5,9 @@ using UnityEngine;
 namespace NMJ
 {
     /// <summary>
-    /// 퀘스트 수락 / 진행 보고 / 완료와 보상 지급을 담당한다.
-    /// Collect 목표는 인벤토리 보유량을 그대로 따라가고,
-    /// Kill / Talk / Reach 목표는 외부에서 Report 로 알려준다.
+    /// 퀘스트 수락 / 진행 보고 / 완료와 보상(경험치·재화 이벤트) 지급을 담당한다.
+    /// Kill / Talk / Reach / Custom 목표는 외부에서 Report 로 알려준다.
+    /// (인벤토리·아이템은 시연 범위에서 빠져 2026-10-23 삭제 — Collect 목표·아이템 보상 없음)
     /// </summary>
     [DisallowMultipleComponent]
     public class QuestManager : MonoBehaviour
@@ -24,8 +24,10 @@ namespace NMJ
         [SerializeField] private bool autoAcceptMainQuests = true;
 
         private readonly Dictionary<string, QuestProgress> progresses = new Dictionary<string, QuestProgress>();
-        // 런타임 전용. 스크립트 재컴파일 시 Unity가 빈 Inventory를 채워 넣지 않도록 직렬화에서 제외한다. (NGH 수정)
-        [NonSerialized] private Inventory boundInventory;
+
+        // 이 씬에서 지금까지 보고된 일 (처치·도착·대화·커스텀). 나중에 시작한 퀘스트도 이미 일어난 만큼 채운다
+        // — 예: 육조 궁수를 두고 광화문에서 먼저 싸우면 2단계가 시작되기 전 처치가 사라져 퀘스트가 멈추던 문제
+        private readonly List<(QuestObjectiveType type, string id, int amount)> reportHistory = new List<(QuestObjectiveType, string, int)>();
 
         /// <summary>퀘스트 상태가 바뀔 때마다(수락/완료/잠금해제).</summary>
         public event Action<QuestProgress> QuestStatusChanged;
@@ -56,20 +58,11 @@ namespace NMJ
 
         private void Start()
         {
-            TryBindInventory();
-
             if (startingQuest != null) Accept(startingQuest.QuestId);
-        }
-
-        private void Update()
-        {
-            // PlayerInventory 가 QuestManager 보다 늦게 생겨도 붙도록 한 번 더 시도한다.
-            if (boundInventory == null) TryBindInventory();
         }
 
         private void OnDestroy()
         {
-            UnbindInventory();
             if (Instance == this) Instance = null;
         }
 
@@ -142,9 +135,20 @@ namespace NMJ
 
             if (progress.Data.Category == QuestCategory.Main || TrackedQuest == null) TrackedQuest = progress;
 
-            SyncCollectObjectives(progress);
+            ApplyEarlierReports(progress);
             EvaluateCompletion(progress);
             return true;
+        }
+
+        /// <summary>퀘스트를 받기 전에 이미 일어난 일을 목표에 채운다 (반복 퀘스트는 두 번 세지 않게 제외)</summary>
+        private void ApplyEarlierReports(QuestProgress progress)
+        {
+            if (progress.Data.Category == QuestCategory.Repeatable || reportHistory.Count == 0) return;
+            var objectives = progress.Data.Objectives;
+            for (int i = 0; i < objectives.Count; i++)
+                foreach (var r in reportHistory)
+                    if (objectives[i].Matches(r.type, r.id) && progress.AddAmount(i, r.amount))
+                        ObjectiveProgressed?.Invoke(progress, i);
         }
 
         /// <summary>목표를 다 채운 퀘스트를 완료 처리하고 보상을 준다.</summary>
@@ -153,31 +157,7 @@ namespace NMJ
             var progress = Get(questId);
             if (progress == null || progress.Status != QuestStatus.ReadyToComplete) return false;
 
-            var inventory = PlayerInventory.Instance != null ? PlayerInventory.Instance.Inventory : null;
             var reward = progress.Data.Reward;
-
-            // 보상 아이템을 받을 칸이 있는지 먼저 확인한다(칸 수 제한만 존재).
-            if (inventory != null && !HasRoomForReward(inventory, progress.Data))
-            {
-                Debug.LogWarning($"[QuestManager] 인벤토리 칸이 모자라 '{progress.Data.Title}' 보상을 받을 수 없다.");
-                return false;
-            }
-
-            if (progress.Data.ConsumeCollectedItems && inventory != null) ConsumeCollectedItems(progress, inventory);
-
-            if (reward.ExtraInventorySlots > 0 && PlayerInventory.Instance != null)
-                PlayerInventory.Instance.ExpandSlots(reward.ExtraInventorySlots);
-
-            if (inventory != null)
-            {
-                foreach (var rewardItem in reward.Items)
-                {
-                    if (rewardItem.item == null) continue;
-                    int leftover = inventory.Add(rewardItem.item, Mathf.Max(1, rewardItem.count));
-                    if (leftover > 0)
-                        Debug.LogWarning($"[QuestManager] 보상 {rewardItem.item.DisplayName} {leftover}개를 넣지 못했다(칸 부족).");
-                }
-            }
 
             progress.Status = QuestStatus.Completed;
             RewardGranted?.Invoke(reward.Exp, reward.Gold);
@@ -212,6 +192,7 @@ namespace NMJ
         public void Report(QuestObjectiveType type, string targetId, int amount = 1)
         {
             if (string.IsNullOrEmpty(targetId) || amount <= 0) return;
+            if (type != QuestObjectiveType.Collect) reportHistory.Add((type, targetId, amount));
 
             foreach (var progress in progresses.Values)
             {
@@ -237,6 +218,7 @@ namespace NMJ
         private void BuildInitialStates()
         {
             progresses.Clear();
+            reportHistory.Clear();
             TrackedQuest = null;
             if (database == null)
             {
@@ -290,78 +272,6 @@ namespace NMJ
             QuestStatusChanged?.Invoke(progress);
 
             if (progress.Data.AutoComplete) Complete(progress.Data.QuestId);
-        }
-
-        private bool HasRoomForReward(Inventory inventory, QuestData data)
-        {
-            int needed = data.Reward.EstimateRequiredSlots();
-            if (needed <= 0) return true;
-
-            // 회수될 퀘스트 아이템이 비워줄 칸까지는 계산하지 않는다(보수적으로 판단).
-            return inventory.EmptySlotCount + data.Reward.ExtraInventorySlots >= needed;
-        }
-
-        private void ConsumeCollectedItems(QuestProgress progress, Inventory inventory)
-        {
-            var objectives = progress.Data.Objectives;
-            for (int i = 0; i < objectives.Count; i++)
-            {
-                var objective = objectives[i];
-                if (objective.Type != QuestObjectiveType.Collect || objective.TargetItem == null) continue;
-
-                inventory.Remove(objective.TargetItem, objective.RequiredAmount);
-            }
-        }
-
-        private void TryBindInventory()
-        {
-            if (PlayerInventory.Instance == null) return;
-
-            boundInventory = PlayerInventory.Instance.Inventory;
-            boundInventory.Changed += OnInventoryChanged;
-            OnInventoryChanged();
-        }
-
-        private void UnbindInventory()
-        {
-            if (boundInventory == null) return;
-
-            boundInventory.Changed -= OnInventoryChanged;
-            boundInventory = null;
-        }
-
-        private void OnInventoryChanged()
-        {
-            foreach (var progress in progresses.Values)
-            {
-                if (progress.Status != QuestStatus.InProgress) continue;
-                if (SyncCollectObjectives(progress)) EvaluateCompletion(progress);
-            }
-        }
-
-        /// <summary>Collect 목표를 현재 보유량에 맞춘다. 값이 바뀌면 true.</summary>
-        private bool SyncCollectObjectives(QuestProgress progress)
-        {
-            if (boundInventory == null) return false;
-
-            bool changed = false;
-            var objectives = progress.Data.Objectives;
-            for (int i = 0; i < objectives.Count; i++)
-            {
-                var objective = objectives[i];
-                if (objective.Type != QuestObjectiveType.Collect) continue;
-
-                int owned = objective.TargetItem != null
-                    ? boundInventory.CountOf(objective.TargetItem)
-                    : boundInventory.CountOf(objective.TargetId);
-
-                if (!progress.SetAmount(i, owned)) continue;
-
-                changed = true;
-                ObjectiveProgressed?.Invoke(progress, i);
-            }
-
-            return changed;
         }
     }
 }

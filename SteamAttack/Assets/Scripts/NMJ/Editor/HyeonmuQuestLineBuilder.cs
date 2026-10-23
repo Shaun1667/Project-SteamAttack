@@ -6,8 +6,8 @@ using UnityEngine;
 namespace NMJ
 {
     /// <summary>
-    /// 메인 퀘스트 "고종의 어명을 받아 현무를 다시 잠재운다" 한 줄기와
-    /// 거기에 쓰이는 아이템 / 데이터베이스 에셋을 한 번에 만들어 주는 에디터 도구.
+    /// 메인 퀘스트 "고종의 어명을 받아 현무를 다시 잠재운다" 한 줄기와 퀘스트 데이터베이스를 한 번에 만들어 주는 에디터 도구.
+    /// (인벤토리·아이템 삭제 2026-10-23: 예전 '아이템 모으기' 목표는 같은 아이디의 커스텀 보고 목표, 아이템 보상은 없음)
     ///
     /// 내용은 HyeonmuWorld_Main 씬(1887년 3월, 멈춘 도성)의 장소·인물에 맞춰져 있다.
     /// 메뉴: SteamAttack ▸ 메인 퀘스트 생성 (현무 토벌)
@@ -16,7 +16,6 @@ namespace NMJ
     public static class HyeonmuQuestLineBuilder
     {
         private const string RootFolder = "Assets/GameData/NMJ";
-        private const string ItemFolder = RootFolder + "/Items";
         private const string QuestFolder = RootFolder + "/Quests";
 
         // 씬의 NPC / 적 / 지역 오브젝트에 그대로 적어주는 아이디.
@@ -34,30 +33,8 @@ namespace NMJ
         {
             EnsureFolders();
 
-            // ── 아이템 ────────────────────────────────────────
-            var edict = CreateItem("quest_imperial_edict", "어명 교지(敎旨)", ItemType.Quest, ItemGrade.Unique, 1,
-                "옥새가 찍힌 교지. 북장을 감은 현무를 죽이지 말고 잠재우라는 어명이 적혀 있다. 종이에 서리가 앉아 있다.");
-
-            var core = CreateItem("mat_firewater_core", "물불 동력핵", ItemType.Material, ItemGrade.Uncommon, 99,
-                "건청궁 물불 증기 발전기에서 뽑아낸 동력핵. 아직 미지근하다. 한기 속에서 기계를 돌리는 유일한 불씨.");
-
-            var ring = CreateItem("mat_armillary_ring", "혼천의 고리 조각", ItemType.Quest, ItemGrade.Rare, 9,
-                "현무가 삼킨 시간이 엉겨 붙은 혼천의 조각. 손에 쥐면 하루 전 소리가 들린다.");
-
-            var scale = CreateItem("mat_hyeonmu_scale", "현무 비늘", ItemType.Material, ItemGrade.Legendary, 9,
-                "검고 두꺼운 비늘. 불을 대면 불이 얼고, 칼을 대면 칼이 식는다.");
-
-            var tonic = CreateItem("con_ondol_tonic", "온돌 탕약", ItemType.Consumable, ItemGrade.Common, 20,
-                "기기창에서 달인 탕약. 뼛속 한기를 잠시 밀어낸다.");
-
-            var sabre = CreateItem("eq_baekgeom_hwando", "백검의 환도", ItemType.Equipment, ItemGrade.Unique, 1,
-                "백동수가 쥐여 준 환도. 칼등의 증기관이 돌면 날이 얼지 않는다.");
-
-            var plate = CreateItem("eq_hyeonmu_plate", "현무 비늘 갑주", ItemType.Equipment, ItemGrade.Legendary, 1,
-                "현무의 비늘을 기기창에서 벼려 만든 갑주. 시간을 삼키는 한기 속에서도 숨이 붙어 있게 한다.");
-
-            var itemDatabase = CreateOrLoad<ItemDatabase>(RootFolder + "/ItemDatabase.asset");
-            RegisterAssets(itemDatabase, "items", edict, core, ring, scale, tonic, sabre, plate);
+            // 예전 아이템 아이디 — 커스텀 목표 아이디로 그대로 쓴다 (QuestDebugTester F6·F7·F10)
+            const string core = "mat_firewater_core", ring = "mat_armillary_ring", scale = "mat_hyeonmu_scale";
 
             // ── 메인 퀘스트 5장 ───────────────────────────────
             var mq1 = CreateQuest(
@@ -68,9 +45,9 @@ namespace NMJ
                 "교지를 받들었으면 삼청동으로 가라. 기기창에 아직 불씨가 남아 있다.",
                 new[]
                 {
-                    Objective(QuestObjectiveType.Talk, NpcGojong, 1, "건청궁 마당에서 고종의 어명을 받든다", null),
+                    Objective(QuestObjectiveType.Talk, NpcGojong, 1, "건청궁 마당에서 고종의 어명을 받든다"),
                 },
-                Reward(new[] { (edict, 1), (tonic, 2) }, exp: 100, gold: 500, extraSlots: 0),
+                Reward(exp: 100, gold: 500),
                 nextQuestId: "mq_02_gigichang_ember");
 
             var mq2 = CreateQuest(
@@ -81,11 +58,11 @@ namespace NMJ
                 "화로가 돌았습니다. 이제 한기 속에서도 사흘은 버팁니다.",
                 new[]
                 {
-                    Objective(QuestObjectiveType.Reach, LocationGigichang, 1, "삼청동 기기창에 도달한다", null),
-                    Objective(QuestObjectiveType.Collect, null, 5, "물불 동력핵 5개를 수거한다", core),
-                    Objective(QuestObjectiveType.Talk, NpcGisulja, 1, "기기창 기술자와 대화한다", null),
+                    Objective(QuestObjectiveType.Reach, LocationGigichang, 1, "삼청동 기기창에 도달한다"),
+                    Objective(QuestObjectiveType.Custom, core, 5, "물불 동력핵 5개를 수거한다"),
+                    Objective(QuestObjectiveType.Talk, NpcGisulja, 1, "기기창 기술자와 대화한다"),
                 },
-                Reward(new[] { (tonic, 3) }, exp: 200, gold: 300, extraSlots: 4),
+                Reward(exp: 200, gold: 300),
                 nextQuestId: "mq_03_black_water",
                 prerequisites: new[] { "mq_01_royal_edict" });
 
@@ -97,10 +74,10 @@ namespace NMJ
                 "제단이 꺼졌소. 이제 군졸들 차례요.",
                 new[]
                 {
-                    Objective(QuestObjectiveType.Kill, EnemyHeuksu, 8, "흑수회 광신도 8명을 잠재운다", null),
-                    Objective(QuestObjectiveType.Reach, LocationHeuksuAltar, 1, "운종가 흑수회 제단에 도달한다", null),
+                    Objective(QuestObjectiveType.Kill, EnemyHeuksu, 8, "흑수회 광신도 8명을 잠재운다"),
+                    Objective(QuestObjectiveType.Reach, LocationHeuksuAltar, 1, "운종가 흑수회 제단에 도달한다"),
                 },
-                Reward(new[] { (tonic, 5), (core, 3) }, exp: 350, gold: 800, extraSlots: 0),
+                Reward(exp: 350, gold: 800),
                 nextQuestId: "mq_04_frozen_soldiers",
                 prerequisites: new[] { "mq_02_gigichang_ember" });
 
@@ -112,11 +89,11 @@ namespace NMJ
                 "조각 셋이면 놈이 삼킨 시간을 잠시 되돌릴 수 있소. 그때가 유일한 틈이오. 이 환도를 받으시오.",
                 new[]
                 {
-                    Objective(QuestObjectiveType.Kill, EnemyByeonibyeong, 12, "변이병을 12명 거둔다", null),
-                    Objective(QuestObjectiveType.Collect, null, 3, "혼천의 고리 조각 3개를 되찾는다", ring),
-                    Objective(QuestObjectiveType.Talk, NpcBaekdongsu, 1, "백동수에게 조각을 넘긴다", null),
+                    Objective(QuestObjectiveType.Kill, EnemyByeonibyeong, 12, "변이병을 12명 거둔다"),
+                    Objective(QuestObjectiveType.Custom, ring, 3, "혼천의 고리 조각 3개를 되찾는다"),
+                    Objective(QuestObjectiveType.Talk, NpcBaekdongsu, 1, "백동수에게 조각을 넘긴다"),
                 },
-                Reward(new[] { (sabre, 1) }, exp: 500, gold: 1000, extraSlots: 0),
+                Reward(exp: 500, gold: 1000),
                 nextQuestId: "mq_05_slay_hyeonmu",
                 prerequisites: new[] { "mq_03_black_water" });
 
@@ -128,11 +105,11 @@ namespace NMJ
                 "…바람이 분다. 눈이 다시 내리는구나. 그 비늘로 벼린 갑주를 내리노라.",
                 new[]
                 {
-                    Objective(QuestObjectiveType.Kill, BossHyeonmu, 1, "현무를 잠재운다", null),
-                    Objective(QuestObjectiveType.Collect, null, 1, "현무 비늘을 확보한다", scale),
-                    Objective(QuestObjectiveType.Talk, NpcGojong, 1, "건청궁으로 돌아가 복명한다", null),
+                    Objective(QuestObjectiveType.Kill, BossHyeonmu, 1, "현무를 잠재운다"),
+                    Objective(QuestObjectiveType.Custom, scale, 1, "현무 비늘을 확보한다"),
+                    Objective(QuestObjectiveType.Talk, NpcGojong, 1, "건청궁으로 돌아가 복명한다"),
                 },
-                Reward(new[] { (plate, 1) }, exp: 1500, gold: 5000, extraSlots: 6),
+                Reward(exp: 1500, gold: 5000),
                 nextQuestId: string.Empty,
                 prerequisites: new[] { "mq_04_frozen_soldiers" });
 
@@ -143,7 +120,7 @@ namespace NMJ
             AssetDatabase.Refresh();
 
             EditorGUIUtility.PingObject(questDatabase);
-            Debug.Log($"[SteamAttack] 메인 퀘스트 '고종의 어명 → 현무 토벌' 5장과 아이템 7종을 {RootFolder} 에 만들었다.");
+            Debug.Log($"[SteamAttack] 메인 퀘스트 '고종의 어명 → 현무 토벌' 5장을 {RootFolder} 에 만들었다.");
         }
 
         // ── 생성 헬퍼 ─────────────────────────────────────────
@@ -152,7 +129,6 @@ namespace NMJ
         {
             CreateFolderIfMissing("Assets", "GameData");
             CreateFolderIfMissing("Assets/GameData", "NMJ");
-            CreateFolderIfMissing(RootFolder, "Items");
             CreateFolderIfMissing(RootFolder, "Quests");
         }
 
@@ -173,26 +149,7 @@ namespace NMJ
             return asset;
         }
 
-        private static ItemData CreateItem(string id, string displayName, ItemType type, ItemGrade grade,
-            int maxStack, string description)
-        {
-            var item = CreateOrLoad<ItemData>($"{ItemFolder}/Item_{id}.asset");
-
-            var so = new SerializedObject(item);
-            so.FindProperty("itemId").stringValue = id;
-            so.FindProperty("displayName").stringValue = displayName;
-            so.FindProperty("description").stringValue = description;
-            so.FindProperty("itemType").enumValueIndex = (int)type;
-            so.FindProperty("grade").enumValueIndex = (int)grade;
-            so.FindProperty("maxStack").intValue = maxStack;
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            EditorUtility.SetDirty(item);
-            return item;
-        }
-
-        private static ObjectiveSpec Objective(QuestObjectiveType type, string targetId, int amount,
-            string description, ItemData targetItem)
+        private static ObjectiveSpec Objective(QuestObjectiveType type, string targetId, int amount, string description)
         {
             return new ObjectiveSpec
             {
@@ -200,14 +157,10 @@ namespace NMJ
                 TargetId = targetId ?? string.Empty,
                 Amount = amount,
                 Description = description,
-                TargetItem = targetItem,
             };
         }
 
-        private static RewardSpec Reward((ItemData item, int count)[] items, int exp, int gold, int extraSlots)
-        {
-            return new RewardSpec { Items = items, Exp = exp, Gold = gold, ExtraSlots = extraSlots };
-        }
+        private static RewardSpec Reward(int exp, int gold) => new RewardSpec { Exp = exp, Gold = gold };
 
         private static QuestData CreateQuest(string questId, string title, string summary, string giverId,
             string startDialogue, string completeDialogue, ObjectiveSpec[] objectives, RewardSpec reward,
@@ -224,7 +177,6 @@ namespace NMJ
             so.FindProperty("startDialogue").stringValue = startDialogue;
             so.FindProperty("completeDialogue").stringValue = completeDialogue;
             so.FindProperty("autoComplete").boolValue = false;
-            so.FindProperty("consumeCollectedItems").boolValue = true;
             so.FindProperty("nextQuestId").stringValue = nextQuestId ?? string.Empty;
 
             var objectivesProp = so.FindProperty("objectives");
@@ -235,7 +187,6 @@ namespace NMJ
                 var spec = objectives[i];
                 element.FindPropertyRelative("type").enumValueIndex = (int)spec.Type;
                 element.FindPropertyRelative("targetId").stringValue = spec.TargetId;
-                element.FindPropertyRelative("targetItem").objectReferenceValue = spec.TargetItem;
                 element.FindPropertyRelative("description").stringValue = spec.Description;
                 element.FindPropertyRelative("requiredAmount").intValue = spec.Amount;
             }
@@ -249,17 +200,6 @@ namespace NMJ
             var rewardProp = so.FindProperty("reward");
             rewardProp.FindPropertyRelative("exp").intValue = reward.Exp;
             rewardProp.FindPropertyRelative("gold").intValue = reward.Gold;
-            rewardProp.FindPropertyRelative("extraInventorySlots").intValue = reward.ExtraSlots;
-
-            var rewardItemsProp = rewardProp.FindPropertyRelative("items");
-            var rewardItems = reward.Items ?? System.Array.Empty<(ItemData item, int count)>();
-            rewardItemsProp.arraySize = rewardItems.Length;
-            for (int i = 0; i < rewardItems.Length; i++)
-            {
-                var element = rewardItemsProp.GetArrayElementAtIndex(i);
-                element.FindPropertyRelative("item").objectReferenceValue = rewardItems[i].item;
-                element.FindPropertyRelative("count").intValue = rewardItems[i].count;
-            }
 
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(quest);
@@ -295,15 +235,12 @@ namespace NMJ
             public string TargetId;
             public int Amount;
             public string Description;
-            public ItemData TargetItem;
         }
 
         private struct RewardSpec
         {
-            public (ItemData item, int count)[] Items;
             public int Exp;
             public int Gold;
-            public int ExtraSlots;
         }
     }
 }

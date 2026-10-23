@@ -24,9 +24,6 @@ namespace NMJ
         [Tooltip("켜면 목표를 다 채우는 즉시 완료 처리된다. 끄면 의뢰인에게 보고해야 한다.")]
         [SerializeField] private bool autoComplete;
 
-        [Tooltip("켜면 완료 시 Collect 목표 아이템을 인벤토리에서 회수한다.")]
-        [SerializeField] private bool consumeCollectedItems = true;
-
         [Header("보상")]
         [SerializeField] private QuestReward reward = new QuestReward();
 
@@ -47,7 +44,6 @@ namespace NMJ
 
         public IReadOnlyList<QuestObjective> Objectives => objectives;
         public bool AutoComplete => autoComplete;
-        public bool ConsumeCollectedItems => consumeCollectedItems;
         public QuestReward Reward => reward;
         public IReadOnlyList<string> PrerequisiteQuestIds => prerequisiteQuestIds;
         public string NextQuestId => nextQuestId;

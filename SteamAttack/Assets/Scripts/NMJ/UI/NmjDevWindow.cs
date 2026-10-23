@@ -11,7 +11,7 @@ using static NMJ.NmjMenuUi;
 namespace NMJ
 {
     /// <summary>
-    /// 개발자 창 (디버깅메뉴 D-064). Insert 키로 열고 닫는다. 에디터·개발 빌드에서만 생긴다 (최종 빌드 제외).
+    /// 개발자 창 (디버깅메뉴 D-064). ` (~ 키) 또는 Insert 키로 열고 닫는다. 에디터·개발 빌드에서만 생긴다 (최종 빌드 제외).
     ///
     ///   무적       체력만 줄지 않는다. 맞는 판정·피격(소/대) 모션·경직은 그대로
     ///   원펀맨     일반 적은 한 대에 쓰러진다. 보스는 맞힌 부위(다리·신핵)만 한 대에 부서진다
@@ -32,7 +32,8 @@ namespace NMJ
     [DisallowMultipleComponent]
     public class NmjDevWindow : MonoBehaviour
     {
-        private const Key ToggleKey = Key.Insert;
+        // 열기·닫기: ` (~ 키, 숫자 1 왼쪽) 또는 Insert
+        private static readonly Key[] ToggleKeys = { Key.Backquote, Key.Insert };
         private const int InvincibleMaxHp = 9999;
 
         // 위치 (찾는 이름이 없을 때의 값은 Common/Main 기준)
@@ -40,8 +41,20 @@ namespace NMJ
         private const string BossSpawnName = "NMJ_BossSpawn_Hyeonmu";
         private const string HyeonmuName = "BHS_HyunMu";
         private const string GateFrontName = "NMJ_FogGate_돌아온자리";
-        private static readonly Vector3 YukjoPoint = new Vector3(0f, 0.1f, -100f);
-        private static readonly Vector3 GateFrontFallback = new Vector3(0f, 0.1f, 74f);
+        private const string BossGateName = "NMJ_FogGate_향원정";   // 안개문 — 도착 자리(Target)가 보스방 입구
+
+        // 순간이동 — 레벨 배치 v2 구간 (NmjLevelLayoutBuilder, 맵구상 2장). 모두 북쪽(광화문·향원정)을 보고 선다
+        private struct Warp { public string label; public Vector3 pos; }
+        private static readonly Warp[] Warps =
+        {
+            new Warp { label = "2. 첫 전투 앞 · 포졸 2", pos = new Vector3(0f, 0.1f, -94f) },
+            new Warp { label = "3. 비망록 · 누각 궁수", pos = new Vector3(-4f, 0.1f, -84f) },
+            new Warp { label = "4. 첫 받아치기 · 포졸 1", pos = new Vector3(0f, 0.1f, -77f) },
+            new Warp { label = "5. 광화문 앞 · 얼음 문 전투", pos = new Vector3(0f, 0.1f, -66f) },
+            new Warp { label = "6. 궁 안 · 광화문 안쪽", pos = new Vector3(0f, 0.1f, -30f) },
+            new Warp { label = "7. 근정전 마당 · 길잡이", pos = new Vector3(0f, 0.1f, 5f) },
+        };
+        private static readonly Vector3 GateFrontFallback = new Vector3(0f, 0.1f, 29f);   // 근정전 앞 안개문(z 33) 바로 앞
         private const float BossArenaRadius = 45f;
 
         private static NmjDevWindow instance;
@@ -155,7 +168,7 @@ namespace NMJ
             Keyboard kb = Keyboard.current;
             if (kb != null)
             {
-                if (kb[ToggleKey].wasPressedThisFrame) { if (open) Close(); else Open(); }
+                if (TogglePressed(kb)) { if (open) Close(); else Open(); }
                 else if (open && kb.escapeKey.wasPressedThisFrame) Close();
             }
 
@@ -168,6 +181,12 @@ namespace NMJ
                 UpdateButtons(buttons, style);
                 info.text = $"구역: {(InBossArena() ? "보스방" : "보스방 밖 (육조거리)")}";
             }
+        }
+
+        private static bool TogglePressed(Keyboard kb)
+        {
+            foreach (Key k in ToggleKeys) if (kb[k].wasPressedThisFrame) return true;
+            return false;
         }
 
         private void LateUpdate()
@@ -319,12 +338,19 @@ namespace NMJ
             if (hasStart) Teleport(startPos, startRot);
         }
 
-        private void MoveToYukjo() => Teleport(YukjoPoint, Quaternion.identity);   // 북쪽(광화문)을 보고 선다
-
         private void MoveToBossGate()
         {
             Transform t = FindInScene(GateFrontName);
             Teleport(t != null ? t.position : GateFrontFallback, Quaternion.identity);
+        }
+
+        /// <summary>안개문을 지난 것과 같은 자리 (안개문 Target)</summary>
+        private void MoveToBossRoom()
+        {
+            Transform gate = FindInScene(BossGateName);
+            FogGateTeleport fg = gate != null ? gate.GetComponent<FogGateTeleport>() : null;
+            if (fg == null || fg.Target == null) { Debug.LogWarning("[NMJ 개발자 창] 보스방 안개문(NMJ_FogGate_향원정)을 찾지 못했습니다"); return; }
+            Teleport(fg.Target.position, fg.Target.rotation);
         }
 
         private void Teleport(Vector3 pos, Quaternion rot)
@@ -476,26 +502,32 @@ namespace NMJ
                     if (t.font != null && t.font.name.Contains("Chosun")) { font = t.font; break; }
 
             style = new Style { font = font, buttonHeight = 54f, fontSize = 28f };
-            Canvas canvas = NewCanvas("NMJ_DevWindowCanvas", transform, 95, out group);   // ESC 메뉴(90) 위, 먹 전환(1000) 아래
+            Canvas canvas = NewCanvas("NMJ_DevWindowCanvas", transform, 950, out group);   // 모든 HUD·ESC 메뉴(90)·퀘스트 판(100) 위, 먹 전환(1000) 아래
 
             Image dim = NewImage("Dim", canvas.transform, new Color(0f, 0f, 0f, 0.55f), Vector2.zero, Vector2.zero);
             dim.raycastTarget = true;
-            RectTransform panel = Panel(canvas.transform, new Vector2(560f, 756f), new Color(0.06f, 0.06f, 0.07f, 0.96f), Brass);
+            // 한 창에 모두: 기능 6 + 순간이동 9 = 15줄. 1080 높이 화면에 들어가게 줄 높이를 맞춘다
+            const float rowH = 50f, top = 112f, bottom = 60f;
+            int rows = 6 + 2 + Warps.Length + 1;   // 기능 6 + 시작·안개문 앞 2 + 구간 + 보스방
+            RectTransform panel = Panel(canvas.transform, new Vector2(600f, top + bottom + rowH * rows + 34f), new Color(0.06f, 0.06f, 0.07f, 0.96f), Brass);
 
-            TMP_Text title = NewText("Title", panel, font, "개발자 창", 34f, Brass);
+            TMP_Text title = NewText("Title", panel, font, "개발자 창", 32f, Brass);
             RectTransform tr = title.rectTransform;
             tr.anchorMin = new Vector2(0f, 1f); tr.anchorMax = new Vector2(1f, 1f); tr.pivot = new Vector2(0.5f, 1f);
-            tr.sizeDelta = new Vector2(0f, 50f); tr.anchoredPosition = new Vector2(0f, -26f);
+            tr.sizeDelta = new Vector2(0f, 46f); tr.anchoredPosition = new Vector2(0f, -22f);
 
             info = NewText("Info", panel, font, "", 18f, White);
             RectTransform ir = info.rectTransform;
             ir.anchorMin = new Vector2(0f, 1f); ir.anchorMax = new Vector2(1f, 1f); ir.pivot = new Vector2(0.5f, 1f);
-            ir.sizeDelta = new Vector2(0f, 26f); ir.anchoredPosition = new Vector2(0f, -78f);
+            ir.sizeDelta = new Vector2(0f, 26f); ir.anchoredPosition = new Vector2(0f, -70f);
             info.alpha = 0.6f;
 
             RectTransform list = NewRect("Buttons", panel);
-            list.offsetMin = new Vector2(40f, 64f);
-            list.offsetMax = new Vector2(-40f, -116f);
+            list.offsetMin = new Vector2(40f, bottom);
+            list.offsetMax = new Vector2(-40f, -top);
+            style.buttonHeight = rowH;
+            style.fontSize = 25f;
+
             invincibleButton = AddButton(buttons, list, style, "무적", () => SetInvincible(!Invincible));
             onePunchButton = AddButton(buttons, list, style, "원펀맨", () => SetOnePunch(!OnePunch));
             steamButton = AddButton(buttons, list, style, "무한 증기", () => { InfiniteSteam = !InfiniteSteam; RefreshLabels(); });
@@ -505,15 +537,23 @@ namespace NMJ
                 RefreshLabels();
                 NmjSubtitle.Caption("검 이펙트 시안: " + NmjSwordSlash.Label(m), 2f);
             });
-            AddButton(buttons, list, style, "이동 — 시작 지점", MoveToStart);
-            AddButton(buttons, list, style, "이동 — 육조거리", MoveToYukjo);
-            AddButton(buttons, list, style, "이동 — 보스방 입구", MoveToBossGate);
             AddButton(buttons, list, style, "리젠 — 지금 구역 적 다시", Respawn);
+            int warpStart = buttons.Count;
+            AddButton(buttons, list, style, "이동 1. 시작 지점 · 허수아비", MoveToStart);
+            foreach (Warp w in Warps)
+            {
+                Vector3 to = w.pos;
+                AddButton(buttons, list, style, "이동 " + w.label, () => Teleport(to, Quaternion.identity));
+            }
+            AddButton(buttons, list, style, "이동 8. 안개문 앞 · 근정전", MoveToBossGate);
+            AddButton(buttons, list, style, "이동 9. 보스방 안", MoveToBossRoom);
             AddButton(buttons, list, style, "닫기", Close);
-            LayoutColumn(buttons, style.buttonHeight);
+            LayoutColumn(buttons, rowH);
             foreach (MenuButton b in buttons) b.label.richText = true;
+            // 순간이동 줄은 조금 작게 → 기능과 구분된다
+            for (int i = warpStart; i < buttons.Count - 1; i++) buttons[i].label.fontSize = 22f;
 
-            Hint(panel, font, "Insert / ESC  닫기", White);
+            Hint(panel, font, "~ / Insert / ESC  닫기", White);
             RefreshLabels();
         }
     }
