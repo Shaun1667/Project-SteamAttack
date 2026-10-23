@@ -8595,7 +8595,11 @@ PrefabInstance:
       objectReference: {fileID: 562215045}
     - target: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
       propertyPath: distance
-      value: 0.92
+      value: 1.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
+      propertyPath: pivotHeight
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5515296568939255497, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -9150,6 +9154,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 5134090795839151385, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5653695456270774476, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -9198,6 +9206,14 @@ PrefabInstance:
       propertyPath: damage
       value: 20
       objectReference: {fileID: 0}
+    - target: {fileID: 6499136283659820645, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
+      propertyPath: m_Radius
+      value: 1.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6499136283659820645, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
+      propertyPath: m_Center.y
+      value: 1.5
+      objectReference: {fileID: 0}
     - target: {fileID: 6538377318132439488, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
       propertyPath: damage
       value: 20
@@ -9213,6 +9229,10 @@ PrefabInstance:
     - target: {fileID: 8345751117253122671, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
       propertyPath: damage
       value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 8400050354687407924, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:

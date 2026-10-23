@@ -166062,9 +166062,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8804544dd8c29c940926b3e001dce825, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SteamAttack.Quests.QuestDebugTester
-  firewaterCore: {fileID: 11400000, guid: 26a6a64e897e9a646bc86bb2fff7f127, type: 2}
-  armillaryRing: {fileID: 11400000, guid: 497972dda15ccab4fa937bea6d200c7e, type: 2}
-  hyeonmuScale: {fileID: 11400000, guid: c37eea67ac9e08c43809ce1b5db2447f, type: 2}
   showOnScreenGuide: 0
 --- !u!114 &1024570245
 MonoBehaviour:
@@ -172726,7 +172723,11 @@ PrefabInstance:
       objectReference: {fileID: 1442819863}
     - target: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
       propertyPath: distance
-      value: 0.92
+      value: 1.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
+      propertyPath: pivotHeight
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5515296568939255497, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
       propertyPath: m_LocalPosition.x

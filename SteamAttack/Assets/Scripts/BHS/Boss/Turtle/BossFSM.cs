@@ -204,10 +204,6 @@ public class BossFSM : MonoBehaviour
         PlayerHealth receiver = player.GetComponentInParent<PlayerHealth>();
 
         if (receiver != null) receiver.TakeDamage(damage);
-
-        // 병합 연결 (NGH): 실제 플레이어는 PlayerController.TakeHit 으로 피격 (무적·피격 동작·HP 처리)
-        NGH.PlayerController ngh = player.GetComponentInParent<NGH.PlayerController>();
-        if (ngh != null) ngh.TakeHit(Mathf.Max(1, Mathf.RoundToInt(damage)), transform.position);
     }
 
     private void UpdateAttack()
