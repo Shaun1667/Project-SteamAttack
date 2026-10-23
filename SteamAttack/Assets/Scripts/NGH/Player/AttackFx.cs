@@ -66,6 +66,10 @@ namespace NGH
             [Range(0f, 1f)] public float straightenStart;
             [Tooltip("궤적 메시: 베기 원의 중심에서 바깥으로 키우는 배율 (1 = 칼 그대로, 1.3 = 반지름 1.3배로 크고 넓게)")]
             [Range(0.5f, 2f)] public float trailScale = 1f;
+            [Tooltip("궤적 메시: 바깥 가장자리를 베기 원의 중심에서 이 배율만큼 더 바깥으로 (1 = 칼끝 그대로, 1.3 = 칼끝보다 30% 바깥까지)")]
+            [Range(1f, 2f)] public float outerScale = 1f;
+            [Tooltip("궤적 메시: 안쪽 가장자리를 베기 원의 중심 쪽으로 당기는 배율 (1 = 그대로, 0.4 = 몸 가까이까지 넓게)")]
+            [Range(0.1f, 1f)] public float innerScale = 1f;
             [HideInInspector] public Vector3[] pathOuter;   // 칼끝 쪽 가장자리 (플레이어 기준, [꼬리 →] 휘두르기 시작 → 끝)
             [HideInInspector] public Vector3[] pathInner;   // 칼날 안쪽 가장자리
             [HideInInspector] public int pathPrefix;        // 경로 앞의 꼬리 점 개수
@@ -173,6 +177,7 @@ namespace NGH
             Tracked tracked = null;
             go.GetComponentsInChildren(true, _psBuffer);
             var baseSpin = BaseSpin(e.prefab);
+            if (baseSpin.Length != _psBuffer.Count) { _baseSpin.Remove(e.prefab); _trailSources.Remove(e.prefab); baseSpin = BaseSpin(e.prefab); }   // 프리팹 구성이 바뀜
             for (int i = 0; i < _psBuffer.Count; i++)
             {
                 var ps = _psBuffer[i];
@@ -226,8 +231,9 @@ namespace NGH
             if (!go) return;
             if (!followPlayer) go.transform.SetPositionAndRotation(t.position, t.rotation);
             go.transform.localScale = Vector3.one;
-            if (!_trailSources.TryGetValue(e.prefab, out var sources))
+            if (!_trailSources.TryGetValue(e.prefab, out var sources) || sources.Exists(s => !s))   // 에디터에서 프리팹을 고치면 저장해 둔 파티클이 사라짐
             {
+                _baseSpin.Remove(e.prefab);
                 sources = new List<ParticleSystem>();
                 var spin = BaseSpin(e.prefab);
                 var list = e.prefab.GetComponentsInChildren<ParticleSystem>(true);
@@ -337,6 +343,14 @@ namespace NGH
             return v;
         }
 
+        // 도메인 리로드 없이 플레이를 다시 시작해도 이전 프리팹 정보가 남지 않게
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetCaches()
+        {
+            _baseSpin.Clear();
+            _trailSources.Clear();
+        }
+
 #if UNITY_EDITOR
         // ================================================================ 에디터: 칼 궤적에서 위치·방향 계산
 
@@ -403,6 +417,7 @@ namespace NGH
                         Vector3 axis = Quaternion.Euler(e.localEuler) * Vector3.forward, center = e.localPosition;
                         if (e.straightenStart > 0.001f) Straighten(e, K, N, center, Quaternion.Euler(e.localEuler));
                         if (e.trailScale > 0.01f && Mathf.Abs(e.trailScale - 1f) > 0.001f) ScaleTrail(e, K, N, center, Quaternion.Euler(e.localEuler));
+                        if (Mathf.Abs(e.outerScale - 1f) > 0.001f || Mathf.Abs(e.innerScale - 1f) > 0.001f) WidenTrail(e, K, N, center, Quaternion.Euler(e.localEuler));
                         for (int k = 0; k < K; k++)
                         {
                             var q = Quaternion.AngleAxis(-e.tailExtend * (K - k) / K, axis);
@@ -462,6 +477,22 @@ namespace NGH
                     var q = inv * (path[i] - center);
                     path[i] = center + rot * new Vector3(q.x * e.trailScale, q.y * e.trailScale, q.z);
                 }
+        }
+
+        // 궤적 띠를 베기 원의 평면 안에서 넓힘: 바깥 가장자리는 outerScale 배, 안쪽 가장자리는 innerScale 배 (평면 높이는 그대로)
+        static void WidenTrail(Entry e, int K, int N, Vector3 center, Quaternion rot)
+        {
+            var inv = Quaternion.Inverse(rot);
+            void Scale(Vector3[] path, float s)
+            {
+                for (int i = K; i < K + N; i++)
+                {
+                    var q = inv * (path[i] - center);
+                    path[i] = center + rot * new Vector3(q.x * s, q.y * s, q.z);
+                }
+            }
+            Scale(e.pathOuter, e.outerScale);
+            Scale(e.pathInner, e.innerScale);
         }
 
         void BakeSlash(Entry e, Vector3[] p, float swingSeconds)
