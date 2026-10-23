@@ -110,3 +110,7 @@ InitTestScene*.unity*
 # 유료 에셋 Magica Cloth 2 — 라이선스 때문에 git에 올리지 않음 (각자 설치)
 SteamAttack/Assets/Scripts/YPH/ThirdParty/
 SteamAttack/Assets/Scripts/YPH/ThirdParty.meta
+
+# 교전 모션캡처 원본 (약 180MB, GitHub 100MB 제한 초과) — 로컬 전용
+SteamAttack/Assets/Animations/NGH/Attack/교전_전동작.fbx
+SteamAttack/Assets/Animations/NGH/Attack/교전_전동작.fbx.meta
