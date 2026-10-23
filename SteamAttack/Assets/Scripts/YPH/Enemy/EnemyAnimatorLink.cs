@@ -24,9 +24,11 @@ namespace YPH
         private static readonly int _moveZHash = Animator.StringToHash("MoveZ");
         private static readonly int _inCombatHash = Animator.StringToHash("InCombat");
         private static readonly int _kickSpeedHash = Animator.StringToHash("KickSpeed");
+        private static readonly int _meleeSpeedHash = Animator.StringToHash("MeleeSpeed");
         private static readonly int[] _attackTriggers = { AttackHash, HeavyAttackHash, FireHash, KickHash, ParriedHash };
         private readonly HashSet<int> _parameters = new HashSet<int>();
         private EnemyAI _brain;
+        internal float MeleePlaybackSpeed { get; private set; } = 1f;
         internal float AttackHitTime { get; private set; } = -1f;
         internal float HeavyHitTime { get; private set; } = -1f;
         internal float HeavyLength { get; private set; } = -1f;
@@ -48,6 +50,8 @@ namespace YPH
             {
                 _parameters.Add(parameter.nameHash);
             }
+            // 모션과 판정이 같은 배율을 사용합니다. 해당 파라미터가 없는 기존 적은 원래 속도를 유지합니다.
+            MeleePlaybackSpeed = _parameters.Contains(_meleeSpeedHash) ? Mathf.Max(0.01f, _animator.GetFloat(_meleeSpeedHash)) : 1f;
             ReadClipHitEvents();
         }
 
@@ -73,8 +77,8 @@ namespace YPH
                     found = true;
                     switch (hit.stringParameter)
                     {
-                        case "Attack": AttackHitTime = hit.time; break;
-                        case "HeavyAttack": HeavyHitTime = hit.time; HeavyLength = clip.length; break;
+                        case "Attack": AttackHitTime = hit.time / MeleePlaybackSpeed; break;
+                        case "HeavyAttack": HeavyHitTime = hit.time / MeleePlaybackSpeed; HeavyLength = clip.length / MeleePlaybackSpeed; break;
                         case "Kick": KickHitTime = hit.time; KickLength = clip.length; break;
                         default:
                             Debug.LogWarning("[EnemyAI:" + name + "] 클립 " + clip.name + "의 OnAttackHit String은 Attack / HeavyAttack / Kick 중 하나여야 합니다.", this);

@@ -121,7 +121,7 @@ namespace YPH
             Animation?.Play(EnemyAnimatorLink.AttackHash);
             yield return WaitActive(AttackWindup, true);
             SpawnHitbox(_attackDamage, _attackStagger, _attackHitboxOffset, _attackHitboxSize, _attackActiveTime, "근접 공격");
-            Motor.StartLunge(_attackLungeDistance, _attackLungeDuration, false);
+            Motor.StartLunge(_attackLungeDistance, _attackLungeDuration / (Animation != null ? Animation.MeleePlaybackSpeed : 1f), false);
             yield return WaitActive(_attackActiveTime);
             yield return WaitActive(_attackCooldown, true);
             yield return WaitActive(RestTime(), true);
