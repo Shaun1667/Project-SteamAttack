@@ -1,17 +1,16 @@
 using System.Collections.Generic;
 using NGH;
-using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 using YPH;
-using static NMJ.NmjMenuUi;
 
 namespace NMJ
 {
     /// <summary>
-    /// 개발자 창 (디버깅메뉴 D-064). ` (~ 키) 또는 Insert 키로 열고 닫는다. 에디터·개발 빌드에서만 생긴다 (최종 빌드 제외).
+    /// 개발자 기능 (디버깅메뉴 D-064). 에디터·개발 빌드에서만 생긴다 (최종 빌드 제외). 따로 창을 띄우지 않는다.
+    ///   ` (~ 키) 또는 Insert = 개발용 표시(YPH DebugView: 범위 원·판정 상자·왼쪽 위 설명) 켜기·끄기
+    ///   표시가 켜진 동안 Alt를 누르고 있으면 마우스가 나오고 게임이 멈춘다. 왼쪽 위 상자에 마우스를 대면 그 자리에 기능 판이 펼쳐져 눌러 쓴다
     ///
     ///   무적       체력만 줄지 않는다. 맞는 판정·피격(소/대) 모션·경직은 그대로
     ///   원펀맨     일반 적은 한 대에 쓰러진다. 보스는 맞힌 부위(다리·신핵)만 한 대에 부서진다
@@ -32,7 +31,7 @@ namespace NMJ
     [DisallowMultipleComponent]
     public class NmjDevWindow : MonoBehaviour
     {
-        // 열기·닫기: ` (~ 키, 숫자 1 왼쪽) 또는 Insert
+        // 개발용 표시 켜기·끄기: ` (~ 키, 숫자 1 왼쪽) 또는 Insert
         private static readonly Key[] ToggleKeys = { Key.Backquote, Key.Insert };
         private const int InvincibleMaxHp = 9999;
 
@@ -59,7 +58,7 @@ namespace NMJ
 
         private static NmjDevWindow instance;
 
-        /// <summary>개발자 창이 열려 있음 (ESC 메뉴는 이때 열리지 않는다)</summary>
+        /// <summary>Alt로 마우스 기능 판을 쓰는 중 (ESC 메뉴는 이때 열리지 않는다)</summary>
         public static bool IsOpen => instance != null && instance.open;
         /// <summary>열려 있거나 방금(같은 ESC로) 닫힘 → ESC 메뉴가 열리면 안 됨</summary>
         public static bool BlocksEscape => instance != null && (instance.open || Time.frameCount - instance.closedFrame <= 1);
@@ -103,11 +102,6 @@ namespace NMJ
         // 창
         private bool open;
         private float prevTimeScale = 1f;
-        private Style style;
-        private CanvasGroup group;
-        private TMP_Text info;
-        private readonly List<MenuButton> buttons = new List<MenuButton>();
-        private MenuButton invincibleButton, onePunchButton, steamButton, swordFxButton;
         private SteamTank[] tanks;
         private int closedFrame = -10;
 
@@ -116,8 +110,6 @@ namespace NMJ
         private void Awake()
         {
             SceneManager.sceneLoaded += OnSceneLoaded;
-            BuildUi();
-            Show(false);
             OnSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
         }
 
@@ -131,7 +123,7 @@ namespace NMJ
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (mode != LoadSceneMode.Single) return;
-            if (open) Close();
+            ExitMouseMode();
             invinciblePlayer = null;
             spawnedBosses.Clear();
             killQueue.Clear();
@@ -168,19 +160,13 @@ namespace NMJ
             Keyboard kb = Keyboard.current;
             if (kb != null)
             {
-                if (TogglePressed(kb)) { if (open) Close(); else Open(); }
-                else if (open && kb.escapeKey.wasPressedThisFrame) Close();
+                if (TogglePressed(kb)) ToggleDisplay();
             }
+            UpdateMouseMode(kb);
 
             FindPlayer();
             if (Invincible) KeepInvincible();
             if (OnePunch) WatchBossParts();
-
-            if (open)
-            {
-                UpdateButtons(buttons, style);
-                info.text = $"구역: {(InBossArena() ? "보스방" : "보스방 밖 (육조거리)")}";
-            }
         }
 
         private static bool TogglePressed(Keyboard kb)
@@ -437,124 +423,180 @@ namespace NMJ
             return null;
         }
 
-        // ───────── 창 ─────────
+        // ───────── 개발용 표시 + 마우스 기능 판 ─────────
+        // ` (또는 Insert) = 개발용 표시(YPH DebugView) 켜기·끄기. 켜진 동안 Alt를 누르고 있으면 마우스가 나오고(게임 멈춤),
+        // 왼쪽 위 '개발용 표시' 상자에 마우스를 대면 그 자리에 기능 판이 펼쳐진다. 따로 창을 띄우지 않는다.
 
-        private void Open()
+        private static bool DevDisplay
         {
-            if (open || EndingCredits.IsPlaying || PauseMenu.IsOpen) return;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            get => DebugView.Enabled;
+            set => DebugView.SetEnabled(value);
+#else
+            get => false;
+            set { }
+#endif
+        }
+
+        private void ToggleDisplay()
+        {
+            DevDisplay = !DevDisplay;
+            if (DevDisplay) NmjSubtitle.Caption("개발용 표시 켜짐 — Alt를 누른 채 왼쪽 위 상자에 마우스를 대면 개발자 기능", 3f);
+            else ExitMouseMode();
+        }
+
+        /// <summary>Alt를 누르는 동안: 마우스 보이기, 플레이어 입력·카메라·시간 멈춤</summary>
+        private void UpdateMouseMode(Keyboard kb)
+        {
+            bool want = DevDisplay && kb != null && (kb.leftAltKey.isPressed || kb.rightAltKey.isPressed)
+                        && !EndingCredits.IsPlaying && !PauseMenu.IsOpen;
+            if (want && !open) EnterMouseMode();
+            else if (!want && open) ExitMouseMode();
+        }
+
+        private void EnterMouseMode()
+        {
             open = true;
-            EnsureEventSystem();
-            ControlsOverlay.MenuOpen = true;   // 플레이어 입력·카메라 멈춤
+            panelShown = false;
+            ControlsOverlay.MenuOpen = true;
             prevTimeScale = Time.timeScale;
             Time.timeScale = 0f;
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
-            RefreshLabels();
-            Show(true);
-            Select(invincibleButton);
         }
 
-        private void Close()
+        private void ExitMouseMode()
         {
             if (!open) return;
             open = false;
+            panelShown = false;
             closedFrame = Time.frameCount;
             ControlsOverlay.MenuOpen = false;
             Time.timeScale = prevTimeScale > 0f ? prevTimeScale : 1f;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-            Select(null);
-            Show(false);
         }
 
-        private void Show(bool on)
-        {
-            group.alpha = on ? 1f : 0f;
-            group.blocksRaycasts = on;
-            group.interactable = on;
-        }
+        /// <summary>기능을 누른 뒤 판을 접는다 (Alt를 떼면 게임이 이어진다)</summary>
+        private void Close() => panelShown = false;
+
+        private void RefreshLabels() { }
 
         private static string SwordFxShort(NmjSwordSlash.Mode m) => m switch
         {
             NmjSwordSlash.Mode.C2 => "C2 붉은 칼금",
             NmjSwordSlash.Mode.C3 => "C3 붉은 김",
             NmjSwordSlash.Mode.Auto => "자동 C2/C3",
+            NmjSwordSlash.Mode.Flair => "화려판",
             _ => "기존",
         };
 
-        private void RefreshLabels()
+        private static string OnOff(bool on) => on ? "<color=#F0BA29>켜짐</color>" : "<color=#888888>꺼짐</color>";
+
+        private struct Item { public string label; public System.Action act; public bool small; }
+
+        private List<Item> Items()
         {
-            if (invincibleButton == null) return;
-            invincibleButton.label.text = $"무적  <color=#{(Invincible ? "F0BA29>켜짐" : "888888>꺼짐")}</color>";
-            onePunchButton.label.text = $"원펀맨  <color=#{(OnePunch ? "F0BA29>켜짐" : "888888>꺼짐")}</color>";
-            steamButton.label.text = $"무한 증기  <color=#{(InfiniteSteam ? "F0BA29>켜짐" : "888888>꺼짐")}</color>" + (InfiniteSteam && NmjStartTutorial.IsRunning ? "  <size=60%>(충전 튜토리얼 중 멈춤)</size>" : "");
-            swordFxButton.label.text = $"검 이펙트  <color=#F0BA29>{SwordFxShort(NmjSwordSlash.Current)}</color>";
-        }
-
-        private void BuildUi()
-        {
-            TMP_FontAsset font = null;
-#if UNITY_EDITOR
-            font = FindDefaultFont();
-#endif
-            if (font == null)
-                foreach (TMP_Text t in FindObjectsByType<TMP_Text>(FindObjectsInactive.Include))
-                    if (t.font != null && t.font.name.Contains("Chosun")) { font = t.font; break; }
-
-            style = new Style { font = font, buttonHeight = 54f, fontSize = 28f };
-            Canvas canvas = NewCanvas("NMJ_DevWindowCanvas", transform, 950, out group);   // 모든 HUD·ESC 메뉴(90)·퀘스트 판(100) 위, 먹 전환(1000) 아래
-
-            Image dim = NewImage("Dim", canvas.transform, new Color(0f, 0f, 0f, 0.55f), Vector2.zero, Vector2.zero);
-            dim.raycastTarget = true;
-            // 한 창에 모두: 기능 6 + 순간이동 9 = 15줄. 1080 높이 화면에 들어가게 줄 높이를 맞춘다
-            const float rowH = 50f, top = 112f, bottom = 60f;
-            int rows = 6 + 2 + Warps.Length + 1;   // 기능 6 + 시작·안개문 앞 2 + 구간 + 보스방
-            RectTransform panel = Panel(canvas.transform, new Vector2(600f, top + bottom + rowH * rows + 34f), new Color(0.06f, 0.06f, 0.07f, 0.96f), Brass);
-
-            TMP_Text title = NewText("Title", panel, font, "개발자 창", 32f, Brass);
-            RectTransform tr = title.rectTransform;
-            tr.anchorMin = new Vector2(0f, 1f); tr.anchorMax = new Vector2(1f, 1f); tr.pivot = new Vector2(0.5f, 1f);
-            tr.sizeDelta = new Vector2(0f, 46f); tr.anchoredPosition = new Vector2(0f, -22f);
-
-            info = NewText("Info", panel, font, "", 18f, White);
-            RectTransform ir = info.rectTransform;
-            ir.anchorMin = new Vector2(0f, 1f); ir.anchorMax = new Vector2(1f, 1f); ir.pivot = new Vector2(0.5f, 1f);
-            ir.sizeDelta = new Vector2(0f, 26f); ir.anchoredPosition = new Vector2(0f, -70f);
-            info.alpha = 0.6f;
-
-            RectTransform list = NewRect("Buttons", panel);
-            list.offsetMin = new Vector2(40f, bottom);
-            list.offsetMax = new Vector2(-40f, -top);
-            style.buttonHeight = rowH;
-            style.fontSize = 25f;
-
-            invincibleButton = AddButton(buttons, list, style, "무적", () => SetInvincible(!Invincible));
-            onePunchButton = AddButton(buttons, list, style, "원펀맨", () => SetOnePunch(!OnePunch));
-            steamButton = AddButton(buttons, list, style, "무한 증기", () => { InfiniteSteam = !InfiniteSteam; RefreshLabels(); });
-            swordFxButton = AddButton(buttons, list, style, "검 이펙트", () =>
+            var list = new List<Item>
             {
-                NmjSwordSlash.Mode m = NmjSwordSlash.Cycle();
-                RefreshLabels();
-                NmjSubtitle.Caption("검 이펙트 시안: " + NmjSwordSlash.Label(m), 2f);
-            });
-            AddButton(buttons, list, style, "리젠 — 지금 구역 적 다시", Respawn);
-            int warpStart = buttons.Count;
-            AddButton(buttons, list, style, "이동 1. 시작 지점 · 허수아비", MoveToStart);
+                new Item { label = "무적  " + OnOff(Invincible), act = () => SetInvincible(!Invincible) },
+                new Item { label = "원펀맨  " + OnOff(OnePunch), act = () => SetOnePunch(!OnePunch) },
+                new Item { label = "무한 증기  " + OnOff(InfiniteSteam) + (InfiniteSteam && NmjStartTutorial.IsRunning ? " (충전 튜토리얼 중 멈춤)" : ""),
+                           act = () => InfiniteSteam = !InfiniteSteam },
+                new Item { label = "검 이펙트  <color=#F0BA29>" + SwordFxShort(NmjSwordSlash.Current) + "</color>", act = () =>
+                {
+                    NmjSwordSlash.Mode m = NmjSwordSlash.Cycle();
+                    NmjSubtitle.Caption("검 이펙트 시안: " + NmjSwordSlash.Label(m), 2f);
+                } },
+                new Item { label = "리젠 — 지금 구역 적 다시", act = Respawn },
+                new Item { label = "이동 1. 시작 지점 · 허수아비", act = MoveToStart, small = true },
+            };
             foreach (Warp w in Warps)
             {
                 Vector3 to = w.pos;
-                AddButton(buttons, list, style, "이동 " + w.label, () => Teleport(to, Quaternion.identity));
+                list.Add(new Item { label = "이동 " + w.label, act = () => Teleport(to, Quaternion.identity), small = true });
             }
-            AddButton(buttons, list, style, "이동 8. 안개문 앞 · 근정전", MoveToBossGate);
-            AddButton(buttons, list, style, "이동 9. 보스방 안", MoveToBossRoom);
-            AddButton(buttons, list, style, "닫기", Close);
-            LayoutColumn(buttons, rowH);
-            foreach (MenuButton b in buttons) b.label.richText = true;
-            // 순간이동 줄은 조금 작게 → 기능과 구분된다
-            for (int i = warpStart; i < buttons.Count - 1; i++) buttons[i].label.fontSize = 22f;
+            list.Add(new Item { label = "이동 8. 안개문 앞 · 근정전", act = MoveToBossGate, small = true });
+            list.Add(new Item { label = "이동 9. 보스방 안", act = MoveToBossRoom, small = true });
+            return list;
+        }
 
-            Hint(panel, font, "~ / Insert / ESC  닫기", White);
-            RefreshLabels();
+        // 판 그리기 (IMGUI — YPH 개발용 표시 상자와 같은 모양)
+        private bool panelShown;
+        private Rect panelRect;
+        private GUIStyle boxStyle, itemStyle, smallStyle, headStyle;
+        private Texture2D bgTex, hoverTex;
+
+        private void EnsureStyles(float scale)
+        {
+            if (boxStyle == null || bgTex == null)
+            {
+                bgTex = Tex(new Color(0f, 0f, 0f, 0.82f));
+                hoverTex = Tex(new Color(0.94f, 0.73f, 0.16f, 0.35f));
+                boxStyle = new GUIStyle { normal = { background = bgTex } };
+                itemStyle = new GUIStyle(GUI.skin.label) { richText = true, wordWrap = false, alignment = TextAnchor.MiddleLeft };
+                itemStyle.normal.textColor = Color.white;
+                itemStyle.hover.background = hoverTex;
+                itemStyle.hover.textColor = Color.white;
+                smallStyle = new GUIStyle(itemStyle);
+                smallStyle.normal.textColor = new Color(0.85f, 0.85f, 0.85f);
+                headStyle = new GUIStyle(itemStyle);
+                headStyle.normal.textColor = new Color(0.94f, 0.73f, 0.16f);
+            }
+            itemStyle.fontSize = Mathf.RoundToInt(16 * scale);
+            smallStyle.fontSize = Mathf.RoundToInt(14 * scale);
+            headStyle.fontSize = Mathf.RoundToInt(15 * scale);
+            int pad = Mathf.RoundToInt(8 * scale);
+            itemStyle.padding = smallStyle.padding = headStyle.padding = new RectOffset(pad, pad, 0, 0);
+        }
+
+        private static Texture2D Tex(Color c)
+        {
+            var t = new Texture2D(1, 1) { hideFlags = HideFlags.HideAndDontSave };
+            t.SetPixel(0, 0, c);
+            t.Apply();
+            return t;
+        }
+
+        private void OnGUI()
+        {
+            if (!open) return;
+            GUI.depth = -100;   // YPH 개발용 표시 상자 위에 그린다
+            float scale = Mathf.Max(0.75f, Screen.height / 1080f);
+            EnsureStyles(scale);
+
+            // 마우스를 대는 곳: 왼쪽 위 '개발용 표시' 상자 자리
+            Vector2 mouse = Event.current.mousePosition;
+            Rect trigger = new Rect(0f, 0f, 300f * scale, 240f * scale);
+            if (!panelShown && trigger.Contains(mouse)) panelShown = true;
+            else if (panelShown && !panelRect.Contains(mouse) && !trigger.Contains(mouse)) panelShown = false;
+
+            if (!panelShown)
+            {
+                Rect tag = new Rect(12f * scale, 12f * scale, 300f * scale, 26f * scale);
+                GUI.Box(tag, GUIContent.none, boxStyle);
+                GUI.Label(tag, "◀ 마우스를 대면 개발자 기능", headStyle);
+                return;
+            }
+
+            List<Item> items = Items();
+            float rowH = 30f * scale, smallH = 26f * scale, headH = 30f * scale;
+            float h = headH * 2f;
+            foreach (Item it in items) h += it.small ? smallH : rowH;
+            panelRect = new Rect(12f * scale, 12f * scale, 380f * scale, h + 8f * scale);
+            GUI.Box(panelRect, GUIContent.none, boxStyle);
+
+            float y = panelRect.y + 4f * scale;
+            GUI.Label(new Rect(panelRect.x, y, panelRect.width, headH), "개발자 기능  <size=80%>(Alt 떼면 계속, ` 표시 끄기)</size>", headStyle);
+            y += headH;
+            GUI.Label(new Rect(panelRect.x, y, panelRect.width, headH), "구역: " + (InBossArena() ? "보스방" : "보스방 밖"), smallStyle);
+            y += headH;
+            foreach (Item it in items)
+            {
+                float rh = it.small ? smallH : rowH;
+                if (GUI.Button(new Rect(panelRect.x, y, panelRect.width, rh), it.label, it.small ? smallStyle : itemStyle)) it.act();
+                y += rh;
+            }
         }
     }
 }

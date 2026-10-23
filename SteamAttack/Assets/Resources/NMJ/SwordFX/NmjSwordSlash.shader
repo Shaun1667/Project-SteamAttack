@@ -30,6 +30,7 @@ Shader "NMJ/FX/SwordSlash"
         [HDR] _BurnColor ("Burn Edge (HDR)", Color) = (1.6, 0.7, 0.25, 1)
         _DepthFade ("Depth Fade (m)", Range(0.01, 1)) = 0.25
         _Steam ("Red Steam (C3)", Range(0, 1)) = 0
+        _BrushTex ("Brush Bristle (gray)", 2D) = "white" {}
     }
 
     SubShader
@@ -39,6 +40,8 @@ Shader "NMJ/FX/SwordSlash"
         HLSLINCLUDE
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
+
+        TEXTURE2D(_BrushTex); SAMPLER(sampler_BrushTex);
 
         CBUFFER_START(UnityPerMaterial)
             float4 _MainTex_ST;
@@ -116,7 +119,7 @@ Shader "NMJ/FX/SwordSlash"
             float3 c = cross(ddy(i.posWS), ddx(i.posWS));
             float3 n = c * rsqrt(max(dot(c, c), 1e-20));
             float3 v = normalize(GetCameraPositionWS() - i.posWS);
-            float facing = smoothstep(0.12, 0.4, abs(dot(n, v)));
+            float facing = smoothstep(0.2, 0.5, abs(dot(n, v)));
             return depth * facing * i.near;
         }
 
@@ -149,6 +152,12 @@ Shader "NMJ/FX/SwordSlash"
             core = smoothstep(0.008 - aa, 0.014 + aa, dn) * (1.0 - smoothstep(0.024 - aa, 0.034 + aa, dn)) * common;
             edge = smoothstep(0.004 - aa, 0.010 + aa, dn) * (1.0 - smoothstep(_EdgeWidth * 0.6, _EdgeWidth + aa, dn)) * common;
             burn *= (1.0 - smoothstep(_EdgeWidth * 0.8, _EdgeWidth * 1.6 + aa, dn)) * seen * ahead * _Opacity;
+
+            // 붓 결: 오래된 쪽(꼬리)일수록 마른 붓처럼 갈라진다 (오카미·수묵 획 느낌)
+            float br = SAMPLE_TEXTURE2D_LOD(_BrushTex, sampler_BrushTex, float2(u * 1.6, saturate(dn / (_EdgeWidth * 1.2))), 0).r;
+            float dry = (1.0 - x) * 0.7;
+            float bristle = smoothstep(dry - 0.08, dry + 0.08, br);
+            edge *= bristle; rim *= bristle; core *= lerp(1.0, bristle, 0.5);
 
             // C3 붉은 김: 칼끝 바깥 가장자리에서, 오래된 쪽일수록 피어오름
             float d = 1.0 - v;
@@ -202,7 +211,7 @@ Shader "NMJ/FX/SwordSlash"
                 edgeCol = lerp(edgeCol, _HotColor.rgb, smoothstep(0.75, 1.0, x) * 0.6) * _EdgeIntensity;
 
                 half s = saturate(steam) * f;
-                half e = saturate(edge) * f * lerp(0.45, 1.0, smoothstep(0.0, 0.45, x));   // 식을수록 옅게 (검은 줄처럼 남지 않게)
+                half e = saturate(edge) * f * lerp(0.12, 1.0, smoothstep(0.0, 0.5, x));   // 식을수록 옅게 (검은 줄처럼 남지 않게)
                 half b = saturate(burn) * f;
                 half c = saturate(core * smoothstep(0.35, 0.85, x)) * f;   // 심은 막 벤 곳에만
 
