@@ -148,6 +148,7 @@ GameObject:
   - component: {fileID: 2440564864074483378}
   - component: {fileID: 2774899969034203989}
   - component: {fileID: 5066337896492474615}
+  - component: {fileID: 1857905828664501604}
   m_Layer: 0
   m_Name: YPH_MutantSoldier
   m_TagString: Enemy
@@ -243,8 +244,8 @@ MonoBehaviour:
   _loseDelay: 3
   _damagedChaseMaxTime: 10
   _chaseSpeed: 3.5
-  _hitStopTime: 0.1
-  _parriedStunTime: 1.8
+  _hitStopTime: 0.6
+  _parriedStunTime: 2
   _parryPoint: {fileID: 2776899280441244232}
   _parryPointHeight: 1.2
   _logStateChanges: 1
@@ -338,7 +339,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::YPH.EnemyMotor
   _turnSpeed: 540
-  _lungeStopGap: 0.1
+  _lungeStopGap: 0.4
   _useNavMesh: 1
   _repathInterval: 0.25
 --- !u!114 &2440564864074483378
@@ -383,7 +384,7 @@ MonoBehaviour:
   _attackLungeDistance: 1
   _attackLungeDuration: 0.12
   _heavyEnabled: 1
-  _heavyChance: 0.3
+  _heavyChance: 0.37
   _heavyDamage: 15
   _heavyStagger: 2
   _heavyStartRange: 4.5
@@ -434,6 +435,26 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 1
   m_ObstacleAvoidanceType: 4
+--- !u!114 &1857905828664501604
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8635576288341271724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1001 &1420058760848991756
 PrefabInstance:
   m_ObjectHideFlags: 0
