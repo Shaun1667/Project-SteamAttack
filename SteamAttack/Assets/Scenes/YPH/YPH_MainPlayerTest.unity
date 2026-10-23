@@ -30231,11 +30231,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 185415256}
   m_Mesh: {fileID: 4300000, guid: 540eefaf1ccb4a94282f8febde16ec9e, type: 2}
---- !u!4 &185641727 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 4551802940636280662, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-  m_PrefabInstance: {fileID: 1442819858}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &185775294
 GameObject:
   m_ObjectHideFlags: 0
@@ -287094,6 +287089,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: YPH_HeuksuArcher
       objectReference: {fileID: 0}
+    - target: {fileID: 6379831057391134551, guid: 1805e399a3158044e851bbfddf162dda, type: 3}
+      propertyPath: refreshMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 8470557820225867157, guid: 1805e399a3158044e851bbfddf162dda, type: 3}
       propertyPath: m_LocalPosition.x
       value: 20.49
@@ -330018,7 +330017,7 @@ PrefabInstance:
     - target: {fileID: 2177534023529623286, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
       propertyPath: _head
       value: 
-      objectReference: {fileID: 185641727}
+      objectReference: {fileID: 0}
     - target: {fileID: 2177534023529623286, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
       propertyPath: _camera
       value: 
