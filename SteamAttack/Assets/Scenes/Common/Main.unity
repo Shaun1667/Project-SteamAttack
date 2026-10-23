@@ -283743,7 +283743,7 @@ Transform:
   m_GameObject: {fileID: 1759337953}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.012000084, y: 0, z: -7.9879913}
+  m_LocalPosition: {x: 1.6, y: 0, z: -281.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -334185,6 +334185,10 @@ PrefabInstance:
       propertyPath: _camera
       value: 
       objectReference: {fileID: 1062913326}
+    - target: {fileID: 2177534023529623286, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: _orbitCamera
+      value: 
+      objectReference: {fileID: 1062913325}
     - target: {fileID: 4026244252622132716, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -334228,7 +334232,7 @@ PrefabInstance:
     - target: {fileID: 6806834361620626373, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
       propertyPath: _gun
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 181072298}
     - target: {fileID: 6806834361620626373, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
       propertyPath: _camera
       value: 

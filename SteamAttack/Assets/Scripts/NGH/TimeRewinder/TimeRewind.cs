@@ -129,8 +129,6 @@ namespace NGH
         [Header("Debug")]
         [Tooltip("화면 왼쪽 위에 기록 상태를 표시. 시연·녹화 화면에 나오지 않게 기본 꺼짐 (D-088)")]
         [SerializeField] private bool showDebugGUI = false;
-        [Tooltip("디버그 표시 켜기·끄기 키 (디버깅메뉴 키 예약표에 등록됨)")]
-        [SerializeField] private Key debugGUIToggleKey = Key.Backquote;
         [SerializeField] private bool logRewind = true;
 
         /// <summary>시간 역행(연출 + 복원) 진행 중</summary>
@@ -201,8 +199,6 @@ namespace NGH
         {
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return;
-
-            if (keyboard[debugGUIToggleKey].wasPressedThisFrame) showDebugGUI = !showDebugGUI;
 
             if (IsRewinding || ControlsOverlay.IsOpen) return;
 
