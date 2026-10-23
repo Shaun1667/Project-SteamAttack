@@ -41,6 +41,8 @@ namespace NMJ
         [SerializeField, Min(0f)] private float showDelay = 0.3f;
         [Tooltip("화면이 뜬 뒤 키를 받기 시작할 때까지 (연타로 바로 넘어가지 않게)")]
         [SerializeField, Min(0f)] private float inputDelay = 1.2f;
+        [Tooltip("화면이 뜬 뒤 이 시간이 지나면 키를 누르지 않아도 저절로 일어난다 (0이면 끔). 시연이 끊기지 않게")]
+        [SerializeField, Min(0f)] private float autoRestartAfter = 3f;
         [SerializeField] private InkStyle restartTransition = InkStyle.Drip;
 
         [Header("종이 타듯 사라짐 (세계관 v6 6-2 — 죽음이 아니라 이 시간선에서 지워짐)")]
@@ -65,6 +67,7 @@ namespace NMJ
         private TMP_FontAsset HanjaFont => glyphFont != null ? glyphFont : font;
 
         private CanvasGroup group, sealGroup, promptGroup;
+        private TMP_Text promptText;
         private RectTransform reveal, sealRect, root;
         private TMP_Text headText, subText;
         private Texture2D bandTex, sealTex;
@@ -119,7 +122,10 @@ namespace NMJ
             shownTime += Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             Layout(shownTime);
 
-            if (!restarting && shownTime >= inputDelay && AnyInput()) Restart();
+            bool auto = autoRestartAfter > 0f && shownTime >= Mathf.Max(autoRestartAfter, inputDelay);
+            if (!restarting && shownTime >= inputDelay && (AnyInput() || auto)) Restart();
+            if (promptText != null && autoRestartAfter > 0f && !restarting)
+                promptText.text = $"{prompt}  <size=80%><alpha=#99>· {Mathf.CeilToInt(Mathf.Max(0f, autoRestartAfter - shownTime))}초 뒤 저절로</size>";
         }
 
         private void Show()
@@ -268,6 +274,8 @@ namespace NMJ
             subText.rectTransform.anchoredPosition = new Vector2(0f, 48f);
 
             TMP_Text p = NewText("Prompt", canvas.transform, font, prompt, 22f, textColor);
+            p.richText = true;
+            promptText = p;
             p.rectTransform.anchorMin = p.rectTransform.anchorMax = new Vector2(0.5f, 0.2f);
             p.rectTransform.sizeDelta = new Vector2(800f, 40f);
             promptGroup = p.gameObject.AddComponent<CanvasGroup>();

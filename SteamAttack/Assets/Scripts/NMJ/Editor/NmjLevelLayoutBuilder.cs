@@ -28,6 +28,10 @@ namespace NMJ.EditorTools
         const string EnemyPrefab = "Assets/Prefabs/NMJ/NMJ_EnemySpawns.prefab";
         const string StoryPrefab = "Assets/Prefabs/NMJ/NMJ_Story.prefab";
         const string DressingPrefab = "Assets/Prefabs/NMJ/NMJ_LevelDressing.prefab";
+        const string QuestZonePrefab = "Assets/Prefabs/NMJ/NMJ_QuestZones.prefab";
+        // 보스방(향원정) 안개문 — 근정전 계단(답도, z 36.7~) 바로 앞 마당. 궁 안 이동 147m(49초) → 64m(21초)
+        static readonly Vector3 FogGatePos = new Vector3(0f, 0f, 33f);
+        static readonly Vector3 FogReturnPos = new Vector3(0f, 0.1f, 29f);   // 보스방에서 돌아오는 자리 (문을 등지고 선다)
         const string MatDir = "Assets/Materials/NMJ/HyeonmuWorld/";
         const float PocheolWander = 2.5f;   // 기본 6m면 옆 구간까지 걸어가 구간이 섞인다
 
@@ -39,6 +43,7 @@ namespace NMJ.EditorTools
 
             ApplyEnemies();
             ApplyStory();
+            ApplyQuestZones();
             ApplyWorld(world);
             BuildDressing(world);
             EnsureInstance(DressingPrefab);
@@ -68,6 +73,8 @@ namespace NMJ.EditorTools
                 if (t == null) { Debug.LogWarning("[NMJ 레벨] 적 없음: " + kv.Key); continue; }
                 t.localPosition = kv.Value;
                 if (t.name.StartsWith("변이포졸")) SetFloat(t.gameObject, "EnemyAI", "_wanderRadius", PocheolWander);
+                // 문 바로 앞 마지막 포졸: 내려치기(동심원 강공격)를 자주 → 받아치기 → 경직 → 강공격을 자연스럽게 보게 (육조 받아치기 포졸은 1)
+                if (t.name == "변이포졸_광화문_3") SetFloat(t.gameObject, "EnemyMeleeAttack", "_heavyChance", 0.75f);
             }
             PrefabUtility.SaveAsPrefabAsset(root, EnemyPrefab);
             PrefabUtility.UnloadPrefabContents(root);
@@ -124,13 +131,26 @@ namespace NMJ.EditorTools
                 }
             }
 
-            // 보스방에서 돌아오는 자리가 근정전 월대 끝(z 74)에 걸쳐 있어 몸이 돌단에 박힌다 → 월대와 안개문 사이 빈 땅으로
+            // 안개문을 근정전 앞으로 당긴다 (예전 자리 z 80은 근정전 뒤를 돌아가야 해 49초 걸렸다)
+            var gate2 = world.Find("07_향원정_얼어붙은_연못/NMJ_FogGate_향원정");
+            if (gate2) { Undo.RecordObject(gate2, "레벨 v2"); gate2.position = FogGatePos; gate2.rotation = Quaternion.identity; }
+            // 보스방에서 돌아오는 자리: 안개문 앞, 문을 등지고 (예전 z 74는 월대 모서리라 몸이 박혔다)
             var back = world.Find("07_향원정_얼어붙은_연못/NMJ_FogGate_돌아온자리");
-            if (back) { Undo.RecordObject(back, "레벨 v2"); var bp = back.position; bp.z = 76.5f; back.position = bp; }
+            if (back) { Undo.RecordObject(back, "레벨 v2"); back.position = FogReturnPos; back.rotation = Quaternion.Euler(0f, 180f, 0f); }
 
             // 얼음 문은 광화문 앞 4명만 지킨다 (받아치기 포졸 z -70은 빼고 해태 뒤 궁수는 넣는 거리)
             var gate = world.Find("02_광화문/NMJ_광화문_얼음문");
             if (gate) SetFloat(gate.gameObject, "IceGate", "autoFindRadius", 19f);
+        }
+
+        // ---------------------------------------------------------------- 퀘스트 도착 지점
+        static void ApplyQuestZones()
+        {
+            var root = PrefabUtility.LoadPrefabContents(QuestZonePrefab);
+            var z = root.transform.Find("도달_향원정안개문");
+            if (z) z.localPosition = new Vector3(FogGatePos.x, 2f, FogGatePos.z - 5f);   // 안개문 바로 앞 마당 (상자 12×4×5)
+            PrefabUtility.SaveAsPrefabAsset(root, QuestZonePrefab);
+            PrefabUtility.UnloadPrefabContents(root);
         }
 
         // ---------------------------------------------------------------- 연출 소품 프리팹
@@ -166,9 +186,7 @@ namespace NMJ.EditorTools
             var g3 = Group(root, "궁안_시간부스러기_길잡이");
             var path = new[]
             {
-                new Vector3(0f, 0f, -30f), new Vector3(0f, 0f, 0f), new Vector3(8f, 0f, 18f),
-                new Vector3(20f, 0f, 30f), new Vector3(27.5f, 0f, 40f), new Vector3(27.5f, 0f, 62f),
-                new Vector3(27.5f, 0f, 76.5f), new Vector3(14f, 0f, 77.5f), new Vector3(4f, 0f, 78f),   // 근정전 월대(높이 1.2m, z 74까지) 바깥으로 돈다
+                new Vector3(0f, 0f, -30f), new Vector3(-2f, 0f, -5f), new Vector3(2f, 0f, 15f), new Vector3(0f, 0f, 31f),   // 어도를 따라 근정전 앞 안개문까지
             };
             int n = 0;
             for (int i = 0; i < path.Length - 1; i++)
@@ -194,7 +212,7 @@ namespace NMJ.EditorTools
                 }
             }
             // 꺾이는 곳마다 푸른 빛
-            foreach (var at in new[] { path[3], path[6], path[8] })
+            foreach (var at in new[] { path[1], path[3] })
             {
                 var l = new GameObject("길잡이 빛").AddComponent<Light>();
                 l.transform.SetParent(g3.transform);

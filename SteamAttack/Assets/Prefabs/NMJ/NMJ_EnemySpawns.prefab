@@ -3859,6 +3859,10 @@ PrefabInstance:
       propertyPath: _wanderRadius
       value: 2.5
       objectReference: {fileID: 0}
+    - target: {fileID: 2774899969034203989, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
+      propertyPath: _heavyChance
+      value: 0.75
+      objectReference: {fileID: 0}
     - target: {fileID: 8447182195599149519, guid: 594e06c253513474c804ae6df5cc2199, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

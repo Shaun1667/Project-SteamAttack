@@ -5,7 +5,7 @@ namespace NMJ
 {
     /// <summary>
     /// 테스트용 플레이어 이동. CharacterController 로 움직이므로
-    /// 트리거로 된 <c>ItemPickup</c> 위를 지나가면 OnTriggerEnter 가 발생한다.
+    /// 트리거(퀘스트 구역 등) 위를 지나가면 OnTriggerEnter 가 발생한다.
     ///
     /// 조작: WASD 이동 / Shift 달리기 / Space 점프 / 마우스 오른쪽 드래그로 시점 회전
     /// </summary>

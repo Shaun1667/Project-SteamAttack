@@ -52,9 +52,9 @@ namespace NMJ
             new Warp { label = "4. 첫 받아치기 · 포졸 1", pos = new Vector3(0f, 0.1f, -77f) },
             new Warp { label = "5. 광화문 앞 · 얼음 문 전투", pos = new Vector3(0f, 0.1f, -66f) },
             new Warp { label = "6. 궁 안 · 광화문 안쪽", pos = new Vector3(0f, 0.1f, -30f) },
-            new Warp { label = "7. 근정전 옆 · 길잡이", pos = new Vector3(27.5f, 0.1f, 38f) },
+            new Warp { label = "7. 근정전 마당 · 길잡이", pos = new Vector3(0f, 0.1f, 5f) },
         };
-        private static readonly Vector3 GateFrontFallback = new Vector3(0f, 0.1f, 76.5f);   // 근정전 월대(z 74까지)와 안개문(z 79.4) 사이
+        private static readonly Vector3 GateFrontFallback = new Vector3(0f, 0.1f, 29f);   // 근정전 앞 안개문(z 33) 바로 앞
         private const float BossArenaRadius = 45f;
 
         private static NmjDevWindow instance;
@@ -545,7 +545,7 @@ namespace NMJ
                 Vector3 to = w.pos;
                 AddButton(buttons, list, style, "이동 " + w.label, () => Teleport(to, Quaternion.identity));
             }
-            AddButton(buttons, list, style, "이동 8. 향원정 안개문 앞", MoveToBossGate);
+            AddButton(buttons, list, style, "이동 8. 안개문 앞 · 근정전", MoveToBossGate);
             AddButton(buttons, list, style, "이동 9. 보스방 안", MoveToBossRoom);
             AddButton(buttons, list, style, "닫기", Close);
             LayoutColumn(buttons, rowH);

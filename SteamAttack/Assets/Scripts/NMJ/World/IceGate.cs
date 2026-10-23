@@ -40,6 +40,10 @@ namespace NMJ
         private Material iceMat;
         private float breakTimer = -1f;
         private float checkTimer;
+        private bool lastHintShown;
+
+        [Tooltip("근접 적이 한 명만 남았을 때 한 번 띄우는 안내 (비우면 안 띄움). 받아치기 → 경직 → 강공격을 보여 주려고")]
+        [SerializeField] private string lastGuardHint = "마지막 한 명 — 내려치기를 받아치고(Ctrl) 경직된 틈에 강공격";
 
         private void Awake()
         {
@@ -67,7 +71,15 @@ namespace NMJ
             checkTimer -= Time.deltaTime;
             if (checkTimer > 0f) return;
             checkTimer = 0.25f;
-            foreach (EnemyHealth g in guards) if (g != null && g.IsAlive) return;
+            EnemyHealth lastAlive = null;
+            int alive = 0;
+            foreach (EnemyHealth g in guards) if (g != null && g.IsAlive) { alive++; lastAlive = g; }
+            if (alive == 1 && !lastHintShown && !string.IsNullOrEmpty(lastGuardHint) && lastAlive.GetComponent<EnemyMeleeAttack>() != null)
+            {
+                lastHintShown = true;
+                NmjSubtitle.Caption(lastGuardHint, 4f);
+            }
+            if (alive > 0) return;
             Break();
         }
 

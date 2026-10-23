@@ -12,17 +12,12 @@ namespace NMJ
     /// </summary>
     public class QuestDebugTester : MonoBehaviour
     {
-        [SerializeField] private ItemData firewaterCore;
-        [SerializeField] private ItemData armillaryRing;
-        [SerializeField] private ItemData hyeonmuScale;
-
         [SerializeField] private bool showOnScreenGuide = true;
 
         private void Update()
         {
             var keyboard = Keyboard.current;
             var quests = QuestManager.Instance;
-            var player = PlayerInventory.Instance;
             if (keyboard == null || quests == null) return;
 
             if (keyboard.f1Key.wasPressedThisFrame) quests.ReportTalk("npc_gojong");
@@ -30,15 +25,15 @@ namespace NMJ
             if (keyboard.f3Key.wasPressedThisFrame) quests.ReportTalk("npc_baekdongsu");
             if (keyboard.f4Key.wasPressedThisFrame) quests.ReportKill("enemy_heuksu_fanatic");
             if (keyboard.f5Key.wasPressedThisFrame) quests.ReportKill("enemy_byeonibyeong");
-            if (keyboard.f6Key.wasPressedThisFrame && player != null) player.AddPartial(firewaterCore, 1);
-            if (keyboard.f7Key.wasPressedThisFrame && player != null) player.AddPartial(armillaryRing, 1);
+            if (keyboard.f6Key.wasPressedThisFrame) quests.ReportCustom("mat_firewater_core");   // 예전 아이템 수거 → 커스텀 보고 (인벤토리 삭제)
+            if (keyboard.f7Key.wasPressedThisFrame) quests.ReportCustom("mat_armillary_ring");
             if (keyboard.f8Key.wasPressedThisFrame) quests.ReportReach("loc_gigichang");
             if (keyboard.f9Key.wasPressedThisFrame) quests.ReportReach("loc_heuksu_altar");
 
             if (keyboard.f10Key.wasPressedThisFrame)
             {
                 quests.ReportKill("boss_hyeonmu");
-                if (player != null) player.AddPartial(hyeonmuScale, 1);
+                quests.ReportCustom("mat_hyeonmu_scale");
             }
 
             if (keyboard.f11Key.wasPressedThisFrame) CompleteReadyQuest();

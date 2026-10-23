@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace NMJ
 {
-    /// <summary>필드에 떨어진 아이템이 눈에 띄도록 천천히 돌고 떠다니게 한다.</summary>
+    /// <summary>눈에 띄어야 하는 작은 물체(궁 안 길잡이 시간 부스러기 등)를 천천히 돌고 떠다니게 한다.</summary>
     public class PickupBob : MonoBehaviour
     {
         [SerializeField] private float spinDegreesPerSecond = 60f;
