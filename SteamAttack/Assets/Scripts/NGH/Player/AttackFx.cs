@@ -64,6 +64,8 @@ namespace NGH
             public bool keepWholeTrail;
             [Tooltip("궤적 메시: 휘두르기 시작부터 이 비율(0~1)까지를 중반~후반의 원(반지름·평면 높이)에 맞춰 폄. 시작 부분이 구불구불할 때")]
             [Range(0f, 1f)] public float straightenStart;
+            [Tooltip("궤적 메시: 경로 전체를 베기 원 기준으로 매끈하게. 되돌아가는 구간을 없애고 반지름·높이·띠 방향을 완만한 곡선에 맞춤 (0 = 칼 경로 그대로, 1 = 완전히 매끈한 초승달)")]
+            [Range(0f, 1f)] public float streamline;
             [Tooltip("궤적 메시: 베기 원의 중심에서 바깥으로 키우는 배율 (1 = 칼 그대로, 1.3 = 반지름 1.3배로 크고 넓게)")]
             [Range(0.5f, 2f)] public float trailScale = 1f;
             [Tooltip("궤적 메시: 바깥 가장자리를 베기 원의 중심에서 이 배율만큼 더 바깥으로 (1 = 칼끝 그대로, 1.3 = 칼끝보다 30% 바깥까지)")]
@@ -416,6 +418,7 @@ namespace NGH
                         }
                         Vector3 axis = Quaternion.Euler(e.localEuler) * Vector3.forward, center = e.localPosition;
                         if (e.straightenStart > 0.001f) Straighten(e, K, N, center, Quaternion.Euler(e.localEuler));
+                        if (e.streamline > 0.001f) Streamline(e, K, N, center, Quaternion.Euler(e.localEuler));
                         if (e.trailScale > 0.01f && Mathf.Abs(e.trailScale - 1f) > 0.001f) ScaleTrail(e, K, N, center, Quaternion.Euler(e.localEuler));
                         if (Mathf.Abs(e.outerScale - 1f) > 0.001f || Mathf.Abs(e.innerScale - 1f) > 0.001f) WidenTrail(e, K, N, center, Quaternion.Euler(e.localEuler));
                         for (int k = 0; k < K; k++)
@@ -465,6 +468,137 @@ namespace NGH
             }
             Fix(e.pathOuter);
             Fix(e.pathInner);
+        }
+
+        // 궤적 전체를 베기 원 기준으로 매끈하게 (streamline 비율만큼 원래 경로와 섞음)
+        //  - 진행 각도: 되돌아가는 구간을 없애고 살짝 평활. 시간에 따른 진행은 거의 그대로라 궤적 머리가 칼을 따라감
+        //  - 칼끝 반지름·평면 높이: 진행 비율에 대한 2차 곡선에 맞춤 → 시작·끝의 갈고리, 중간의 출렁임 제거
+        //  - 띠(칼끝 → 안쪽) 방향: 반지름 방향에서 비틀린 각을 1차 곡선에 맞추고 평면 안에 눕힘
+        //    → 손목을 꺾는 순간 안쪽 가장자리가 꺾이거나 한 점으로 모이지 않음
+        static void Streamline(Entry e, int K, int N, Vector3 center, Quaternion rot)
+        {
+            var inv = Quaternion.Inverse(rot);
+            var th = new float[N]; var r = new float[N]; var h = new float[N]; var tw = new float[N]; var w = new float[N]; var dz = new float[N];
+            float wMean = 0f;
+            for (int i = 0; i < N; i++)
+            {
+                var q = inv * (e.pathOuter[K + i] - center);
+                var d = q - inv * (e.pathInner[K + i] - center);
+                float a = Mathf.Atan2(q.y, q.x);
+                if (i > 0) a = th[i - 1] + Mathf.DeltaAngle(th[i - 1] * Mathf.Rad2Deg, a * Mathf.Rad2Deg) * Mathf.Deg2Rad;   // 각도 펼치기
+                th[i] = a;
+                var flat = new Vector2(q.x, q.y);
+                r[i] = flat.magnitude; h[i] = q.z;
+                var radial = r[i] > 1e-5f ? flat / r[i] : Vector2.right;
+                var dp = new Vector2(d.x, d.y);
+                tw[i] = Mathf.Atan2(radial.x * dp.y - radial.y * dp.x, Vector2.Dot(radial, dp));
+                w[i] = d.magnitude; dz[i] = d.z;
+                wMean += w[i] / N;
+            }
+            // 진행 각도: 원래 각도에 가장 가까운 한 방향 수열(등위 회귀)로 바꾼 뒤 평활 (단조 수열을 평활해도 단조 유지)
+            //   되돌아가는 구간에서 앞서거나 뒤처지는 양이 반반이 되어 칼과의 어긋남이 가장 작음
+            float sign = th[N - 1] >= th[0] ? 1f : -1f;
+            var mono = new float[N];
+            for (int i = 0; i < N; i++) mono[i] = th[i] * sign;
+            Isotonic(mono);
+            for (int i = 0; i < N; i++) mono[i] *= sign;
+            var ths = Smooth(mono, 2f);
+            float span = ths[N - 1] - ths[0];
+            if (Mathf.Abs(span) < 1e-4f) span = 1f;
+            var x = new float[N];
+            for (int i = 0; i < N; i++) x[i] = (ths[i] - ths[0]) / span;
+            var cr = PolyFit(x, r, 2); var ch = PolyFit(x, h, 2); var ct = PolyFit(x, tw, 1);
+            float s = e.streamline;
+            for (int i = 0; i < N; i++)
+            {
+                float a = Mathf.Lerp(th[i], ths[i], s);
+                float R = Mathf.Lerp(r[i], Poly(cr, x[i]), s), Hh = Mathf.Lerp(h[i], Poly(ch, x[i]), s);
+                float T = Mathf.Lerp(tw[i], Mathf.Clamp(Poly(ct, x[i]), -0.7f, 0.7f), s), Wd = Mathf.Lerp(w[i], wMean, s);
+                var radial = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                var band = new Vector2(radial.x * Mathf.Cos(T) - radial.y * Mathf.Sin(T), radial.x * Mathf.Sin(T) + radial.y * Mathf.Cos(T));
+                var o = radial * R;
+                float bandZ = Mathf.Lerp(dz[i], 0f, s);
+                float flatW = Mathf.Sqrt(Mathf.Max(0f, Wd * Wd - bandZ * bandZ));
+                e.pathOuter[K + i] = center + rot * new Vector3(o.x, o.y, Hh);
+                e.pathInner[K + i] = center + rot * new Vector3(o.x - band.x * flatW, o.y - band.y * flatW, Hh - bandZ);
+            }
+        }
+
+        // 등위 회귀 (pool adjacent violators): 값이 줄어드는 구간을 이웃과 묶어 평균으로 → 가장 가까운 비감소 수열
+        static void Isotonic(float[] v)
+        {
+            int n = v.Length;
+            var mean = new float[n]; var count = new int[n];
+            int b = 0;
+            for (int i = 0; i < n; i++)
+            {
+                mean[b] = v[i]; count[b] = 1;
+                while (b > 0 && mean[b - 1] > mean[b])
+                {
+                    mean[b - 1] = (mean[b - 1] * count[b - 1] + mean[b] * count[b]) / (count[b - 1] + count[b]);
+                    count[b - 1] += count[b];
+                    b--;
+                }
+                b++;
+            }
+            int k = 0;
+            for (int j = 0; j < b; j++)
+                for (int c = 0; c < count[j]; c++) v[k++] = mean[j];
+        }
+
+        // 가우스 평활 (양 끝은 끝값으로 채움)
+        static float[] Smooth(float[] v, float sigma)
+        {
+            int n = v.Length, rad = Mathf.CeilToInt(sigma * 2.5f);
+            var o = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                float sum = 0f, ws = 0f;
+                for (int d = -rad; d <= rad; d++)
+                {
+                    float g = Mathf.Exp(-d * d / (2f * sigma * sigma));
+                    sum += v[Mathf.Clamp(i + d, 0, n - 1)] * g; ws += g;
+                }
+                o[i] = sum / ws;
+            }
+            return o;
+        }
+
+        // 최소제곱 다항식 맞춤 (계수 낮은 차수부터)
+        static float[] PolyFit(float[] x, float[] y, int deg)
+        {
+            int m = deg + 1;
+            var A = new double[m, m + 1];
+            var p = new double[m];
+            for (int i = 0; i < x.Length; i++)
+            {
+                p[0] = 1.0;
+                for (int k = 1; k < m; k++) p[k] = p[k - 1] * x[i];
+                for (int a = 0; a < m; a++) { for (int b = 0; b < m; b++) A[a, b] += p[a] * p[b]; A[a, m] += p[a] * y[i]; }
+            }
+            for (int c = 0; c < m; c++)
+            {
+                int pv = c;
+                for (int rr = c + 1; rr < m; rr++) if (System.Math.Abs(A[rr, c]) > System.Math.Abs(A[pv, c])) pv = rr;
+                for (int k = 0; k <= m; k++) { var t = A[c, k]; A[c, k] = A[pv, k]; A[pv, k] = t; }
+                if (System.Math.Abs(A[c, c]) < 1e-12) continue;
+                for (int rr = 0; rr < m; rr++)
+                {
+                    if (rr == c) continue;
+                    double f = A[rr, c] / A[c, c];
+                    for (int k = c; k <= m; k++) A[rr, k] -= f * A[c, k];
+                }
+            }
+            var coef = new float[m];
+            for (int a = 0; a < m; a++) coef[a] = System.Math.Abs(A[a, a]) < 1e-12 ? 0f : (float)(A[a, m] / A[a, a]);
+            return coef;
+        }
+
+        static float Poly(float[] c, float x)
+        {
+            float v = 0f;
+            for (int k = c.Length - 1; k >= 0; k--) v = v * x + c[k];
+            return v;
         }
 
         // 궤적을 베기 원의 평면 안에서 중심 기준으로 키움 (평면 높이는 그대로)
