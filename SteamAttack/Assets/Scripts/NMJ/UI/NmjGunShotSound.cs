@@ -35,7 +35,7 @@ namespace NMJ
         {
             if (clips == null)
                 clips = new[] { Load(1) };   // 1번으로 확정 (2·3번은 Audios/NMJ/SFX에 보관)
-            foreach (var g in FindObjectsByType<YPH.SteamGun>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var g in FindObjectsByType<YPH.SteamGun>(FindObjectsInactive.Include))
                 if (g.GetComponent<NmjGunShotSound>() == null) g.gameObject.AddComponent<NmjGunShotSound>();
         }
 

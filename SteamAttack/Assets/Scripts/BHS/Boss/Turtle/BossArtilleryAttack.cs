@@ -1,0 +1,561 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Rendering.Universal;
+
+// 거북이 등의 발사구에서 발사. 각 데칼을 표시한 순간 착탄 위치를 고정한다.
+// 피해는 포탄이 떨어질 때만 1회. 비행 중에는 포탄 모델로 충돌 피해를 주지 않는다.
+[DisallowMultipleComponent]
+public class BossArtilleryAttack : BossAttack
+{
+    [Header("포격 발동 조건")]
+    [Tooltip("거북이 BossFSM. 비우면 자신/부모에서 찾습니다.")]
+    public BossFSM bodyFSM;
+    [Tooltip("Min/Max Use Distance 안에 연속으로 머물러야 하는 시간. 벗어나면 초기화. 0이면 즉시 선택 가능.")]
+    [Min(0f)] public float requiredStayTime = 3f;
+
+    [Header("밸런스 - 포탄 수 / 예고 시간 / 간격")]
+    [Tooltip("포격 한 번에 떨어지는 포탄과 데칼의 총 개수입니다.")]
+    [Min(1)] public int shellCount = 5;
+    [Tooltip("각 포탄의 데칼을 표시하고 발사한 뒤, 그 포탄이 착탄하기까지의 시간입니다.")]
+    [Min(0.05f)] public float warningToImpactTime = 1.2f;
+    [Tooltip("앞 포탄과 다음 포탄의 간격. 모든 포탄의 비행 시간이 같아 데칼/발사/착탄 간격이 같습니다. 0이면 동시 발사.")]
+    [Min(0f)] public float shellInterval = 0.4f;
+
+    [Header("데칼 크기 / 착탄 판정 - 월드 크기")]
+    [Tooltip("착탄 데칼과 실제 피해 판정이 함께 사용하는 반경입니다. 1.2이면 지름 2.4m, 2이면 지름 4m입니다.")]
+    [Min(0.05f)] public float explosionRadius = 1.2f;
+    [Min(0.01f)] public float explosionHeight = 2f;
+    [Tooltip("Ground Y에서 실제 판정 바닥까지의 높이 차이입니다.")]
+    public float explosionBottomOffset = 0f;
+
+    [Header("등의 발사구 / 포탄 표시")]
+    [Tooltip("등의 빈 오브젝트를 연결하면 순서대로 사용합니다. 비우면 거북이 중심 위에서 발사합니다.")]
+    public Transform[] firePoints = new Transform[0];
+    [Min(0f)] public float fallbackLaunchHeight = 3f;
+    [Tooltip("외형만 있는 프리팹을 연결하세요. 비우면 테스트용 구를 만듭니다. 별도 피해/이동 스크립트는 넣지 마세요.")]
+    public GameObject shellVisualPrefab;
+    [Tooltip("프리팹 원래 크기에 곱할 값. 테스트 구는 지름입니다.")]
+    [Min(0.01f)] public float shellScale = 0.4f;
+    [Tooltip("출발점과 착탄점을 잇는 직선보다 궤적 중간을 얼마나 높일지 지정합니다.")]
+    [Min(0f)] public float arcHeight = 5f;
+    [Tooltip("있으면 착탄 시 재생합니다. 피해는 이 이펙트와 별개로 포탄당 1회입니다.")]
+    public ParticleSystem impactEffectPrefab;
+    [Tooltip("착탄 후 표시를 유지하는 시간. 이 시간이 지나면 해당 데칼과 이펙트를 정리합니다.")]
+    [Min(0f)] public float impactDisplayTime = 0.25f;
+
+    [Header("URP 착탄 예고 데칼")]
+    public Material warningMaterial;
+    [Tooltip("기존 브레스/파동과 같은 바닥 전용 Rendering Layer를 선택하세요.")]
+    public RenderingLayerMask warningRenderingLayers;
+    public Color warningColor = new Color(1f, 0.2f, 0.05f, 0.5f);
+    public float groundY = 0f;
+    [Min(0.1f)] public float projectionDepth = 2f;
+
+    [Header("기즈모")]
+    public bool showArtilleryGizmos = true;
+    [Tooltip("선택 사항. 연결하면 이 위치에 착탄 반경을 미리 표시합니다.")]
+    public Transform previewTarget;
+
+    [Header("플레이 중 상태 - 확인용")]
+    [SerializeField] private float accumulatedStayTime;
+    [SerializeField] private int launchedShells;
+    [SerializeField] private int landedShells;
+
+    private const int Sides = 48;
+    private const int TextureSize = 256;
+    private Transform trackedPlayer;
+    private float elapsed;
+    private float nextLaunchTime;
+    private int lockedCount;
+    private float lockedWarningTime;
+    private float lockedInterval;
+    private float lockedRadius;
+    private float lockedHeight;
+    private float lockedBottom;
+    private float lockedGroundY;
+    private float lockedArcHeight;
+    private float lockedShellScale;
+    private float lockedFallbackHeight;
+    private float lockedDisplayTime;
+    private float lockedDamage;
+    private float lockedDepth;
+    private uint lockedRenderingLayers;
+    private Transform[] lockedFirePoints;
+    private GameObject lockedVisualPrefab;
+    private ParticleSystem lockedImpactPrefab;
+
+    private GameObject runtimeRoot;
+    private Material runtimeWarningMaterial;
+    private Texture2D warningTexture;
+    private Mesh explosionMesh;
+    private MeshCollider explosionQuery;
+    private readonly List<Shell> shells = new List<Shell>();
+
+    private class Shell
+    {
+        public Vector3 start;
+        public Vector3 destination;
+        public float launchTime;
+        public float impactTime;
+        public bool landed;
+        public GameObject root;
+        public Transform visual;
+        public DecalProjector projector;
+    }
+
+    // 마지막 착탄과 표시 정리가 끝날 때 직접 종료한다.
+    // 프레임이 오래 걸려도 새 데칼의 예고 시간을 생략하고 즉시 착탄시키지 않는다.
+    protected override float ActiveDuration => float.PositiveInfinity;
+    protected override bool ContinueWithoutTarget => true;
+
+    private void Reset()
+    {
+        minUseDistance = 4f;
+        maxUseDistance = 8f;
+        readyTime = 0.5f;
+        recoveryTime = 1f;
+        damage = 2f;
+        bodyFSM = GetComponentInParent<BossFSM>();
+    }
+
+    private void LateUpdate()
+    {
+        if (bodyFSM == null) bodyFSM = GetComponentInParent<BossFSM>();
+        Transform candidate = bodyFSM != null ? bodyFSM.Player : null;
+        if (IsRunning || bodyFSM == null || !bodyFSM.isActiveAndEnabled ||
+            bodyFSM.patterns == null || System.Array.IndexOf(bodyFSM.patterns, this) < 0 ||
+            candidate == null || !candidate.gameObject.activeInHierarchy)
+        {
+            ResetStayTimer();
+            return;
+        }
+
+        Vector3 offset = candidate.position - bodyFSM.transform.position;
+        float height = Mathf.Abs(offset.y);
+        offset.y = 0f;
+        float distance = offset.magnitude;
+        if (!CanUse(distance) || distance > bodyFSM.detectRange || height > bodyFSM.heightTolerance)
+        {
+            ResetStayTimer();
+            return;
+        }
+        if (trackedPlayer != candidate)
+        {
+            trackedPlayer = candidate;
+            accumulatedStayTime = 0f;
+        }
+        accumulatedStayTime = Mathf.Min(Mathf.Max(0f, requiredStayTime),
+            accumulatedStayTime + Time.deltaTime);
+    }
+
+    // 근거리의 끝(4m)과 돌진의 시작(8m)을 제외한 중거리만 사용한다.
+    // 실제 선택, 체류 시간 누적, 기즈모가 같은 거리 조건을 읽는다.
+    public override bool CanUse(float distance)
+    {
+        float minimum = Mathf.Max(0f, minUseDistance);
+        float maximum = Mathf.Max(minimum, maxUseDistance);
+        return base.CanUse(distance) && distance > minimum && distance < maximum;
+    }
+
+    // 시간 조건은 실제 선택에만 적용한다. 기즈모 조회로 타이머가 변하지 않는다.
+    public override bool CanUse(float distance, Transform target)
+    {
+        if (!base.CanUse(distance, target) || target == null || !target.gameObject.activeInHierarchy)
+            return false;
+        return requiredStayTime <= 0f ||
+            (trackedPlayer == target && accumulatedStayTime >= requiredStayTime);
+    }
+
+    private void ResetStayTimer()
+    {
+        accumulatedStayTime = 0f;
+        trackedPlayer = null;
+    }
+
+    protected override bool PrepareAttack()
+    {
+        if (Target == null || !Target.CompareTag("Player")) return false;
+        bool hasCollider = false;
+        foreach (Collider collider in Target.GetComponentsInChildren<Collider>(true))
+            if (collider.enabled && collider.gameObject.activeInHierarchy) { hasCollider = true; break; }
+        if (!hasCollider)
+        {
+            Debug.LogWarning("BossArtilleryAttack: Player 또는 그 자식에 활성 3D Collider가 필요합니다.", this);
+            return false;
+        }
+
+        // 한 포격 도중 설정을 바꾸면 다음 포격부터 반영한다.
+        lockedCount = Mathf.Max(1, shellCount);
+        lockedWarningTime = Mathf.Max(0.05f, warningToImpactTime);
+        lockedInterval = Mathf.Max(0f, shellInterval);
+        lockedRadius = Mathf.Max(0.05f, explosionRadius);
+        lockedHeight = Mathf.Max(0.01f, explosionHeight);
+        lockedBottom = explosionBottomOffset;
+        lockedGroundY = groundY;
+        lockedArcHeight = Mathf.Max(0f, arcHeight);
+        lockedShellScale = Mathf.Max(0.01f, shellScale);
+        lockedFallbackHeight = Mathf.Max(0f, fallbackLaunchHeight);
+        lockedDisplayTime = Mathf.Max(0f, impactDisplayTime);
+        lockedDamage = Mathf.Max(0f, damage);
+        lockedDepth = Mathf.Max(0.1f, projectionDepth);
+        lockedRenderingLayers = warningRenderingLayers;
+        lockedFirePoints = firePoints != null ? (Transform[])firePoints.Clone() : new Transform[0];
+        lockedVisualPrefab = shellVisualPrefab;
+        lockedImpactPrefab = impactEffectPrefab;
+        elapsed = 0f;
+        nextLaunchTime = 0f;
+        launchedShells = 0;
+        landedShells = 0;
+        ResetStayTimer();
+
+        // 부모 없음 / Scale 1. 보스의 크기나 이후 이동이 데칼과 착탄 좌표를 바꾸지 않는다.
+        runtimeRoot = new GameObject(name + "_ArtilleryRuntime");
+        if (!CreateDecalResources()) return false;
+        CreateExplosionQuery();
+        return true;
+    }
+
+    protected override void StartActive()
+    {
+        LaunchDueShells();
+    }
+
+    protected override void TickActive(float deltaTime)
+    {
+        elapsed += deltaTime;
+        // 먼저 기존 포탄을 진행한다. 피격으로 플레이어가 이동하면 다음 발은 그 새 위치를 조준한다.
+        for (int i = 0; i < shells.Count; i++)
+        {
+            Shell shell = shells[i];
+            if (!shell.landed)
+            {
+                float age = elapsed - shell.launchTime;
+                MoveShell(shell, Mathf.Clamp01(age / lockedWarningTime));
+                if (age >= lockedWarningTime)
+                {
+                    Impact(shell);
+                    // 피해 콜백에서 보스가 비활성화되거나 공격이 취소될 수 있다.
+                    if (!IsRunning) return;
+                }
+            }
+            if (shell.landed && elapsed - shell.impactTime >= lockedDisplayTime && shell.root != null)
+            {
+                shell.root.SetActive(false);
+                Destroy(shell.root);
+                shell.root = null;
+            }
+        }
+        LaunchDueShells();
+        if (!IsRunning) return;
+
+        if (launchedShells < lockedCount) return;
+        foreach (Shell shell in shells)
+            if (!shell.landed || shell.root != null) return;
+        CancelAttack();
+    }
+
+    private void LaunchDueShells()
+    {
+        if (launchedShells >= lockedCount || elapsed < nextLaunchTime) return;
+        if (Target == null || !Target.gameObject.activeInHierarchy)
+        {
+            // 이미 예고한 포탄은 마저 떨어지고, 남은 조준은 중단한다.
+            lockedCount = launchedShells;
+            return;
+        }
+
+        do
+        {
+            LaunchShell();
+            if (!IsRunning) return;
+            launchedShells++;
+            nextLaunchTime = elapsed + lockedInterval;
+            // 0 간격만 동시 발사. 프레임 지연으로 밀린 발을 한꺼번에 몰아 쏘지 않는다.
+        } while (lockedInterval == 0f && launchedShells < lockedCount);
+    }
+
+    private void LaunchShell()
+    {
+        Vector3 destination = Target.position;
+        destination.y = lockedGroundY;
+        Vector3 start = Owner.position + Vector3.up * lockedFallbackHeight;
+        if (lockedFirePoints.Length > 0)
+        {
+            Transform firePoint = lockedFirePoints[launchedShells % lockedFirePoints.Length];
+            if (firePoint != null) start = firePoint.position;
+        }
+        Shell shell = new Shell
+        {
+            start = start,
+            destination = destination,
+            launchTime = elapsed,
+            root = new GameObject("Shell_" + (launchedShells + 1))
+        };
+        shell.root.transform.SetParent(runtimeRoot.transform, false);
+        shells.Add(shell);
+
+        GameObject warning = new GameObject("LandingWarning");
+        warning.transform.SetParent(shell.root.transform, false);
+        warning.transform.SetPositionAndRotation(destination, Quaternion.Euler(90f, 0f, 0f));
+        shell.projector = warning.AddComponent<DecalProjector>();
+        ConfigureProjector(shell.projector);
+
+        GameObject visual = lockedVisualPrefab != null
+            ? Instantiate(lockedVisualPrefab, shell.root.transform)
+            : GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        visual.name = "ShellVisual";
+        visual.transform.SetParent(shell.root.transform, false);
+        visual.transform.localScale *= lockedShellScale;
+        // 외형 프리팹의 물리 컴포넌트는 판정에 쓰지 않는다.
+        foreach (Collider collider in visual.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
+        foreach (Rigidbody body in visual.GetComponentsInChildren<Rigidbody>(true))
+        {
+            body.isKinematic = true;
+            body.detectCollisions = false;
+        }
+        visual.SetActive(true);
+        shell.visual = visual.transform;
+        MoveShell(shell, 0f);
+    }
+
+    private void MoveShell(Shell shell, float t)
+    {
+        if (shell.visual == null) return;
+        Vector3 position = Vector3.Lerp(shell.start, shell.destination, t);
+        position.y += 4f * lockedArcHeight * t * (1f - t);
+        Vector3 tangent = shell.destination - shell.start +
+            Vector3.up * (4f * lockedArcHeight * (1f - 2f * t));
+        Vector3 up = tangent.sqrMagnitude > 0.0001f &&
+            Mathf.Abs(Vector3.Dot(tangent.normalized, Vector3.up)) > 0.999f
+            ? Vector3.forward : Vector3.up;
+        Quaternion rotation = tangent.sqrMagnitude > 0.0001f
+            ? Quaternion.LookRotation(tangent, up) : Quaternion.identity;
+        shell.visual.SetPositionAndRotation(position, rotation);
+    }
+
+    private void Impact(Shell shell)
+    {
+        shell.landed = true;
+        shell.impactTime = elapsed;
+        landedShells++;
+        if (shell.visual != null) shell.visual.gameObject.SetActive(false);
+        // 남아 있는 데칼은 착탄 잔상이다. 지속 피해는 없다.
+        if (shell.projector != null) shell.projector.fadeFactor = 0.3f;
+        if (lockedImpactPrefab != null)
+        {
+            ParticleSystem effect = Instantiate(lockedImpactPrefab, shell.destination,
+                Quaternion.identity, shell.root.transform);
+            effect.Play(true);
+        }
+
+        // 각 포탄은 순간 판정 한 번으로 완결된다. 동시 착탄도 포탄별 최대 1회다.
+        BeginNextHitPhase();
+        if (CanHitCollider && OverlapsPlayer(shell.destination))
+            HitOnce(lockedDamage, checkTargetHeight: false);
+    }
+
+    private bool OverlapsPlayer(Vector3 destination)
+    {
+        if (explosionQuery == null || Target == null) return false;
+        Vector3 position = destination + Vector3.up * lockedBottom;
+        explosionQuery.transform.SetPositionAndRotation(position, Quaternion.identity);
+        explosionQuery.enabled = true;
+        bool overlaps = false;
+        try
+        {
+            Physics.SyncTransforms();
+            // 테스트용 순간이동/콜라이더 재활성화 이후의 실제 위치를 검사한다.
+            foreach (Collider targetCollider in Target.GetComponentsInChildren<Collider>(true))
+            {
+                if (targetCollider == null || !targetCollider.enabled ||
+                    !targetCollider.gameObject.activeInHierarchy) continue;
+                if (!Physics.ComputePenetration(explosionQuery, position, Quaternion.identity,
+                    targetCollider, targetCollider.transform.position, targetCollider.transform.rotation,
+                    out _, out _)) continue;
+                overlaps = true;
+                break;
+            }
+        }
+        finally
+        {
+            // 물리 벽/상시 트리거가 되지 않도록 피해 콜백 전에 끈다.
+            if (explosionQuery != null) explosionQuery.enabled = false;
+        }
+        return overlaps;
+    }
+
+    private void CreateExplosionQuery()
+    {
+        GameObject query = new GameObject("ExplosionQuery");
+        query.transform.SetParent(runtimeRoot.transform, false);
+        explosionQuery = query.AddComponent<MeshCollider>();
+        explosionQuery.enabled = false;
+        explosionQuery.convex = true;
+        explosionQuery.isTrigger = true;
+        Vector3[] vertices = new Vector3[Sides * 2];
+        var triangles = new List<int>();
+        for (int i = 0; i < Sides; i++)
+        {
+            float angle = i * Mathf.PI * 2f / Sides;
+            vertices[i] = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * lockedRadius;
+            vertices[i + Sides] = vertices[i] + Vector3.up * lockedHeight;
+            int next = (i + 1) % Sides;
+            triangles.AddRange(new int[] { i, next, i + Sides, next, next + Sides, i + Sides });
+        }
+        for (int i = 1; i < Sides - 1; i++)
+            triangles.AddRange(new int[] { 0, i + 1, i, Sides, Sides + i, Sides + i + 1 });
+        explosionMesh = new Mesh { name = "ArtilleryExplosionCylinder" };
+        explosionMesh.vertices = vertices;
+        explosionMesh.SetTriangles(triangles, 0);
+        explosionMesh.RecalculateBounds();
+        explosionQuery.sharedMesh = explosionMesh;
+    }
+
+    private bool CreateDecalResources()
+    {
+        string map = warningMaterial != null ? FindBaseMap(warningMaterial) : null;
+        if (string.IsNullOrEmpty(map))
+        {
+            Debug.LogWarning("BossArtilleryAttack: Warning Material에 기존 브레스/파동의 URP Decal 머티리얼을 연결하세요.", this);
+            return false;
+        }
+        runtimeWarningMaterial = new Material(warningMaterial);
+        warningTexture = new Texture2D(TextureSize, TextureSize, TextureFormat.RGBA32, false);
+        warningTexture.name = "ArtilleryWarningTexture";
+        warningTexture.wrapMode = TextureWrapMode.Clamp;
+        warningTexture.filterMode = FilterMode.Bilinear;
+        Color32[] pixels = new Color32[TextureSize * TextureSize];
+        Color32 inside = warningColor;
+        Color32 outside = new Color32(inside.r, inside.g, inside.b, 0);
+        float step = Mathf.PI * 2f / Sides;
+        float apothem = Mathf.Cos(step * 0.5f);
+        for (int y = 0; y < TextureSize; y++)
+        {
+            for (int x = 0; x < TextureSize; x++)
+            {
+                Vector2 p = new Vector2((x + 0.5f) / TextureSize * 2f - 1f,
+                    (y + 0.5f) / TextureSize * 2f - 1f);
+                float offset = Mathf.Repeat(Mathf.Atan2(p.x, p.y), step) - step * 0.5f;
+                float edge = apothem / Mathf.Cos(offset);
+                pixels[y * TextureSize + x] = p.sqrMagnitude <= edge * edge ? inside : outside;
+            }
+        }
+        warningTexture.SetPixels32(pixels);
+        warningTexture.Apply(false, false);
+        runtimeWarningMaterial.SetTexture(map, warningTexture);
+        runtimeWarningMaterial.SetTextureScale(map, Vector2.one);
+        runtimeWarningMaterial.SetTextureOffset(map, Vector2.zero);
+        if (runtimeWarningMaterial.HasProperty("_BaseColor"))
+            runtimeWarningMaterial.SetColor("_BaseColor", Color.white);
+
+        GameObject check = new GameObject("DecalMaterialCheck");
+        check.transform.SetParent(runtimeRoot.transform, false);
+        check.SetActive(false);
+        DecalProjector projector = check.AddComponent<DecalProjector>();
+        ConfigureProjector(projector);
+        bool valid = projector.IsValid();
+        Destroy(check);
+        if (!valid) Debug.LogWarning("BossArtilleryAttack: URP Decal Projector용 머티리얼이 아닙니다.", this);
+        return valid;
+    }
+
+    private void ConfigureProjector(DecalProjector projector)
+    {
+        projector.material = runtimeWarningMaterial;
+        projector.pivot = Vector3.zero;
+        projector.uvScale = Vector2.one;
+        projector.uvBias = Vector2.zero;
+        projector.fadeFactor = 1f;
+        projector.drawDistance = 100f;
+        projector.renderingLayerMask = lockedRenderingLayers;
+        projector.size = new Vector3(lockedRadius * 2f, lockedRadius * 2f, lockedDepth);
+    }
+
+    private static string FindBaseMap(Material material)
+    {
+        Shader shader = material.shader;
+        if (shader == null) return null;
+        string fallback = null;
+        for (int i = 0; i < shader.GetPropertyCount(); i++)
+        {
+            if (shader.GetPropertyType(i) != UnityEngine.Rendering.ShaderPropertyType.Texture) continue;
+            string property = shader.GetPropertyName(i);
+            if (string.Equals(shader.GetPropertyDescription(i), "Base Map",
+                System.StringComparison.OrdinalIgnoreCase)) return property;
+            if (property == "_BaseMap" || property == "_Base_Map") fallback = property;
+        }
+        return fallback;
+    }
+
+    protected override void EndAttack()
+    {
+        ResetStayTimer();
+        if (runtimeRoot != null)
+        {
+            runtimeRoot.SetActive(false);
+            Destroy(runtimeRoot);
+        }
+        if (explosionMesh != null) Destroy(explosionMesh);
+        if (runtimeWarningMaterial != null) Destroy(runtimeWarningMaterial);
+        if (warningTexture != null) Destroy(warningTexture);
+        runtimeRoot = null;
+        explosionQuery = null;
+        explosionMesh = null;
+        runtimeWarningMaterial = null;
+        warningTexture = null;
+        shells.Clear();
+    }
+
+    private void OnDestroy() => EndAttack();
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        if (!showArtilleryGizmos) return;
+        Matrix4x4 previousMatrix = UnityEditor.Handles.matrix;
+        Color previousColor = UnityEditor.Handles.color;
+        try
+        {
+            UnityEditor.Handles.matrix = Matrix4x4.identity;
+            if (IsRunning)
+            {
+                foreach (Shell shell in shells)
+                {
+                    if (shell.root == null) continue;
+                    UnityEditor.Handles.color = shell.landed ? Color.red : Color.yellow;
+                    DrawExplosionGizmo(shell.destination, lockedRadius, lockedHeight, lockedBottom);
+                    UnityEditor.Handles.Label(shell.destination + Vector3.up * 0.1f,
+                        shell.landed ? "착탄 · 판정 완료" : $"착탄까지 {Mathf.Max(0f, lockedWarningTime - (elapsed - shell.launchTime)):0.00}초");
+                }
+            }
+            else
+            {
+                Vector3 center = previewTarget != null ? previewTarget.position : transform.position + transform.forward * 4f;
+                center.y = groundY;
+                UnityEditor.Handles.color = Color.yellow;
+                DrawExplosionGizmo(center, Mathf.Max(0.05f, explosionRadius),
+                    Mathf.Max(0.01f, explosionHeight), explosionBottomOffset);
+                UnityEditor.Handles.Label(center, "포탄 1발의 착탄 범위 · 미리보기");
+            }
+        }
+        finally
+        {
+            UnityEditor.Handles.matrix = previousMatrix;
+            UnityEditor.Handles.color = previousColor;
+        }
+    }
+
+    private static void DrawExplosionGizmo(Vector3 floor, float radius, float height, float bottom)
+    {
+        Vector3 lower = floor + Vector3.up * bottom;
+        Vector3 upper = lower + Vector3.up * height;
+        UnityEditor.Handles.DrawWireDisc(lower, Vector3.up, radius);
+        UnityEditor.Handles.DrawWireDisc(upper, Vector3.up, radius);
+        for (int i = 0; i < 4; i++)
+        {
+            Vector3 edge = Quaternion.Euler(0f, i * 90f, 0f) * Vector3.forward * radius;
+            UnityEditor.Handles.DrawLine(lower + edge, upper + edge);
+        }
+    }
+#endif
+}

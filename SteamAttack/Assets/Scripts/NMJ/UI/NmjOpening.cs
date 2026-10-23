@@ -61,8 +61,29 @@ namespace NMJ
         /// <summary>오프닝이 도는 중</summary>
         public static bool IsPlaying { get; private set; }
 
+        /// <summary>이번 판에서 오프닝을 이미 틀었음. 보스 씬에서 Main으로 돌아오거나 Main을 다시 불러와도 다시 틀지 않는다. 타이틀 씬을 열면 지워진다</summary>
+        public static bool PlayedThisRun { get; private set; }
+
+        /// <summary>이번에 Main이 열린 것이 새 판의 시작(오프닝을 튼 판)인지. 시작 튜토리얼이 본다</summary>
+        public static bool FreshStart { get; private set; }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => IsPlaying = false;
+        private static void ResetStatics()
+        {
+            IsPlaying = false;
+            PlayedThisRun = false;
+            FreshStart = false;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnAnySceneLoaded;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnAnySceneLoaded;
+        }
+
+        // 타이틀로 돌아가면 새 판 → 다음 Main에서 오프닝을 다시 튼다
+        private static void OnAnySceneLoaded(UnityEngine.SceneManagement.Scene s, UnityEngine.SceneManagement.LoadSceneMode m)
+        {
+            if (m != UnityEngine.SceneManagement.LoadSceneMode.Single) return;
+            FreshStart = false;
+            if (s.name.Contains("Title")) PlayedThisRun = false;
+        }
 
         private struct Flake { public RectTransform rt; public float x, speed, sway, phase; }
         private readonly List<Flake> flakes = new List<Flake>();
@@ -78,6 +99,8 @@ namespace NMJ
         private void Start()
         {
             if (!playOnStart || (Application.isEditor && !playInEditor)) return;
+            if (PlayedThisRun) return;   // 보스 씬 → Main 복귀 등: 이미 본 프롤로그는 다시 틀지 않는다
+            FreshStart = true;
             Play();
         }
 
@@ -87,6 +110,7 @@ namespace NMJ
         {
             if (!Application.isPlaying || IsPlaying) return;
             IsPlaying = true;
+            PlayedThisRun = true;
             skipping = finishing = false;
             ControlsOverlay.MenuOpen = true;
             if (group == null) Build();
