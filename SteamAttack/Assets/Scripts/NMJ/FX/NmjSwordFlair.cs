@@ -132,8 +132,8 @@ namespace NMJ
             }
             if (cam != null) NmjCameraKick.Get(cam).Kick(dir, heavy ? 0.12f : 0.05f);
             // 먹 튀김 (오카미 붓 베기 느낌): 검은 먹이 터지고, 강공격은 그 안에 주홍이 한 번 더
-            StartCoroutine(Splat(pos, heavy ? 1.5f : 0.8f, new Color(0.05f, 0.05f, 0.06f, 1f), 0.32f));
-            if (heavy) StartCoroutine(Splat(pos, 0.7f, new Color(0.85f, 0.18f, 0.08f, 1f), 0.22f));
+            StartCoroutine(Splat(pos, heavy ? 2.2f : 1.1f, new Color(0.05f, 0.05f, 0.06f, 1f), 0.32f));
+            if (heavy) StartCoroutine(Splat(pos, 1.0f, new Color(0.85f, 0.18f, 0.08f, 1f), 0.22f));
             if (heavy && full) StartCoroutine(InkCut(pos));
         }
 

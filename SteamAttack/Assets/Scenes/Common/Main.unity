@@ -31899,7 +31899,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 4
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &196884778
 Transform:
   m_ObjectHideFlags: 0
@@ -166062,9 +166062,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8804544dd8c29c940926b3e001dce825, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SteamAttack.Quests.QuestDebugTester
-  firewaterCore: {fileID: 11400000, guid: 26a6a64e897e9a646bc86bb2fff7f127, type: 2}
-  armillaryRing: {fileID: 11400000, guid: 497972dda15ccab4fa937bea6d200c7e, type: 2}
-  hyeonmuScale: {fileID: 11400000, guid: c37eea67ac9e08c43809ce1b5db2447f, type: 2}
   showOnScreenGuide: 0
 --- !u!114 &1024570245
 MonoBehaviour:
@@ -312128,7 +312125,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!136 &1962232817
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -338326,6 +338323,63 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2095000238}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1001 &2095300316
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1201568708446031456, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1201568708446031456, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1201568708446031456, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1201568708446031456, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1201568708446031456, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1201568708446031456, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1201568708446031456, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1201568708446031456, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1201568708446031456, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1201568708446031456, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4329152424319343834, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
+      propertyPath: m_Name
+      value: NMJ_BackgroundMountains
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: e4a0ae2c879fdad45928838cb6cfcdf2, type: 3}
 --- !u!1 &2095901921
 GameObject:
   m_ObjectHideFlags: 0
@@ -357295,3 +357349,4 @@ SceneRoots:
   - {fileID: 1730491002}
   - {fileID: 506650999}
   - {fileID: 954793340}
+  - {fileID: 2095300316}
