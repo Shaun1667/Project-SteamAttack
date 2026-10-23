@@ -179,7 +179,7 @@ namespace YPH
         {
             if (_attackHitboxPrefab == null)
             {
-                Debug.LogWarning("[CHG_EnemyAI:" + name + "] Attack Hitbox Prefab이 비어 있어 공격 판정을 만들 수 없습니다.", this);
+                Debug.LogWarning("[EnemyAI:" + name + "] Attack Hitbox Prefab이 비어 있어 공격 판정을 만들 수 없습니다.", this);
                 return;
             }
             EnemyAttackHitbox hitbox = ObjectPool.Spawn(_attackHitboxPrefab, transform.TransformPoint(offset), transform.rotation);

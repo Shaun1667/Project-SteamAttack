@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47f29e6946b546549abb5321e2a0b4bc, type: 3}
+  m_Name: NMJ_DemoQuestDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.QuestDatabase
+  quests:
+  - {fileID: 11400000, guid: 79b4b8346ad26de468158a5f0e67e7e9, type: 2}
+  - {fileID: 11400000, guid: 29aadc68573e6364f93cc4f044571181, type: 2}
+  - {fileID: 11400000, guid: 9c6ed3fb9e09e1a41b027c2bcdac50ca, type: 2}

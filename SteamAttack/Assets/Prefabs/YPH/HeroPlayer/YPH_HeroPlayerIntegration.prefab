@@ -455,7 +455,7 @@ GameObject:
   - component: {fileID: 605491727222203184}
   - component: {fileID: 1231756368592335053}
   m_Layer: 0
-  m_Name: chg_Hurtbox
+  m_Name: YPH_Hurtbox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -510,7 +510,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5ad61e77e4b8d0042b4b5a1602423b21, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_PlayerHurtbox
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.PlayerHurtbox
   player: {fileID: 7706470834897513168}
 --- !u!1 &453268087054648007
 GameObject:
@@ -3153,7 +3153,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2c6bc6c17f4e0d641a0690076484f624, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_ControlsOverlay
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.ControlsOverlay
   guide: {fileID: 2800000, guid: 24d1efb621dc62c4ca3502eba4c05e5e, type: 3}
   pauseWhileOpen: 1
   maxScreenFraction: 0.85
@@ -14060,7 +14060,7 @@ GameObject:
   - component: {fileID: 3158522221882857268}
   - component: {fileID: 1009021871004605608}
   m_Layer: 0
-  m_Name: chg_TestGun
+  m_Name: YPH_TestGun
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -14149,7 +14149,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c54875b8c054a794ab6fca59735f6eb4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_Weapon
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.Weapon
   weaponName: "\uD654\uC2B9\uCD1D"
   isMelee: 0
   lightDamage: 0
@@ -18016,7 +18016,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 955af114af82983489097236f2e2467c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_WeaponHolder
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.WeaponHolder
   slots:
   - {fileID: 6695351902765368765}
   - {fileID: 1009021871004605608}
@@ -18033,7 +18033,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b451237558f54104482dee4a759898ee, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_PlayerController
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.PlayerController
   animator: {fileID: 432389355374186354}
   cameraTransform: {fileID: 8403445457698246789}
   weapons: {fileID: 6889316147223106519}
@@ -18229,7 +18229,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c5017185ea59596459add2d5d5cbe27c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_GameOverScreen
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.GameOverScreen
   player: {fileID: 7706470834897513168}
   image: {fileID: 2800000, guid: 05a878171c438e544b400288cd98e970, type: 3}
   showDelay: 0.3
@@ -24745,7 +24745,7 @@ GameObject:
   - component: {fileID: 7248098111237681508}
   - component: {fileID: 7302568842093079598}
   m_Layer: 0
-  m_Name: chg_TestClub
+  m_Name: YPH_TestClub
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -24834,7 +24834,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c54875b8c054a794ab6fca59735f6eb4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_Weapon
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.Weapon
   weaponName: "\uD14C\uC2A4\uD2B8 \uB454\uAE30"
   isMelee: 1
   lightDamage: 1
@@ -25061,7 +25061,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c54875b8c054a794ab6fca59735f6eb4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_Weapon
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.Weapon
   weaponName: "\uD658\uB3C4"
   isMelee: 1
   lightDamage: 1
@@ -25082,7 +25082,7 @@ GameObject:
   - component: {fileID: 6534339920221619176}
   - component: {fileID: 2143830716126546216}
   m_Layer: 0
-  m_Name: chg_PlayerHUD
+  m_Name: YPH_PlayerHUD
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -25182,7 +25182,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 77a0306311a3440b9adc643e16cb5474, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_PlayerHUD
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.PlayerHUD
   group: {fileID: 6534339920221619176}
   hpFill: {fileID: 1067582622919081865}
   hpTrail: {fileID: 4451834388693537885}
@@ -25310,7 +25310,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 60a3caeee57f81246a0805e1931beb5e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_GroundClamp
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.GroundClamp
   groundReference: {fileID: 0}
   minClearance: 0
   settleSpeed: 1.5
@@ -25332,7 +25332,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 50a5f7cbf2c89584b906e5f0706c3832, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_HpTint
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.HpTint
   player: {fileID: 0}
   saturationByHp:
   - 0
@@ -27809,7 +27809,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5b8d4c44393ddaf4e83f436da6acd103, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_ThirdPersonCamera
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.ThirdPersonCamera
   target: {fileID: 5404594696211051736}
   player: {fileID: 7706470834897513168}
   pivotHeight: 0.95

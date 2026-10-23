@@ -38,6 +38,8 @@ namespace YPH
 
         /// <summary>현재 동작 단계입니다. 표시 컴포넌트는 이 값을 읽거나 상태 이벤트를 구독합니다.</summary>
         public State CurrentState => _state;
+        /// <summary>실제 사격 광선이 나가는 방향입니다. 몸의 조준 회전도 같은 기준을 사용합니다.</summary>
+        public Vector3 AimDirection => _aimOrigin != null ? _aimOrigin.forward : Vector3.zero;
         /// <summary>총이 켜져 있고 재장전이 끝났으며 발당 증기가 충분한지 조회합니다. 증기를 소비하지 않으며 조준 여부는 호출자가 검사합니다.</summary>
         public bool CanFire => isActiveAndEnabled && _state == State.Ready && _tank != null && _tank.CanConsume(_steamCostPerShot);
         /// <summary>삭제 예정: NGH CombatBridge 정리 후 제거. 항상 현재 단계가 Ready인지 반환하며 증기·조준 조건은 검사하지 않습니다.</summary>

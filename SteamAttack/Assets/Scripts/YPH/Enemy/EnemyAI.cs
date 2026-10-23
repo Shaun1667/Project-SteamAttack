@@ -400,8 +400,7 @@ namespace YPH
                 _wanderWaitTimer = Random.Range(_wanderWaitMin, _wanderWaitMax);
                 return;
             }
-            _motor.Move(toTarget.normalized, _wanderSpeed);
-            _motor.Face(toTarget.normalized);
+            _motor.MoveTo(_wanderTarget, _wanderSpeed);
         }
         private void TickChase()
         {
@@ -418,7 +417,7 @@ namespace YPH
             }
             foreach (EnemyAttack attack in _attacks)
             {
-                if (attack.isActiveAndEnabled && attack.CanBegin(distance))
+                if (attack.isActiveAndEnabled && attack.CanBegin(distance) && _motor.HasClearAttackLine())
                 {
                     BeginAttack(attack);
                     return;
@@ -429,8 +428,7 @@ namespace YPH
                 _ranged.MaintainDistance(distance, _chaseSpeed);
                 return;
             }
-            _motor.Move(direction.normalized, _chaseSpeed);
-            _motor.Face(direction.normalized);
+            _motor.MoveTo(Player.position, _chaseSpeed);
         }
         private void BeginAttack(EnemyAttack attack)
         {
@@ -477,7 +475,7 @@ namespace YPH
         {
             if (_logStateChanges)
             {
-                Debug.Log("[CHG_EnemyAI:" + name + "] " + message, this);
+                Debug.Log("[EnemyAI:" + name + "] " + message, this);
             }
         }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

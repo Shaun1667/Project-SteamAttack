@@ -4,6 +4,7 @@
 //   0 먹 번짐   : 먹방울이 떨어져 한지에 번지듯 퍼진다. 번진 끝에는 먹이 고인 짙은 테가 생기고, 그 밖으로 옅은 물기가 번진다.
 //   1 붓질      : 굵은 붓 세 획이 번갈아 화면을 가로지른다. 획 가장자리는 붓털이 갈라지고, 획 끝으로 갈수록 붓이 말라 비백이 생긴다.
 //   2 먹 흘러내림: 위에서 먹이 배어 내려오고, 굵기가 다른 먹줄기가 굽이치며 먼저 흘러내린다.
+//   3 종이 타듯   : 군데군데 불씨가 앉아 한지가 타 들어간다 (쓰러짐 화면 배경. 화면 전환에는 쓰지 않음).
 // 모양은 모두 셰이더 안의 잡음으로 만든다 (텍스처 없음). _Seed 를 바꾸면 매번 모양이 달라진다.
 // 각 모양은 (덮임 정도 field, 먹 농도 density) 를 내고, 색은 공통으로 옅은 먹(_InkWash) ~ 짙은 먹(_InkDark) 사이에서 정한다.
 Shader "NMJ/UI/InkTransition"
@@ -268,11 +269,63 @@ Shader "NMJ/UI/InkTransition"
                 return f;
             }
 
+            // ───────── 3. 종이 타듯 사라짐 (쓰러짐 — "이 시간선에서 지워짐", 세계관 v6 6-2) ─────────
+            // 화면 군데군데에 불씨가 앉아 한지가 타 들어간다. 탄 자리는 검은 재, 그 둘레는 그을린 갈색 띠, 맨 끝은 불씨 선.
+            // field: 탄 안쪽 + / 바깥 -
+            float BurnField(float2 p, float t)
+            {
+                float2 warp = float2(fbm(p * 3.0 + 2.0), fbm(p * 3.0 + 9.0)) - 0.47;
+                float2 warp2 = float2(vnoise(p * 12.0 + 4.0), vnoise(p * 12.0 + 31.0)) - 0.5;
+                float2 q = p + warp * 0.28 + warp2 * 0.03;
+                float f = -10.0;
+                const int SPOTS = 6;
+                for (int i = 0; i < SPOTS; i++)
+                {
+                    float fi = (float)i;
+                    float2 c = float2(hash11(fi * 4.3 + 0.7) * _Aspect, hash11(fi * 6.1 + 2.3));
+                    float delay = (i == 0) ? 0.0 : 0.05 + hash11(fi * 8.9) * 0.4;
+                    float s = saturate((t - delay) / (0.95 - delay));
+                    float rMax = 0.35 + hash11(fi * 3.7) * 0.35;
+                    float r = (s > 0.0) ? (0.01 + rMax * pow(s, 1.35)) : -1.0;
+                    f = max(f, r - length(q - c));
+                }
+                // 화면 가장자리부터도 조금씩 타 들어온다 (종이 둘레)
+                float edge = min(min(p.x, _Aspect - p.x), min(p.y, 1.0 - p.y));
+                f = max(f, t * 0.12 - edge + (fbm(p * 6.0 + 13.0) - 0.47) * 0.08);
+                // 탄 끝은 섬유를 따라 들쭉날쭉
+                f += (fbm(p * 38.0) - 0.47) * 0.02;
+                return f;
+            }
+
+            fixed4 BurnColor(float2 p, float t)
+            {
+                float f = BurnField(p, t);
+                f += smoothstep(0.9, 1.0, t) * 2.0;   // 끝까지 진행하면 다 탄다
+                // 탄 자리: 검은 재 (재 결이 살짝)
+                float ash = vnoise(p * 90.0) * 0.5 + vnoise(p * 23.0) * 0.5;
+                fixed3 ashCol = lerp(_InkDark.rgb, _InkDark.rgb * 2.2, ash * 0.35);
+                // 그을린 띠: 탄 끝 바깥 0~0.05 (가까울수록 짙은 갈색, 멀수록 옅게 누렇다)
+                float scorch = smoothstep(-0.055, 0.0, f) * (1.0 - step(0.0, f));
+                fixed3 scorchCol = lerp(fixed3(0.42, 0.30, 0.16), fixed3(0.10, 0.06, 0.035), scorch);
+                // 불씨 선: 탄 끝 바로 그 자리, 깜빡이며 흐른다
+                float flick = 0.65 + 0.35 * vnoise(float2(p.x * 14.0 + _Time.y * 2.3, p.y * 14.0 - _Time.y * 1.7));
+                float ember = smoothstep(0.012, 0.0, abs(f + 0.004)) * flick;
+                fixed3 emberCol = fixed3(1.0, 0.42, 0.08) * 1.6;
+
+                float burned = smoothstep(-0.002, 0.002, f);
+                fixed3 col = lerp(scorchCol, ashCol, burned);
+                col = lerp(col, emberCol, saturate(ember * (1.0 - burned * 0.6)));
+                float a = max(burned, scorch * 0.85);
+                a = max(a, ember);
+                return fixed4(col, a);
+            }
+
             fixed4 frag(v2f i) : SV_Target
             {
                 float t = saturate(_Progress);
                 if (t <= 0.0001) return fixed4(0, 0, 0, 0);
                 float2 p = float2(i.uv.x * _Aspect, i.uv.y);
+                if ((int)round(_Style) == 3) return BurnColor(p, t) * i.color;
 
                 float density;
                 gOpacity = 1.0;

@@ -73,6 +73,10 @@ namespace NMJ
         [Tooltip("문구가 끝나면 불러올 씬 (빌드 설정에 있어야 함). 비우면 그대로 둔다")]
         [SerializeField] private string sceneWhenDone = "";
 
+        [Header("퀘스트")]
+        [Tooltip("문구가 뜰 때 보고할 Kill 목표 아이디 (비우면 보고 안 함)")]
+        [SerializeField] private string questKillId = "boss_hyeonmu";
+
         [Header("테스트")]
         [Tooltip("켜면 숫자패드 9 = 미리 보기")]
         [SerializeField] private bool testKeys = false;
@@ -125,6 +129,8 @@ namespace NMJ
             IsShowing = true;
             timer = 0f;
             if (slowMotion && Time.timeScale > 0f) { Time.timeScale = slowScale; slowTimer = 0f; }
+            // 퀘스트 "현무를 잠재운다" (보스 쪽 보고가 없어도 처치 문구가 뜨면 채운다)
+            if (!string.IsNullOrEmpty(questKillId) && QuestManager.Instance != null) QuestManager.Instance.ReportKill(questKillId);
             Layout(0f);
         }
 
@@ -150,6 +156,15 @@ namespace NMJ
 
             float end = startDelay + IntroTime + holdTime + fadeOutTime;
             if (timer >= end) Finish();
+        }
+
+        /// <summary>(개발자 창 리젠) 지켜보던 보스를 잊고 새 보스를 처음부터 지켜본다. 치운 보스로는 처치 문구가 나오지 않는다</summary>
+        public void ForgetBoss()
+        {
+            boss = null;
+            bossSeenAlive = false;
+            shownForBoss = false;
+            findTimer = 0f;
         }
 
         private void WatchBoss()

@@ -1,4 +1,4 @@
-﻿# 기능: 적 AI 구조 분리
+# 기능: 적 AI 구조 분리
 
 | 항목 | 내용 |
 |---|---|
@@ -83,7 +83,7 @@
 | 파일 | 신규/수정 | 역할 |
 |---|---|---|
 | `EnemyAI.cs` | 수정 | 인지·상태 판단, 공격 선택, 피격·받아치기와 기존 공개 API. R1에서 약점 노출 호출 제거 |
-| `EnemyMotor.cs` | 신규 | Rigidbody 이동·회전·공격 전진 |
+| `EnemyMotor.cs` | 수정 | Rigidbody 이동·회전·공격 전진, 선택형 NavMesh 경로 추종 |
 | `EnemyAttack.cs` | 신규 | 공격 시작·취소·완료와 경직 중 대기 정지 (추상 클래스) |
 | `EnemyMeleeAttack.cs` | 신규 | 일반 공격·강공격·원거리 적의 킥 |
 | `EnemyRangedAttack.cs` | 신규 | 조준·시야·사격·장전·거리 유지 |
@@ -122,7 +122,7 @@ flowchart LR
 
 1. `EnemyAI.Awake`에서 공격 부품과 공통 참조를 한 번 모읍니다. 원거리 적의 킥이 사격보다 먼저 검사되도록 근접 부품을 앞에 둡니다.
 2. `_playerTag` 태그로 플레이어를 찾은 뒤 참조를 보관합니다. 대상이 없을 때만 0.5초마다 다시 찾습니다.
-3. AI는 인지·상태를 판단해 이동 의도를 `EnemyMotor`에 전달합니다. 실제 Rigidbody 변경은 `FixedUpdate`에서 합니다.
+3. AI는 인지·상태를 판단해 배회·추적 목적지를 `EnemyMotor.MoveTo`에 전달합니다. 포졸은 NavMesh 경로의 모서리를 따라 이동하며 실제 Rigidbody 변경은 `FixedUpdate`에서 합니다. 길찾기를 끈 기존 적은 직선 이동을 유지합니다.
 4. 추적 중 가능한 공격의 `Begin`을 호출합니다. 공격 부품이 준비·판정·복귀를 진행하고 끝나면 AI에 알립니다.
 5. 강공격·킥은 `OpenParryWindow`에서 옛 `ParryableAttackStarted`(타격까지 남은 초)와 공통 `ParryTargets.AttackStarted`(겹침까지 남은 초)를 각각 한 번 냅니다. 겹침 시각은 타격 시각보다 `ParryOverlapLead` 0.15초 앞입니다.
 6. 플레이어 `ParryController`가 타이밍·거리를 검사한 뒤 `ApplyParry`를 호출하면 공격 취소 → `Parried` 상태·애니메이션 → `_parriedStunTime` 경직 → `Parried` 이벤트 순서로 진행합니다. 사망 시에도 진행 중인 공격을 취소합니다.
@@ -184,7 +184,7 @@ flowchart LR
 | `_parriedStunTime` | `1.8f` | 받아치기 성공 후 경직(초)입니다. 플레이어 강공격 동작 1.2초를 기준으로 정했습니다. 높이면 강공격을 넣을 여유가 늘어납니다. |
 | `_parryPoint` | `없음` | 동심원의 기준 위치입니다. 비우면 적 위치에 아래 높이를 더합니다. 창끝 등에 연결합니다. |
 | `_parryPointHeight` | `1.2f` | 기준 Transform이 없을 때 동심원을 올릴 높이(m)입니다. |
-| `_logStateChanges` | `true` | 켜면 상태 전환·공격·인지 이유를 콘솔에 남깁니다. 로그 머리는 옛 이름 `[CHG_EnemyAI:이름]`입니다. |
+| `_logStateChanges` | `true` | 켜면 상태 전환·공격·인지 이유를 콘솔에 남깁니다. 로그 머리는 `[EnemyAI:이름]`입니다. |
 
 ### EnemyMotor
 
@@ -192,8 +192,22 @@ flowchart LR
 |---|---|---|
 | `_turnSpeed` | `540f` | 초당 회전 각도입니다. 높이면 목표 방향을 빨리 바라봅니다. |
 | `_lungeStopGap` | `0.1f` | 공격 전진 중 플레이어 표면과 남길 간격(m)입니다. 높이면 더 멀리서 멈춥니다. |
+| `_useNavMesh` | 코드 기본 `false`, 포졸 프리팹 `true` | 켜면 배회·추적에 NavMesh를 사용합니다. 길이 없거나 목표에 도달할 수 없으면 멈춥니다. 기존 궁수와 캡슐 적은 꺼진 상태를 유지합니다. |
+| `_repathInterval` | `0.25f` | 경로 재계산 간격(초)입니다. 낮추면 목표 이동에 빨리 반응하고 계산량이 늘어납니다. 최소 0.05초로 제한합니다. |
 
 - `Awake`에서 Rigidbody 회전을 고정(`FreezeRotation`)하고 보간을 켭니다. 인스펙터의 Rigidbody 설정보다 우선합니다.
+
+### 포졸 NavMesh 설정 (2026-10-22)
+
+- `YPH_MainPlayerTest`의 `YPH_Navigation`에 `NavMeshSurface`를 둡니다. `Humanoid`(타입 0), `All Game Objects`, `Physics Colliders`로 바닥·벽의 실제 충돌 모양을 베이크합니다. 현재 연결 데이터는 `Assets/Scenes/YPH/YPH_MainPlayerTest/NavMesh-YPH_Navigation.asset`입니다.
+- 플레이어·적 등 움직이는 몸에는 씬의 `NavMeshModifier > Ignore From Build`를 켜서 시작 위치가 고정 장애물로 굳지 않게 합니다. 새 캐릭터를 배치할 때도 이 설정을 확인합니다.
+- 지형이나 고정 장애물 위치를 바꾸면 `YPH_Navigation > NavMeshSurface > Bake`로 다시 생성합니다. 게임 시작 때마다 맵을 굽지 않습니다.
+- 최초 연결 검사는 Humanoid 반지름 0.5m, 높이 2m 기준입니다. 이후 모서리 오류 검사 시 프로젝트의 베이크 설정은 높이 0.6m·단차 0.3m로 바뀌어 있었고, 포졸 Agent 높이는 2m였습니다. 이번 수정에서는 이 설정을 건드리지 않았습니다. 높이 차이로 낮은 통로의 경로와 몸 충돌이 어긋날 수 있으므로 해당 통로는 별도 확인이 필요합니다. 경로는 Walkable 영역만 허용하며 점프 링크는 사용하지 않습니다.
+- 포졸 루트의 `NavMeshAgent`가 경로와 이동 방향을 계산합니다. `EnemyMotor.Awake`에서 Agent의 위치·회전 자동 갱신을 끄고 실제 위치는 Rigidbody가 적용합니다. 속도는 기존 AI의 배회·추적 속도를 사용하며, Agent 반지름·높이는 베이크 크기와 맞춥니다.
+- 공격 거리 조건을 통과하면 `EnemyMotor.HasClearAttackLine`으로 몸 중심에서 플레이어 몸 중심까지 실제 장애물을 검사합니다. 플레이어가 NavMesh 밖에 있어도 사거리 안이고 장애물이 없으면 공격합니다. 벽·기둥은 공격 시작을 막고, 자기 몸·플레이어·다른 적·트리거는 차단물에서 제외합니다. 길찾기를 끈 기존 적의 조건은 유지합니다. 패링·사망·공격 전환에서는 경로를 지우고, 부활 시 원래 위치에서 다시 계산합니다. 공격 전진은 계속 NavMesh 경계에서 제한합니다.
+- 이동을 첫 경계점에서 잘라 멈추는 대신 `NavMeshAgent.Move`로 경계 안의 이동을 계산합니다. 그 결과를 기존 속도 이내의 Rigidbody 속도로 적용해, 모서리를 따라 빠져나가도록 합니다.
+- NavMesh가 없는 씬에서는 포졸이 멈춥니다. 다른 씬에 프리팹을 옮길 때는 그 씬에도 베이크된 Surface가 필요합니다. `Main`·`BossArena`는 이번 작업에서 저장하지 않습니다.
+- 기본 검증 대상은 고정 지형의 우회입니다. Agent의 기본 회피 기능은 사용하지만 여러 적이 좁은 문에 몰리는 상황과 이동 장애물은 별도 검수가 필요합니다. 점프 링크 이동은 포함하지 않습니다.
 
 ### EnemyMeleeAttack
 
@@ -385,6 +399,15 @@ bool applied = target.ApplyParry(damage, playerPosition);
 
 ## 12. 검증 결과
 
+### 포졸 NavMesh 검증 (2026-10-22)
+
+- 경계 밖 공격 오류: 실행 중 플레이어가 NavMesh에서 약 0.43m 벗어나자 0.66m 거리의 포졸도 공격하지 못했습니다. 공격 가능 여부를 NavMesh 도달 조건에서 실제 장애물 검사로 분리했습니다. 신고 좌표에서 공격 시작·실제 명중, 벽 너머 차단·벽 제거 후 재개, 사거리 밖 차단 등 Play 검사 9개와 기존 이동·전투 검사 11개를 통과했습니다. 문서 자동 갱신 검사도 문제 0건입니다. 기록: `Docs/Archive/2026-10-22_포졸경계공격/UnityCommands/`. 새 Inspector 설정이나 씬 저장은 없습니다.
+- 모서리 고착 재현: (5, 0.02, 154)에서 (18, 0.02, 146)으로 추적할 때 경로는 정상이지만 (7.665, 0, 148.668) 부근에서 이동이 멈췄습니다. 첫 경계까지의 거리만 허용하던 `EnemyMotor.LimitToNavMesh`를 수정한 뒤 같은 경로·역방향·옆 통로 총 3개를 통과했습니다. 벽 우회·공격·패링·히트스톱·사망·부활·유효 목표 복귀 등 기존 검사 11개도 다시 통과했습니다. 기록: `Docs/Archive/2026-10-22_포졸모서리/UnityCommands/`. 이 수정에서는 씬과 베이크 설정을 저장하지 않았습니다.
+- 모서리 수정 후 Unity 컴파일 성공·콘솔 오류/예외 0건이며, Play 전후 씬 사본은 동일했습니다. 문서 읽기 검사는 문제 0건·자동 생성물 최신 상태입니다. `check.py --write`는 `Design/README.md` 쓰기에서 `OSError: [Errno 22] Invalid argument`로 실패했습니다.
+- `YPH_MainPlayerTest` Play 자동 검사 14개 통과: 고정 벽 우회, 벽 너머 공격 차단, 우회 후 공격, 패링·히트스톱 정지, 사망, 부활과 새 경로, NavMesh 밖 목표 정지와 유효 목표 복귀, 배회, NavMesh 없음 정지와 복구 후 부활 이동 등.
+- 포졸 2개의 Agent·Motor 연결과 저장된 NavMesh 참조를 확인했습니다. 사용자 승인에 따라 기존 총·플레이어 미저장 변경과 이번 연결을 함께 씬에 저장했습니다.
+- Unity 컴파일 성공. 실행 파일 빌드, 계단 보행, 많은 적이 좁은 통로에 모이는 상황은 미검증입니다. 검사 명령·결과는 개인 기록 `Docs/Archive/2026-10-22_포졸길찾기/UnityCommands/`에 보관합니다.
+
 E0 검사 기록입니다. R1은 아래 추가 기록과 [받아치기 검증](받아치기공통규약.md#12-검증-결과)을 기준으로 합니다.
 
 | 완료 조건 | 결과 | 확인 방법 |
@@ -407,6 +430,8 @@ E0 검사 기록입니다. R1은 아래 추가 기록과 [받아치기 검증](�
 - R1 추가 검사: 다음 피해 1 유지, 실제 Ctrl 성공 후 1.8초 경직과 공격 취소, 실패 시 정상 피해 확인. 6번 시험 키 제거. 이후 시험 씬 근접 적 경직을 2초로 바꾼 `67e9c6e` 뒤의 재검사는 미실행입니다.
 - 2026-10-16 병합 후 대조: 코드·씬·프리팹 파일을 읽어 문서와 맞춤. Play·Legacy 이동 후 씬 열기 검증은 미실행입니다.
 
+2026-10-20 이름 정리 검증: 애니메이션·재질16개는 이름 외 데이터와 meta/GUID가 동일하고, 통합 프리팹은 이름·실제 타입 표시 외 설정이 동일한 것을 파일 비교로 확인했습니다. 시험 씬의 fileID/GUID 참조도 유지했습니다. Unity 컴파일 산출물 갱신은 확인했으나 후속 Editor 검사 도구가 응답하지 않아 Play 검사는 미실행입니다. NGH 연결 이름과 사용자 보호 대상 Legacy 씬의 옛 타입 표시는 유지했습니다.
+
 ## 13. 알려진 문제와 앞으로 할 일
 
 | 구분 | 내용 | 영향 | 해결 방향 |
@@ -416,7 +441,7 @@ E0 검사 기록입니다. R1은 아래 추가 기록과 [받아치기 검증](�
 | 경직 단계 미전달 | `EnemyAttackHitbox`·`EnemyBullet`이 `HitStagger`를 넘기지 않음(코드 TODO) | `*Stagger` 필드를 바꿔도 효과 없음. 경직은 피해 25 기준 | `PlayerController.TakeHit`이 경직 단계를 받게 되면 함께 전달 (NGH 요청 필요) |
 | 개발 키 문구 해결 (2026-10-17) | 2번 피해를 `heavyHitThreshold`로 변경하고 안내문 캐시 | 피해 경로 호출로 HitSmall / HitLarge, HP 100→99→74 확인 | 실제 키 조작 검수는 별도 |
 | 판정 폭 이중 | 옛 `TryParry`는 ±0.15초(`ParryHalfWindow`), 현재 `ParryController`는 ±0.1초(D-084) | 옛 경로를 다시 쓰면 기획과 다름 | 옛 스크립트 삭제 후 옛 API 제거 |
-| 기존 경고 | 다른 HeroPlayer 구성의 GroundClamp Controller 없는 Animator 접근 | R1 시험 씬에서는 재현되지 않음 | [기존 NGH 요청](../Requests/진행/NGH_요청_20261014_GroundClamp컨트롤러없는Animator검사.md) |
+| 기존 경고 | 다른 HeroPlayer 구성의 GroundClamp Controller 없는 Animator 접근 | R1 시험 씬에서는 재현되지 않음 | [기존 NGH 요청](../Requests/완료/NGH_요청_20261014_GroundClamp컨트롤러없는Animator검사.md) |
 | 컴파일 경고 | Unity 6.6은 DEVELOPMENT_BUILD를 구식으로 표시 | 컴파일은 성공하지만 UAC0009 발생 | 팀 차원의 조건 정책 변경 시 함께 대응 |
 | 시험 한계 | 캡슐 적과 NGH_Player 사용 | 실제 적 모델의 공격 동작 미검증 | E1 프리팹·모델 연결 후 확인 |
 | 다음 작업 | E1-b 보행 보정, E2 궁수 (D-074) | 포졸 모델·모션 연결 완료. 보행 속도 결정과 궁수는 남음 | [변이 포졸 문서](변이포졸.md)와 확정 계획에 따라 구현 |
@@ -433,6 +458,9 @@ E0 검사 기록입니다. R1은 아래 추가 기록과 [받아치기 검증](�
 
 | 날짜 | 작성·수정 | 바뀐 내용 | 커밋 |
 |---|---|---|---|
+| 2026-10-22 | YPH / Codex | NavMesh 밖 가까운 플레이어의 공격 차단 수정. 공격 시작은 실제 장애물로 판단하고 이동·전진의 NavMesh 제한은 유지. 신고 좌표 실제 명중과 벽 차단 등 Play 검사 9개 통과 | 미커밋 |
+| 2026-10-22 | YPH / Codex | 모서리에서 첫 경계점에 고착되던 이동을 NavMeshAgent.Move의 경계 처리로 수정. 실제 지형 3개 경로와 기존 동작 11개 Play 검사 통과 | 미커밋 |
+| 2026-10-22 | YPH / Codex | 사용자 요청으로 포졸 NavMesh 길찾기 추가. Agent는 길 안내만 하고 Rigidbody 이동·공격 전진은 유지. 시험 씬 베이크와 기존 미저장 변경을 승인 후 저장, Play 14개 검사 통과 | 미커밋 |
 | 2026-10-15 | YPH / Codex | E0 구조·조합·Inspector·공개 API·검증과 이관 주의 작성 | `3912858` |
 | 2026-10-15 | YPH / Codex | 독립 검토 반영: 공격 중 비활성화 복귀, 늦게 생성된 플레이어·개발 키 소유권 보정과 회귀 검사 | `3912858` |
 | 2026-10-16 | YPH / Codex | R1: 피해 증가·6번 키 제거, 새 플레이어·판정·검증 안내 반영 | `9df9ca9` |
@@ -441,3 +469,4 @@ E0 검사 기록입니다. R1은 아래 추가 기록과 [받아치기 검증](�
 | 2026-10-16 | YPH / Codex | E1-a 변이 포졸 프리팹·씬 교체·사망 옵션 안내. 상세 검증은 변이포졸 문서 | 미커밋 |
 | 2026-10-16 | YPH / Codex | E1-b 모델·클립·이벤트 연결 현황과 남은 보행 조정 반영 | 미커밋 |
 | 2026-10-17 | YPH / Codex | 시험 씬 탱크 참조 단일화, 변이 포졸 쿨다운 override 제거, 디버그 2번 피해를 heavyHitThreshold와 일치. 승인된 안내 문자열 캐시 1개 추가. Play에서 HitSmall·HitLarge 확인 | 미커밋 |
+| 2026-10-20 | YPH / Codex | YPH 코드의 옛 담당자 표기를 현재 namespace·클래스 이름으로 정리. 생성 UI는 YPH_EnemyHpBarCanvas·YPH_EnemyHpBar·YPH_DebugViewRunner, 시험 씬 그룹은 YPH_SoldierZone·YPH_MeleeDummies로 변경. NGH 표식 검색용 chg_LockMarker는 유지하며 [공유 이름 변경 요청](../Requests/진행/NGH_요청_20261020_공유이름잔여정리.md)에 기록 | 미커밋 |
