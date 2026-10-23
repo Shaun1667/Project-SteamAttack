@@ -127,7 +127,7 @@ namespace NMJ
 
             // 1. 때와 곳 + 전등이 켜진다
             bool cardDone = false;
-            NmjDialogue.Play(new[] { NmjDialogue.Card(dateLine, placeLine, 2.8f) }, () => cardDone = true, false, false);
+            NmjDialogue.Play(new[] { NmjDialogue.Card(dateLine, placeLine, 1.8f) }, () => cardDone = true, false, false);
             yield return Lamp(1.2f);
             while (!cardDone) yield return null;
 
