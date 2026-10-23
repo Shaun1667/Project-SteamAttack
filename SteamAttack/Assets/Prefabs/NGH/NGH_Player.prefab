@@ -4530,13 +4530,13 @@ MonoBehaviour:
   instantDrawOnAttack: 0
   parryAction:
     damage: 0
-    clipLength: 0.33
-    playSpeed: 0.8
+    clipLength: 1
+    playSpeed: 1
     endAt: 1
     hitWindows: []
     hitOncePerAction: 0
     lungeDistance: -1
-    blendIn: 0.05
+    blendIn: 0.08
     chainAt: 1
   heavyHitThreshold: 25
   hitSmallAction:
@@ -4677,7 +4677,6 @@ MonoBehaviour:
   blockWhileRolling: 1
   blockWhileHit: 1
   showDebugGUI: 0
-  debugGUIToggleKey: 4
   logRewind: 1
 --- !u!114 &6073769695134695137
 MonoBehaviour:
@@ -11241,6 +11240,7 @@ MonoBehaviour:
   prompt: "\uC544\uBB34 \uD0A4\uB098 \uB20C\uB7EC \uB2E4\uC2DC \uC77C\uC5B4\uC11C\uAE30"
   showDelay: 0.3
   inputDelay: 1.2
+  autoRestartAfter: 3
   restartTransition: 2
   burnAway: 1
   burnTime: 1.8
