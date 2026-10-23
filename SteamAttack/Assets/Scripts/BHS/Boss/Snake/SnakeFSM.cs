@@ -311,6 +311,14 @@ public class SnakeFSM : MonoBehaviour
             handled = true;
         }
 
+        // 병합 연결 (NGH): 실제 플레이어는 PlayerController.TakeHit 으로 피격 (무적·피격 동작·HP 처리)
+        NGH.PlayerController ngh = victim.GetComponentInParent<NGH.PlayerController>();
+        if (ngh != null)
+        {
+            ngh.TakeHit(Mathf.Max(1, Mathf.RoundToInt(amount)), transform.position);
+            handled = true;
+        }
+
         // Inspector 이벤트에도 같은 더미가 연결되어 있어도 두 번 호출하지 않습니다.
         if (!handled) onPlayerHit?.Invoke(amount);
     }

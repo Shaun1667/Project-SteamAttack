@@ -3218,7 +3218,7 @@ GameObject:
   - component: {fileID: 399813593}
   - component: {fileID: 399813592}
   - component: {fileID: 399813591}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: NMJ_Arena_Hyangwonjeong
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3284,7 +3284,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 256
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: c0747ad81bda0e842829e386f9c7ed3f, type: 2}
@@ -9190,9 +9190,29 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6024116186764242359, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
+      propertyPath: damage
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 6266929223434074064, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
+      propertyPath: damage
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 6538377318132439488, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
+      propertyPath: damage
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: 6762481187753873017, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
       propertyPath: m_Name
       value: BHS_HyunMu
+      objectReference: {fileID: 0}
+    - target: {fileID: 8312250876522661485, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
+      propertyPath: damage
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 8345751117253122671, guid: a730b5f6cd9753344a3f4dc5df53c6b6, type: 3}
+      propertyPath: damage
+      value: 20
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
