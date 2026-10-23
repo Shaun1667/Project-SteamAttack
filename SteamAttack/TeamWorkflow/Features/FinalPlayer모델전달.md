@@ -1,5 +1,7 @@
 # 기능: FinalPlayer 모델(FBX) 전달과 병합 절차
 
+> **갱신 (2026-10-23):** 병합본(`origin/main` `2f8eff2`)에서 `FinalPlayer.fbx`는 **Git LFS 포인터**로 들어와 있습니다(`.gitattributes`, `5e0985c`). 이 문서의 "git에 올리지 못했다", "직접 전달", "`git add`하지 않는다"는 그 전 내용이니, 병합본을 받는 사람은 아래 절차 대신 `git lfs install` 후 `git lfs pull`로 받습니다. 자세한 순서는 [Main적용가이드.md](Main적용가이드.md) 3-1에 있습니다. 이 문서의 나머지 내용(경로·크기·해시·Missing 확인)은 그대로 쓸 수 있습니다.
+
 | 항목 | 내용 |
 |---|---|
 | 한 줄 설명 | 용량 때문에 git에 없는 `FinalPlayer.fbx`(294MB)를 병합·pull 뒤에 직접 넣어 플레이어 모델을 살리는 방법 |
