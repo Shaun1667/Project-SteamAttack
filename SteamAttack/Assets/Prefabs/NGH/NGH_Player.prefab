@@ -5681,6 +5681,7 @@ GameObject:
   - component: {fileID: 5130903279594837647}
   - component: {fileID: 8181344850900602600}
   - component: {fileID: 203965855341721301}
+  - component: {fileID: 6142536467970305188}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -10326,6 +10327,26 @@ MonoBehaviour:
   inkColor: {r: 0.03, g: 0.03, b: 0.035, a: 0.97}
   textColor: {r: 0.96, g: 0.95, b: 0.92, a: 1}
   sealColor: {r: 0.82, g: 0.18, b: 0.1, a: 1}
+--- !u!114 &6142536467970305188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1800097922734459134
 GameObject:
   m_ObjectHideFlags: 0
