@@ -29,7 +29,7 @@ namespace NMJ
     [DisallowMultipleComponent]
     public class NmjSwordSlash : MonoBehaviour
     {
-        public enum Mode { Original, C2, C3, Auto }
+        public enum Mode { Original, C2, C3, Auto, Flair }
 
         public static Mode Current { get; private set; } = Mode.Original;
 
@@ -38,11 +38,12 @@ namespace NMJ
             Mode.C2 => "C2 붉은 칼금",
             Mode.C3 => "C3 붉은 김",
             Mode.Auto => "자동 (증기 가득이면 C3, 아니면 C2)",
+            Mode.Flair => "화려판 (맞는 순간 + 증기 단계 + 일섬)",
             _ => "기존 (NGH)",
         };
 
         public static void SetMode(Mode m) => Current = m;
-        public static Mode Cycle() { Current = (Mode)(((int)Current + 1) % 4); return Current; }
+        public static Mode Cycle() { Current = (Mode)(((int)Current + 1) % 5); return Current; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Current = Mode.Original;
@@ -82,9 +83,21 @@ namespace NMJ
             public float puffInner;      // 김이 나오는 폭 (칼끝=1 기준 안쪽 한계)
             public float life;           // 칼이 지난 뒤 칼금이 다 식는 시간(초)
             public float fade;           // 다 그은 뒤 사라지는 시간(초)
+            public float edgeWidth = 0.085f;   // 칼금 굵기 (일반 공격은 가늘게)
+            public bool whiteSteam;      // 김을 흰색으로 (증기 50~99 일반 공격)
+            public bool burst;           // 증기 분출 베기: 다 그은 순간 발밑에 붉은 김 고리
         }
         private static readonly Look LookC2 = new Look { whiffEmbers = 3, hitEmbers = 8, hitDrops = 3, cinders = 14, puffs = 0, puffSize = new Vector2(0.10f, 0.2f), puffInner = 0.9f, life = 0.32f, fade = 0.45f };
         private static readonly Look LookC3 = new Look { whiffEmbers = 4, hitEmbers = 14, hitDrops = 4, cinders = 20, puffs = 10, puffSize = new Vector2(0.30f, 0.48f), puffInner = 0.88f, life = 0.40f, fade = 0.5f };
+        // 화려판(Flair): 증기 단계
+        //   일반 공격  증기 50~99 = 가는 주홍 칼금 + 흰 김 몇 줄 / 증기 100 = 붉은 김이 칼을 휘감음
+        //   강공격     증기 100으로 시작 = 증기 분출 베기 (칼금이 길게 남고, 다 그은 순간 발밑에 붉은 김 고리)
+        private static readonly Look LookLight1 = new Look { whiffEmbers = 1, hitEmbers = 3, hitDrops = 0, cinders = 6, puffs = 4, puffSize = new Vector2(0.14f, 0.24f), puffInner = 0.9f, life = 0.22f, fade = 0.3f, edgeWidth = 0.05f, whiteSteam = true };
+        private static readonly Look LookLight2 = new Look { whiffEmbers = 2, hitEmbers = 5, hitDrops = 1, cinders = 10, puffs = 8, puffSize = new Vector2(0.22f, 0.36f), puffInner = 0.85f, life = 0.28f, fade = 0.36f, edgeWidth = 0.06f };
+        private static readonly Look LookBurst = new Look { whiffEmbers = 6, hitEmbers = 16, hitDrops = 5, cinders = 26, puffs = 16, puffSize = new Vector2(0.32f, 0.52f), puffInner = 0.85f, life = 0.55f, fade = 0.6f, edgeWidth = 0.1f, burst = true };
+
+        private float lastPressure, actionPressure;   // 동작 시작 직전의 증기 (강공격은 시작하며 30을 쓰므로 그 전 값으로 단계를 정함)
+        private bool ActionFull => actionPressure >= MaxPressure() - 0.5f;
 
         // ───────── 상태 ─────────
 
@@ -121,9 +134,10 @@ namespace NMJ
             if (player.ActionSerial != serial)
             {
                 serial = player.ActionSerial;
+                actionPressure = lastPressure;
                 pending.Clear();
                 foreach (AttackFx.Entry e in fx.entries)
-                    if (HasPath(e) && e.action == player.CurrentAction) pending.Add(e);
+                    if (Eligible(e) && e.action == player.CurrentAction) pending.Add(e);
             }
             float t = player.ActionClipProgress;
             for (int i = pending.Count - 1; i >= 0; i--)
@@ -137,6 +151,7 @@ namespace NMJ
         // 애니메이션이 끝난 뒤 머리 위치를 맞추고 입자를 뿌린다
         private void LateUpdate()
         {
+            lastPressure = CurrentPressure();
             for (int i = active.Count - 1; i >= 0; i--)
             {
                 Slash s = active[i];
@@ -147,31 +162,79 @@ namespace NMJ
         // 맞힌 순간: 지금 긋고 있는 강공격 칼금에 섬광·불티
         private void OnHitLanded(Damageable target)
         {
-            if (Current == Mode.Original || player.CurrentAction != PlayerController.ActionState.HeavyAttack) return;
+            if (Current == Mode.Original) return;
+            bool heavy = player.CurrentAction == PlayerController.ActionState.HeavyAttack;
+            Slash cur = null;
             foreach (Slash s in active)
-                if (s.Serial == player.ActionSerial) { s.Hit(this); break; }
+                if (s.Serial == player.ActionSerial) { cur = s; break; }
+            if (heavy && cur != null) cur.Hit(this);
+
+            // 화려판: 맞는 순간 연출 (일반 공격도)
+            if (Current != Mode.Flair) return;
+            Vector3 pos = target != null ? target.AimPoint : player.transform.position + Vector3.up * 1.2f + player.transform.forward;
+            Vector3 dir = cur != null ? cur.HeadTangent() : player.transform.right;
+            NmjSwordFlair.Get(this).Impact(pos, dir, heavy, heavy && ActionFull);
         }
 
-        // 시안은 강공격에만 (일반 공격은 기존 NGH 그대로)
+        private static bool IsLight(PlayerController.ActionState a) =>
+            a == PlayerController.ActionState.LightAttack || a == PlayerController.ActionState.LightCombo2 || a == PlayerController.ActionState.LightCombo3
+            || a == PlayerController.ActionState.LightCombo4 || a == PlayerController.ActionState.LightCombo5;
+
         private static bool HasPath(AttackFx.Entry e) =>
-            e != null && e.action == PlayerController.ActionState.HeavyAttack && e.kind == AttackFx.FxKind.Slash && e.pathOuter != null && e.pathOuter.Length >= 2
+            e != null && e.kind == AttackFx.FxKind.Slash && e.pathOuter != null && e.pathOuter.Length >= 2
             && e.pathInner != null && e.pathInner.Length == e.pathOuter.Length;
 
-        private bool UseRedSteam()
+        // 시안은 강공격에만. 화려판은 증기 50 이상이면 일반 공격에도 얹는다
+        private bool Eligible(AttackFx.Entry e) =>
+            HasPath(e) && (e.action == PlayerController.ActionState.HeavyAttack
+                           || (Current == Mode.Flair && IsLight(e.action) && actionPressure >= MaxPressure() * 0.5f));
+
+        private static float CurrentPressure()
         {
-            if (Current == Mode.C3) return true;
-            if (Current != Mode.Auto) return false;
-            foreach (SteamTank tank in NmjStartTutorial.FindTanks())
-                if (tank != null && tank.CurrentPressure >= tank.MaxPressure - 0.5f) return true;
-            return false;
+            float p = 0f;
+            foreach (SteamTank tank in NmjStartTutorial.FindTanks()) if (tank != null) p = Mathf.Max(p, tank.CurrentPressure);
+            return p;
+        }
+
+        private static float MaxPressure()
+        {
+            float m = 0f;
+            foreach (SteamTank tank in NmjStartTutorial.FindTanks()) if (tank != null) m = Mathf.Max(m, tank.MaxPressure);
+            return m > 0f ? m : 100f;
         }
 
         private void Spawn(AttackFx.Entry e)
         {
             EnsureResources();
             Slash s = pool.Count > 0 ? pool.Pop() : new Slash(trailMat);
-            s.Begin(e, player, UseRedSteam());
+            bool heavy = e.action == PlayerController.ActionState.HeavyAttack;
+            bool full = ActionFull;
+            Look look;
+            bool red;
+            if (heavy)
+            {
+                red = Current == Mode.C3 || ((Current == Mode.Auto || Current == Mode.Flair) && full);
+                look = Current == Mode.Flair && full ? LookBurst : red ? LookC3 : LookC2;
+            }
+            else
+            {
+                red = full;
+                look = full ? LookLight2 : LookLight1;
+            }
+            s.Begin(e, player, red, look);
             active.Add(s);
+        }
+
+        /// <summary>증기 분출 베기: 발밑에서 붉은 김이 고리로 퍼진다</summary>
+        private void SteamRing(Vector3 center)
+        {
+            for (int i = 0; i < 18; i++)
+            {
+                float a = i / 18f * Mathf.PI * 2f + Random.Range(-0.1f, 0.1f);
+                Vector3 d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                Emit(psPuff, center + d * 0.5f + Vector3.up * 0.15f, d * Random.Range(2.2f, 3.2f) + Vector3.up * Random.Range(0.1f, 0.4f),
+                     Random.Range(0.35f, 0.55f), Random.Range(0.6f, 0.9f), SteamC3);
+            }
         }
 
         // ───────── 그림 재료 ─────────
@@ -184,12 +247,15 @@ namespace NMJ
 
             Shader trail = Resources.Load<Shader>(Folder + "NmjSwordSlash");
             Shader part = Resources.Load<Shader>(Folder + "NmjSwordSlashParticle");
-            Texture2D puff = Resources.Load<Texture2D>(Folder + "T_SwordSlash_SteamPuff");
+            Texture2D puff = Resources.Load<Texture2D>(Folder + "T_SwordSteam_Flip");   // 김 연속 그림 4×4 (뭉쳤다가 결 따라 흩어짐)
+            Texture2D bristle = Resources.Load<Texture2D>(Folder + "T_SwordInk_Bristle");   // 붓 결
+            if (bristle != null) bristle.wrapMode = TextureWrapMode.Repeat;
             if (puff != null) puff.wrapMode = TextureWrapMode.Clamp;
             Texture2D dot = MakeDot();
 
             trailMat = new Material(trail) { name = "NMJ_SwordSlash" };
             trailMat.renderQueue = 3010;   // 기존 흰 베기 이펙트(3000) 위에 그려지게
+            trailMat.SetTexture("_BrushTex", bristle);
 
             // 불티: 흰 → 놋쇠 → 주홍 → 검붉음으로 식으며 작아짐. 막 튄 순간만 빛 번짐
             Gradient hot = Ramp(new[] { (new Color(1f, 0.95f, 0.85f), 0f), (new Color(1f, 0.65f, 0.28f), 0.2f), (new Color(0.95f, 0.22f, 0.10f), 0.5f), (new Color(0.30f, 0.04f, 0.03f), 1f) },
@@ -202,6 +268,8 @@ namespace NMJ
             psEmber = MakeSystem("Ember", part, dot, gravity: 0.6f, stretch: true, grow: 0f, drag: 3f, intensity: 1.6f, color: hot, velocityScale: 0.03f, lengthScale: 1f);
             psCinder = MakeSystem("Cinder", part, dot, gravity: -0.05f, stretch: false, grow: 0.2f, drag: 2f, intensity: 1.3f, color: cinder);
             psPuff = MakeSystem("Steam", part, puff, gravity: -0.04f, stretch: false, grow: 2.2f, drag: 2.2f, fadeIn: true);
+            var sheet = psPuff.textureSheetAnimation; sheet.enabled = true; sheet.numTilesX = 4; sheet.numTilesY = 4;
+            sheet.animation = ParticleSystemAnimationType.WholeSheet; sheet.frameOverTime = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0f, 1f, 1f));
         }
 
         private static Gradient Ramp((Color c, float t)[] colors, (float a, float t)[] alphas)
@@ -329,7 +397,7 @@ namespace NMJ
             private float[] passT;           // 칼이 경로의 각 점을 지난 시각 (clock 기준)
             private int reached;             // 칼이 지난 마지막 점
             private int serial, prefix;
-            private bool red;
+            private bool red, bursted;
             private Look look;
             private float head, hold, fadeT, clock, flash;
             private int burstLeft;
@@ -345,6 +413,7 @@ namespace NMJ
             private static readonly int NowId = Shader.PropertyToID("_Now");
             private static readonly int LifeId = Shader.PropertyToID("_Life");
             private static readonly int CoreBoostId = Shader.PropertyToID("_CoreBoost");
+            private static readonly int EdgeWidthId = Shader.PropertyToID("_EdgeWidth");
 
             public Slash(Material mat)
             {
@@ -358,10 +427,10 @@ namespace NMJ
                 renderer.receiveShadows = false;
             }
 
-            public void Begin(AttackFx.Entry e, PlayerController p, bool redSteam)
+            public void Begin(AttackFx.Entry e, PlayerController p, bool redSteam, Look lk)
             {
                 entry = e; player = p; red = redSteam;
-                look = red ? LookC3 : LookC2;
+                look = lk; bursted = false;
                 outer = e.pathOuter; inner = e.pathInner; prefix = Mathf.Clamp(e.pathPrefix, 0, outer.Length - 2);
                 serial = p.ActionSerial;
                 head = 0f; hold = 0f; fadeT = -1f; clock = 0f; flash = 0f; burstLeft = 0;
@@ -424,6 +493,7 @@ namespace NMJ
                 mpb.SetFloat(OpacityId, opacity);
                 mpb.SetColor(TintId, RibbonTintC3);
                 mpb.SetFloat(SteamId, red ? 1f : 0f);
+                mpb.SetFloat(EdgeWidthId, look.edgeWidth);
                 mpb.SetFloat(NowId, clock);
                 mpb.SetFloat(LifeId, look.life);
                 mpb.SetFloat(CoreBoostId, flash);
@@ -431,6 +501,9 @@ namespace NMJ
             }
 
             /// <summary>맞힌 순간: 심이 한 번 번쩍, 불티는 2~3프레임에 걸쳐 '타다닥', 주묵 방울</summary>
+            /// <summary>지금 칼이 있는 곳의 베는 방향 (세계)</summary>
+            public Vector3 HeadTangent() { Frame(player.transform, head, 1f, out _, out Vector3 tan, out _); return tan; }
+
             public void Hit(NmjSwordSlash owner)
             {
                 flash = 1f;
@@ -465,6 +538,7 @@ namespace NMJ
                     if (head >= 0.999f)
                     {
                         MarkPassed(head, 1.001f, clock, clock);   // 끝점까지 지난 것으로 (그래야 머리도 식는다)
+                        if (look.burst && !bursted) { bursted = true; owner.SteamRing(player.transform.position); }
                         hold += dt; if (hold >= 0.05f) fadeT = 0f;
                     }
                     Apply(head, 0f, 1f);
@@ -500,7 +574,7 @@ namespace NMJ
                 carryEmber += look.whiffEmbers * fast / 0.5f;
                 carryPuff += look.puffs * du;
                 Transform t = player.transform;
-                Color steam = red ? SteamC3 : SteamC2;
+                Color steam = look.whiteSteam ? SteamC2 : red ? SteamC3 : SteamC2;
 
                 while (carryEmber >= 1f) { carryEmber -= 1f; Spark(owner, Random.Range(u0, u1), 4f, 8f); }
                 while (carryPuff >= 1f)

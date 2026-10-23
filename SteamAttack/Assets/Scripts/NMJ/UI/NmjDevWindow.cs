@@ -487,6 +487,7 @@ namespace NMJ
             NmjSwordSlash.Mode.C2 => "C2 붉은 칼금",
             NmjSwordSlash.Mode.C3 => "C3 붉은 김",
             NmjSwordSlash.Mode.Auto => "자동 C2/C3",
+            NmjSwordSlash.Mode.Flair => "화려판",
             _ => "기존",
         };
 
