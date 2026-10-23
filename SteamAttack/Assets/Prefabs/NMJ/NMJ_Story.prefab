@@ -150,8 +150,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2732405859948401036}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.1478094, z: -0, w: 0.9890159}
-  m_LocalPosition: {x: -2.2, y: 0.02, z: -102.5}
+  m_LocalRotation: {x: 0, y: 0.1478094, z: 0, w: 0.9890159}
+  m_LocalPosition: {x: -6, y: 0, z: -81}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -205,8 +205,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2793567939686305422}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.1736482, z: -0, w: 0.9848078}
-  m_LocalPosition: {x: 3.4, y: 0, z: -98}
+  m_LocalRotation: {x: 0, y: 0.5, z: 0, w: 0.8660254}
+  m_LocalPosition: {x: -7, y: 0, z: -97}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -700,6 +700,56 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &7100000000000000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7100000000000000002}
+  - component: {fileID: 7100000000000000003}
+  m_Layer: 0
+  m_Name: "NMJ_\uC2DC\uC791\uD29C\uD1A0\uB9AC\uC5BC_\uC99D\uAE30\uCDA9\uC804"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7100000000000000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7100000000000000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -102}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5465000718005137294}
+  - {fileID: 5465000718005137289}
+  - {fileID: 5465000718005137288}
+  m_Father: {fileID: 1289238150478825292}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7100000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7100000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f16c91ad3dd4affa63f33388d967773, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  startWithEmptySteam: 1
+  doneAtPressure: 30
+  hideDummiesWhenNotFresh: 0
 --- !u!1 &7103568262505571891
 GameObject:
   m_ObjectHideFlags: 0
@@ -971,56 +1021,6 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 923921681965845706}
   m_maskType: 0
---- !u!1 &7100000000000000001
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 7100000000000000002}
-  - component: {fileID: 7100000000000000003}
-  m_Layer: 0
-  m_Name: "NMJ_시작튜토리얼_증기충전"
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &7100000000000000002
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7100000000000000001}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -102}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 7100000000000000021}
-  - {fileID: 7100000000000000022}
-  - {fileID: 7100000000000000023}
-  m_Father: {fileID: 1289238150478825292}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7100000000000000003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7100000000000000001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f16c91ad3dd4affa63f33388d967773, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  startWithEmptySteam: 1
-  doneAtPressure: 30
-  hideDummiesWhenNotFresh: 0
 --- !u!1001 &7100000000000000011
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1029,9 +1029,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7100000000000000002}
     m_Modifications:
-    - target: {fileID: 3235624445174967541, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_Name
-      value: "허수아비_1"
+    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.55
       objectReference: {fileID: 0}
     - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1045,17 +1053,9 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: -1
       objectReference: {fileID: 0}
-    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.55
-      objectReference: {fileID: 0}
-    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.55
+    - target: {fileID: 3235624445174967541, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_Name
+      value: "\uD5C8\uC218\uC544\uBE44_1"
       objectReference: {fileID: 0}
     - target: {fileID: 6996952451374426056, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
       propertyPath: respawnDelay
@@ -1066,7 +1066,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
---- !u!4 &7100000000000000021 stripped
+--- !u!4 &5465000718005137294 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
   m_PrefabInstance: {fileID: 7100000000000000011}
@@ -1079,9 +1079,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7100000000000000002}
     m_Modifications:
-    - target: {fileID: 3235624445174967541, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_Name
-      value: "허수아비_2"
+    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.55
       objectReference: {fileID: 0}
     - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1095,17 +1103,9 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.55
-      objectReference: {fileID: 0}
-    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.55
+    - target: {fileID: 3235624445174967541, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_Name
+      value: "\uD5C8\uC218\uC544\uBE44_2"
       objectReference: {fileID: 0}
     - target: {fileID: 6996952451374426056, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
       propertyPath: respawnDelay
@@ -1116,7 +1116,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
---- !u!4 &7100000000000000022 stripped
+--- !u!4 &5465000718005137289 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
   m_PrefabInstance: {fileID: 7100000000000000012}
@@ -1129,9 +1129,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7100000000000000002}
     m_Modifications:
-    - target: {fileID: 3235624445174967541, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_Name
-      value: "허수아비_3"
+    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.55
       objectReference: {fileID: 0}
     - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1145,17 +1153,9 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: -1
       objectReference: {fileID: 0}
-    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.55
-      objectReference: {fileID: 0}
-    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.55
+    - target: {fileID: 3235624445174967541, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
+      propertyPath: m_Name
+      value: "\uD5C8\uC218\uC544\uBE44_3"
       objectReference: {fileID: 0}
     - target: {fileID: 6996952451374426056, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
       propertyPath: respawnDelay
@@ -1166,7 +1166,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
---- !u!4 &7100000000000000023 stripped
+--- !u!4 &5465000718005137288 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2981331634042007429, guid: b3de1531ca91f90448ef74fee115bbbd, type: 3}
   m_PrefabInstance: {fileID: 7100000000000000013}

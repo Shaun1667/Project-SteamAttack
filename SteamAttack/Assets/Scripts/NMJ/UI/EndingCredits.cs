@@ -77,7 +77,7 @@ namespace NMJ
         [Header("연결 (비우면 자동)")]
         [Tooltip("이 문구가 끝나면 크레딧을 시작한다. 비우면 같은 오브젝트에서 찾는다")]
         [SerializeField] private BossDefeatBanner banner;
-        [Tooltip("마지막 판에서 키를 누르면 갈 씬. 빌드 설정에 없으면 그 자리에 머문다")]
+        [Tooltip("마지막 판에서 키를 누르면 갈 씬. 빌드 설정에 없으면 Title → NMJ_Title 순으로 찾고, 모두 없으면 그 자리에 머문다")]
         [SerializeField] private string titleScene = "NMJ_Title";
         [Tooltip("타이틀로 넘어갈 때의 먹물 화면 전환")]
         [SerializeField] private InkStyle titleTransition = InkStyle.Drip;
@@ -333,8 +333,9 @@ namespace NMJ
             stage = Stage.Idle;
             EndControl();
             OnFinished.Invoke();
-            if (!string.IsNullOrEmpty(titleScene) && Application.CanStreamedLevelBeLoaded(titleScene))
-                InkTransition.Play(titleTransition, () => SceneManager.LoadScene(titleScene));
+            string title = NmjBootToTitle.Resolve(titleScene);   // 적힌 씬이 빌드에 없으면 Title → NMJ_Title
+            if (title != null)
+                InkTransition.Play(titleTransition, () => SceneManager.LoadScene(title));
             else
                 stage = Stage.Final;   // 갈 곳이 없으면 마지막 판에 머문다
         }

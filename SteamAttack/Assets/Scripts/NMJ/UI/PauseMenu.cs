@@ -264,7 +264,7 @@ namespace NMJ
                 InkTransition.Play(titleTransition, () =>
                 {
                     Close();
-                    SceneManager.LoadScene(titleScene);
+                    SceneManager.LoadScene(NmjBootToTitle.Resolve(titleScene));
                 });
             });
         }
@@ -291,7 +291,7 @@ namespace NMJ
 
         private void RefreshAvailability()
         {
-            SetEnabled(titleButton, !string.IsNullOrEmpty(titleScene) && Application.CanStreamedLevelBeLoaded(titleScene), style);
+            SetEnabled(titleButton, NmjBootToTitle.Resolve(titleScene) != null, style);
             SetEnabled(settingsButton, settings != null, style);
             LinkColumn(mainButtons);
         }

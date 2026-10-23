@@ -104,6 +104,7 @@ namespace NMJ
             Cursor.visible = true;
 
             PlayTimer.Stop();   // 타이틀에 있는 동안은 플레이 시간에 넣지 않는다
+            NmjBootToTitle.TitleVisited = true;   // 이제 게임 씬이 열려도 다시 타이틀로 보내지 않는다
             BuildUi();
             // 먹물 전환으로 넘어왔으면 먹이 걷히는 것으로 충분하니 검은 막은 건너뛴다
             fade.alpha = InkTransition.IsBusy ? 0f : 1f;

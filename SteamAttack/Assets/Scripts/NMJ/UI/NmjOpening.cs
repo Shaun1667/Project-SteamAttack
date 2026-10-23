@@ -98,6 +98,7 @@ namespace NMJ
 
         private void Start()
         {
+            if (NmjBootToTitle.Redirecting) return;   // 타이틀을 거치지 않고 열려 타이틀로 가는 중
             if (!playOnStart || (Application.isEditor && !playInEditor)) return;
             if (PlayedThisRun) return;   // 보스 씬 → Main 복귀 등: 이미 본 프롤로그는 다시 틀지 않는다
             FreshStart = true;
