@@ -106,3 +106,7 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# 유료 에셋 Magica Cloth 2 — 라이선스 때문에 git에 올리지 않음 (각자 설치)
+SteamAttack/Assets/Scripts/YPH/ThirdParty/
+SteamAttack/Assets/Scripts/YPH/ThirdParty.meta
