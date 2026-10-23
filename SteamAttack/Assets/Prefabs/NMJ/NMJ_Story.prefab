@@ -584,27 +584,27 @@ MonoBehaviour:
   - kind: 2
     speaker: "\uAC70\uAFB8\uB85C \uB3C4\uB294 \uACC4\uCE21\uAE30 \uACC1, \uACE0\uC885\uACFC \uAE30\uAE30\uCC3D \uC815\uBE44\uACF5"
     text: "\uC9C0\uD558 \uAE30\uAD00\uC2E4"
-    hold: 2.2
+    hold: 1.4
   - kind: 0
     speaker: "\uACE0\uC885"
     text: "\uC800 \uACC4\uCE21\uAE30\uAC00 \uAC70\uAFB8\uB85C \uB3CC\uACE0 \uC788\uB2E4. \uC2DC\uAC04\uC774 \uC0C8\uACE0 \uC788\uB2E4\uB294\uAD6C\uB098."
-    hold: 0
+    hold: 2
   - kind: 0
     speaker: "\uACE0\uC885"
     text: "\uAC00\uC11C, \uC800\uAC83\uC744 \uB2E4\uC2DC \uC7A0\uC7AC\uC6B0\uB77C. \uC8FD\uC774\uB77C\uB294 \uAC83\uC774 \uC544\uB2C8\uB2E4."
-    hold: 0
+    hold: 2
   - kind: 0
     speaker: "\uACE0\uC885"
     text: "\uADF8 \uD63C\uCC9C\uC758\uB97C \uC800\uAC83\uC758 \uAC00\uC2B4\uC5D0 \uBB3C\uB9AC\uBA74, \uB108\uC758 5\uCD08\uB3C4 \uAC70\uAE30\uC11C \uB05D\uC774\uB2E4."
-    hold: 0
+    hold: 2.2
   - kind: 0
     speaker: "\uACE0\uC885"
     text: "\uADF8\uB798\uB3C4 \uAC00\uACA0\uB290\uB0D0."
-    hold: 1.6
+    hold: 1
   - kind: 1
     speaker: 
     text: "\uBB34\uC0AC\uB294 \uB300\uB2F5\uD558\uC9C0 \uC54A\uACE0 \uACE0\uAC1C\uB97C \uC219\uC778\uB2E4."
-    hold: 1.8
+    hold: 1.2
   revealStyle: 2
   arrivalCaption: "\uC721\uC870\uAC70\uB9AC \u2014 \uAD11\uD654\uBB38\uC73C\uB85C"
   snowColor: {r: 0.83, g: 0.93, b: 0.95, a: 1}
