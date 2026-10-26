@@ -1,4 +1,4 @@
-// 강공격 칼 궤적 '찢김' 층 (NGH) — SlashTrail 궤적 메시에 한 층 더 그림.
+// 칼 궤적 '찢김·굴절' 층 (NGH) — SlashTrail 궤적 메시에 한 층 더 그림. 강공격(M_RiftTrail_Red)·기본공격(M_RiftTrail_Ink)
 //  - 어두운 띠 위로 칼 방향을 따라 흐르는 빛 줄무늬, 칼끝·안쪽 가장자리가 빛남
 //  - 띠 안은 뒤 화면(_CameraOpaqueTexture)을 칼 방향으로 끌어 번지고 일렁이게 비틀어 공간이 찢긴 느낌
 // UV: x = 궤적 길이 (0 꼬리 → 1 지금 칼 위치), y = 폭 (0 칼끝 → 1 안쪽). 정점 색: rgb = 빛 색 곱, a = 남은 수명
@@ -16,6 +16,8 @@ Shader "NGH/FX/RiftTrail"
         _Scroll ("Scroll Speed", Float) = 1.8
         _Distort ("Distort (화면 일렁임)", Range(0, 0.1)) = 0.025
         _Smear ("Smear (칼 방향 번짐, 궤적 UV 길이)", Range(0, 0.3)) = 0.08
+        _Refract ("Refract (띠 가운데가 렌즈처럼 휨)", Range(0, 0.15)) = 0.04
+        _Chroma ("Chroma (굴절 색 갈라짐)", Range(0, 1)) = 0.35
         _Dark ("Dark Amount", Range(0, 1)) = 0.55
         _GlowIntensity ("Glow Intensity", Float) = 0.8
         _TailFade ("Tail Fade", Range(0.01, 1)) = 0.35
@@ -41,7 +43,7 @@ Shader "NGH/FX/RiftTrail"
             CBUFFER_START(UnityPerMaterial)
                 float4 _NoiseTex_ST;
                 half4 _GlowColor, _DarkColor, _SceneTint;
-                float _StreakRepeat, _StreakDensity, _Scroll, _Distort, _Smear, _Dark, _GlowIntensity, _TailFade;
+                float _StreakRepeat, _StreakDensity, _Scroll, _Distort, _Smear, _Refract, _Chroma, _Dark, _GlowIntensity, _TailFade;
             CBUFFER_END
 
             struct A { float4 positionOS : POSITION; float2 uv : TEXCOORD0; half4 color : COLOR; };
@@ -81,9 +83,22 @@ Shader "NGH/FX/RiftTrail"
 
                 // 뒤 화면: 일렁이게 비틀고 칼 반대 방향으로 끌어 번짐
                 float2 wob = (float2(n1, n2) - 0.5) * _Distort;
+                // 굴절: 띠 가운데가 볼록렌즈처럼 칼 면에 수직으로 화면을 밀어냄 (갓 지나간 쪽일수록 강함)
+                float2 perp = float2(-along.y, along.x);
+                float pl = length(perp);
+                perp = pl > 1e-6 ? perp / pl : float2(0, 1);
+                float bulge = sin(v * PI) * smoothstep(0.0, 0.5, u) * (0.4 + 0.6 * life);
+                float2 bend = perp * _Refract * bulge + wob;
+                // 색 갈라짐: r·b 를 굴절 방향 앞뒤로 조금씩 다르게 읽음
+                float2 ca = bend * _Chroma;
                 half3 scene = 0;
                 [unroll] for (int k = 0; k < 5; k++)
-                    scene += SampleSceneColor(saturate(suv + wob - along * _Smear * (k / 4.0)));
+                {
+                    float2 s = suv + bend - along * _Smear * (k / 4.0);
+                    scene.r += SampleSceneColor(saturate(s + ca)).r;
+                    scene.g += SampleSceneColor(saturate(s)).g;
+                    scene.b += SampleSceneColor(saturate(s - ca)).b;
+                }
                 scene /= 5.0;
 
                 // 모양: 꼬리는 사라지고, 칼끝·안쪽 가장자리는 부드럽게

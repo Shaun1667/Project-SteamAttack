@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>玄武 itch 미리보기</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap">
+<style>
+  :root {
+    --bg: #0c0f15; --bg2: #151b22; --text: #e8e2d4; --link: #d9a441;
+    --button: #a3241c; --button-text: #f4ecdc; --border: #2b333d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: var(--text); font: 15px/1.7 "Nanum Gothic", sans-serif;
+    background: var(--bg) url(upload/background_1920.jpg) no-repeat top center;
+  }
+  .itchbar { height: 40px; background: #222; color: #aaa; font: 13px sans-serif; display: flex; align-items: center; padding: 0 16px; }
+  .banner { display: block; margin: 24px auto 0; max-width: 960px; width: 100%; }
+  .column { max-width: 960px; margin: 0 auto 64px; background: color-mix(in srgb, var(--bg2) 92%, transparent); border: 1px solid var(--border); display: flex; gap: 24px; padding: 24px; }
+  .main { flex: 1; min-width: 0; }
+  .side { width: 300px; display: flex; flex-direction: column; gap: 10px; }
+  .side img { width: 100%; border: 1px solid var(--border); }
+  .side .ph { aspect-ratio: 16/9; border: 1px dashed var(--border); display: grid; place-items: center; font-size: 12px; color: #7d8590; }
+  h2 { font-family: "Nanum Myeongjo", serif; font-size: 24px; margin: 1.6em 0 .6em; }
+  a { color: var(--link); }
+  strong { color: #fff; }
+  blockquote { margin: 0 0 1em; padding: .4em 1em; border-left: 3px solid var(--button); font-family: "Nanum Myeongjo", serif; font-size: 18px; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2em 0; }
+  .main img { width: 100%; display: block; border: 1px solid var(--border); }
+  .center { text-align: center; color: var(--link); letter-spacing: .1em; }
+  .buy { margin-top: 2em; padding: 16px; border: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .btn { background: var(--button); color: var(--button-text); padding: 8px 18px; border-radius: 3px; font-weight: 700; }
+  @media (max-width: 760px) { .column { flex-direction: column; } .side { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="itchbar">itch.io</div>
+<img class="banner" src="upload/banner_960.png" alt="玄武 역류의 어명">
+<div class="column">
+  <div class="main" id="main"></div>
+  <div class="side">
+    <img src="upload/cover_630x500.jpg" alt="cover">
+    <div class="ph">실제 게임 스크린샷</div>
+    <div class="ph">실제 게임 스크린샷</div>
+    <div class="ph">실제 게임 스크린샷</div>
+  </div>
+</div>
+<template id="desc">
+<!--
+  itch.io > Edit game > Description 칸에 붙여 넣는 본문.
+  편집기 오른쪽 위 "HTML" 보기로 바꾼 뒤 붙여 넣는다.
+  [IMG: 파일명] 자리는 붙여 넣은 뒤 편집기의 이미지 버튼으로 upload/ 폴더의 그 파일을 올려 바꾼다.
+  (itch는 외부 주소 이미지를 막고, style 속성은 지우므로 꾸밈은 Edit theme 설정으로만 한다)
+-->
+
+<p style="text-align:center"><em>1887년 3월 · 시간이 멈춘 한양</em></p>
+
+<blockquote>
+<p>"가서, 저것을 다시 잠재우라. 죽이라는 것이 아니다."</p>
+</blockquote>
+
+<p>경복궁 건청궁에 조선 최초의 전등이 켜지던 밤, 향원정 물을 끓여 돌리던 증기 발전기 <strong>물불</strong>이 폭주한다. 땅속 신맥이 찢기고, 그 아래 잠들어 있던 북방의 수신 <strong>현무(玄武)</strong>가 깨어난다.</p>
+
+<p>현무는 도성의 열과 흐르는 시간을 삼켰다. 눈송이는 허공에 멈췄고 백성은 걸음을 떼다 말고 굳었다. 몸에 증기를 품어 얼지 않은 친군영 무사 하나가 증기통을 메고 역류 혼천의를 받아 어명을 받든다.</p>
+
+<p>[IMG: art_world_b.jpg]</p>
+
+<hr>
+
+<h2>먹과 증기의 칼</h2>
+
+<p>[IMG: art_combat_b.jpg]</p>
+
+<ul>
+<li><strong>환도와 증기 격발 화승총.</strong> 칼로 베고, 얼어붙은 도성에서 유일하게 불을 뿜는 화승총으로 쏜다. TAB 한 번으로 바꿔 든다.</li>
+<li><strong>받아치기.</strong> 적의 무기가 닿기 직전 그 한 점을 끊는다. 칼을 들었으면 칼로, 총을 들었으면 총으로.</li>
+<li><strong>증기 압력.</strong> 벨수록 등의 증기통에 압력이 찬다. 가득 차면 붉은 증기가 뿜어진다. 모은 압력을 칼에 실을지, 시간에 실을지 고른다.</li>
+<li><strong>탈피, 5초의 시간 역행.</strong> 현무의 한 호흡은 5초. 역류 혼천의를 거꾸로 돌리면 지난 5초의 상처와 자리를 허물로 벗어 두고 돌아간다. 다만 태운 증기는 돌아오지 않는다.</li>
+<li><strong>현무와의 결전.</strong> 흑철 가갑을 두른 거북과 미래의 잔상을 먼저 보내는 뱀. 안개문 너머에서 두 머리를 상대한다.</li>
+</ul>
+
+<hr>
+
+<h2>조작</h2>
+
+<ul>
+<li><strong>WASD</strong> 이동 · <strong>SHIFT</strong> 전력질주 · <strong>SPACE</strong> 구르기</li>
+<li><strong>좌클릭</strong> 환도 공격 / 화승총 발사</li>
+<li><strong>우클릭</strong> 환도 강공격 / 화승총 조준(홀드)</li>
+<li><strong>Ctrl</strong> 받아치기 · <strong>Q</strong> 시간 역행</li>
+<li><strong>F</strong> 발도·납도 · <strong>TAB</strong> 무기 바꾸기 · <strong>ESC</strong> 메뉴</li>
+</ul>
+
+<p>키보드와 마우스로 플레이합니다.</p>
+
+<hr>
+
+<h2>시연판 안내</h2>
+
+<p>이 빌드는 약 5분 분량의 시연판입니다. 근정전 앞에서 출발해 광화문 전투를 지나, 육조거리 안개문 너머 현무와의 결전까지 이어집니다.</p>
+
+<p><em>이 작품은 실존 인물·사건과 무관한 창작입니다.</em></p>
+</template>
+<script>
+  // description.html 내용(아래 sync 명령으로 template에 복사)을 [IMG: 파일] 자리만 실제 이미지로 바꿔 보여 준다
+  Promise.resolve(document.getElementById('desc').innerHTML).then(t => {
+    t = t.replace(/<!--[\s\S]*?-->/g, '')
+         .replace(/<p>\[IMG: ([^\]]+)\]<\/p>/g, (m, n) => '<p><img src="' + (window.IMG_SRC ? IMG_SRC[n] : 'upload/' + n) + '"></p>')
+         .replace('<p style="text-align:center">', '<p class="center">');
+    t += '<div class="buy"><span class="btn">Download</span><span>玄武 시연판 · Windows</span></div>';
+    document.getElementById('main').innerHTML = t;
+  });
+</script>
+</body>
+</html>
