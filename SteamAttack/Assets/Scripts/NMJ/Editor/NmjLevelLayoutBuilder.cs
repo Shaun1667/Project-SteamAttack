@@ -380,7 +380,7 @@ namespace NMJ.EditorTools
                         Spike(court, spike, ice, new Vector3(side * 8.5f, 0f, z), k, 1.4f + (k % 3) * 0.6f);
                         k++;
                     }
-                foreach (var p in new[] { new Vector3(-9f, 0f, 36f), new Vector3(9f, 0f, 36f), new Vector3(-12f, 0f, 37.5f), new Vector3(12f, 0f, 37.5f) })
+                foreach (var p in new[] { new Vector3(-9f, 0f, 33f), new Vector3(9f, 0f, 33f), new Vector3(-12f, 0f, 34f), new Vector3(12f, 0f, 34f) })   // 새 근정전 하월대 앞 가장자리(z 36) 앞으로
                     Spike(court, spike, ice, p, k++, 4.5f);
             }
 
