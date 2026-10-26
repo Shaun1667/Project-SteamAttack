@@ -7,6 +7,66 @@ public class BossBreathAttack : BossAttack
     [Tooltip("비워두면 부모의 SnakeFSM 중 이 브레스가 Patterns에 등록된 것을 찾습니다. 실제 공격 실행은 FSM의 Patterns 등록으로 정합니다.")]
     public SnakeFSM snakeFSM;
 
+    [Header("코드로 움직이는 브레스 머리")]
+    public SnakeSphereTarget headTarget;
+    [Min(0.01f)] public float headSweepTime = 1.5f;
+    public bool sweepLeftToRight = true;
+    private SnakeSphereTarget controlledHead;
+
+    [Header("게임 화면의 브레스 선 - 훑는 동안만 표시")]
+    public bool showBreathLine = true;
+    [Tooltip("선택 사항. 입 앞의 빈 오브젝트를 연결하면 여기서 선이 시작됩니다.")]
+    public Transform breathLineOrigin;
+    public Material breathLineMaterial;
+    public Color breathLineColor = new Color(1f, 0.25f, 0.05f, 1f);
+    [Min(0.001f)] public float breathLineWidth = 0.12f;
+    private LineRenderer breathLine;
+    private Material runtimeLineMaterial;
+
+    private void LateUpdate()
+    {
+        bool visible = showBreathLine && IsRunning && controlledHead != null &&
+            controlledHead.isActiveAndEnabled && controlledHead.IsBreathSweeping;
+        if (!visible)
+        {
+            if (breathLine != null) breathLine.enabled = false;
+            return;
+        }
+        if (breathLine == null)
+        {
+            Material material = breathLineMaterial;
+            if (material == null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+                if (shader == null) shader = Shader.Find("Sprites/Default");
+                if (shader == null) return;
+                runtimeLineMaterial = new Material(shader);
+                material = runtimeLineMaterial;
+            }
+            GameObject lineObject = new GameObject(name + "_BreathLine");
+            breathLine = lineObject.AddComponent<LineRenderer>();
+            breathLine.sharedMaterial = material;
+            breathLine.useWorldSpace = true;
+            breathLine.positionCount = 2;
+            breathLine.numCapVertices = 4;
+            breathLine.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            breathLine.receiveShadows = false;
+        }
+        if (runtimeLineMaterial != null)
+        {
+            if (runtimeLineMaterial.HasProperty("_BaseColor")) runtimeLineMaterial.SetColor("_BaseColor", breathLineColor);
+            if (runtimeLineMaterial.HasProperty("_Color")) runtimeLineMaterial.SetColor("_Color", breathLineColor);
+        }
+        Transform origin = breathLineOrigin != null ? breathLineOrigin : controlledHead.mouthHead;
+        if (origin == null) origin = controlledHead.ikTarget;
+        if (origin == null) { breathLine.enabled = false; return; }
+        breathLine.startWidth = breathLine.endWidth = Mathf.Max(0.001f, breathLineWidth);
+        breathLine.startColor = breathLine.endColor = breathLineColor;
+        breathLine.SetPosition(0, origin.position);
+        breathLine.SetPosition(1, controlledHead.BreathAimPoint + Vector3.up * 0.03f);
+        breathLine.enabled = true;
+    }
+
     [Header("브레스 판정 - 예고 시작 시 플레이어 거리 기준")]
     [Tooltip("플레이어 거리의 앞뒤 폭. 1이면 거리 6에서 5~7m에 판정이 생깁니다. 예고 시작 후에는 고정됩니다.")]
     [Min(0.01f)] public float halfWidth = 1f;
@@ -98,7 +158,36 @@ public class BossBreathAttack : BossAttack
         warningProjector.size = new Vector3(
             shape.y * 2f, shape.y * 2f, Mathf.Max(0.1f, projectionDepth));
         warningObject.SetActive(true);
+        if (headTarget == null) headTarget = GetComponentInParent<SnakeSphereTarget>();
+        if (snakeFSM == null) snakeFSM = GetComponentInParent<SnakeFSM>();
+        if (headTarget == null && snakeFSM != null)
+        {
+            if (snakeFSM.rangeOrigin != null)
+                headTarget = snakeFSM.rangeOrigin.GetComponentInParent<SnakeSphereTarget>();
+            if (headTarget == null) headTarget = snakeFSM.GetComponentInChildren<SnakeSphereTarget>();
+        }
+        float edge = shape.z * 0.5f;
+        if (!sweepLeftToRight) edge = -edge;
+        float radius = (shape.x + shape.y) * 0.5f;
+        Vector3 start = floor + Direction * PointOnRay(-edge, radius);
+        Vector3 end = floor + Direction * PointOnRay(edge, radius);
+        if (headTarget == null || !headTarget.BeginBreathSweep(start, end, readyTime, headSweepTime))
+        {
+            Debug.LogWarning("브레스 Head Target에 활성 SnakeSphereTarget과 자식 IK Target을 연결해 주세요.", this);
+            return false;
+        }
+        controlledHead = headTarget;
         return true;
+    }
+
+    protected override bool WaitBeforeActive(float deltaTime)
+    {
+        if (controlledHead == null || !controlledHead.isActiveAndEnabled || controlledHead.ikTarget == null)
+        {
+            CancelAttack();
+            return true;
+        }
+        return !controlledHead.IsBreathSweepComplete;
     }
 
     protected override void StartActive()
@@ -137,6 +226,9 @@ public class BossBreathAttack : BossAttack
 
     protected override void EndAttack()
     {
+        if (breathLine != null) breathLine.enabled = false;
+        if (controlledHead != null) controlledHead.EndBreathSweep();
+        controlledHead = null;
         if (warningObject != null) warningObject.SetActive(false);
         if (hitboxRoot != null) hitboxRoot.SetActive(false);
     }
@@ -368,8 +460,11 @@ public class BossBreathAttack : BossAttack
 
     private void OnDestroy()
     {
+        EndAttack();
         DestroyHitboxes();
         DestroyWarningResources();
+        if (breathLine != null) Destroy(breathLine.gameObject);
+        if (runtimeLineMaterial != null) Destroy(runtimeLineMaterial);
     }
 
     // 실행 중인 공격은 실제 hitboxRoot를 그린다.

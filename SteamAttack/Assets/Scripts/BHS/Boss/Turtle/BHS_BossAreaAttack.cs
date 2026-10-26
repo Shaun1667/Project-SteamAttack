@@ -3,6 +3,14 @@ using UnityEngine.Rendering.Universal;
 
 public class BossAreaAttack : BossAttack
 {
+    [Header("현무 Animator - Bool 이름은 IsStamping")]
+    public Animator animator;
+
+    private bool controlsAnimation;
+    private float animationWaitTime;
+    private static readonly int StampStateHash = Animator.StringToHash("Base Layer.BHS_StampBe");
+    private static readonly int IsStampingHash = Animator.StringToHash("IsStamping");
+
     [Header("근거리 360도 공격 - 월드 거리")]
     [Min(0.01f)] public float radius = 3f;
     [Min(0.01f)] public float hitboxHeight = 2f;
@@ -117,6 +125,34 @@ public class BossAreaAttack : BossAttack
     {
         if (Target == null || !Target.CompareTag("Player")) return false;
 
+        // 새 Inspector 연결이 비어 있어도 기존 거북이 Animator를 자동으로 사용한다.
+        if (animator == null && Owner != null)
+        {
+            foreach (Animator candidate in Owner.GetComponentsInChildren<Animator>(true))
+            {
+                if (!candidate.isActiveAndEnabled || candidate.runtimeAnimatorController == null ||
+                    !candidate.HasState(0, StampStateHash)) continue;
+                animator = candidate;
+                break;
+            }
+        }
+        if (animator == null || !animator.isActiveAndEnabled ||
+            animator.runtimeAnimatorController == null || !animator.HasState(0, StampStateHash))
+        {
+            Debug.LogWarning("Area 공격에 BHS_StampBe 상태가 있는 활성 Animator를 연결해 주세요.", this);
+            return false;
+        }
+        bool hasStampParameter = false;
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+            if (parameter.nameHash == IsStampingHash && parameter.type == AnimatorControllerParameterType.Bool)
+                hasStampParameter = true;
+        if (!hasStampParameter)
+        {
+            Debug.LogWarning("Animator에 Bool 파라미터 IsStamping이 필요합니다.", this);
+            return false;
+        }
+        animationWaitTime = 0f;
+
         // FSM이 찾은 플레이어와 자식의 콜라이더를 자동으로 가져온다.
         playerColliders = Target.GetComponentsInChildren<Collider>(true);
         if (playerColliders.Length == 0)
@@ -168,6 +204,35 @@ public class BossAreaAttack : BossAttack
         return true;
     }
 
+    // Ready Time 이후 준비 동작이 실제로 완료되어야 Attack Time을 시작한다.
+    protected override bool WaitBeforeActive(float deltaTime)
+    {
+        if (animator == null || !animator.isActiveAndEnabled || animator.runtimeAnimatorController == null)
+        {
+            CancelAttack();
+            return true;
+        }
+        if (!controlsAnimation)
+        {
+            controlsAnimation = true;
+            animationWaitTime = 0f;
+            animator.SetBool(IsStampingHash, true);
+            return true;
+        }
+        animationWaitTime += deltaTime;
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+        if (!animator.IsInTransition(0) && state.fullPathHash == StampStateHash)
+            return state.normalizedTime < 1f;
+
+        // 잘못된 전이 연결로 보스가 준비 상태에 영구히 멈추는 것을 방지한다.
+        if (animationWaitTime >= 5f)
+        {
+            Debug.LogWarning("IsStamping으로 BHS_StampBe에 진입하지 못했습니다. Animator 전이를 확인하세요.", this);
+            CancelAttack();
+        }
+        return true;
+    }
+
     protected override void StartActive()
     {
         warningObject.SetActive(false);
@@ -184,7 +249,11 @@ public class BossAreaAttack : BossAttack
             // 피격 이벤트가 보스 또는 공격을 중단했을 수 있다.
             if (!IsRunning) return;
         }
-        if (elapsed >= stompDuration && hitboxObject != null) hitboxObject.SetActive(false);
+        if (elapsed >= stompDuration)
+        {
+            StopStampAnimation();
+            if (hitboxObject != null) hitboxObject.SetActive(false);
+        }
         if (!waveEnabled || elapsed < waveStartTime) return;
 
         if (!waveStarted)
@@ -229,8 +298,16 @@ public class BossAreaAttack : BossAttack
         }
     }
 
+    private void StopStampAnimation()
+    {
+        if (!controlsAnimation) return;
+        controlsAnimation = false;
+        if (animator != null) animator.SetBool(IsStampingHash, false);
+    }
+
     protected override void EndAttack()
     {
+        StopStampAnimation();
         if (warningObject != null) warningObject.SetActive(false);
         if (hitboxObject != null) hitboxObject.SetActive(false);
         if (waveVisualObject != null) waveVisualObject.SetActive(false);

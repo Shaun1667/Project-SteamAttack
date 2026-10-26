@@ -98,6 +98,8 @@ public abstract class BossAttack : MonoBehaviour
         {
             timer += deltaTime;
             if (timer < readyTime) return;
+            // 패턴에 따라 예고 이후 애니메이션이 끝날 때까지 판정 시작을 미룬다.
+            if (WaitBeforeActive(deltaTime) || !IsRunning) return;
 
             timer = 0f;
             currentPhase = Phase.Active;
@@ -146,6 +148,7 @@ public abstract class BossAttack : MonoBehaviour
 
     protected abstract bool PrepareAttack();
     protected abstract void TickActive(float deltaTime);
+    protected virtual bool WaitBeforeActive(float deltaTime) => false;
     protected virtual void StartActive() { }
     protected virtual void EndAttack() { }
     protected virtual void OnDisable() => CancelAttack();

@@ -7,6 +7,16 @@ using UnityEngine.Rendering.Universal;
 [DisallowMultipleComponent]
 public class BossArtilleryAttack : BossAttack
 {
+    [Header("현무 Animator - Bool 이름은 IsShooting")]
+    public Animator animator;
+    private bool controlsAnimation;
+    private bool waitingForShoot;
+    private bool waitingForIdle;
+    private float shootEntryWait;
+    private static readonly int ShootStateHash = Animator.StringToHash("Base Layer.BHS_ShootBe");
+    private static readonly int IdleStateHash = Animator.StringToHash("Base Layer.idle");
+    private static readonly int IsShootingHash = Animator.StringToHash("IsShooting");
+
     [Header("포격 발동 조건")]
     [Tooltip("거북이 BossFSM. 비우면 자신/부모에서 찾습니다.")]
     public BossFSM bodyFSM;
@@ -18,7 +28,7 @@ public class BossArtilleryAttack : BossAttack
     [Min(1)] public int shellCount = 5;
     [Tooltip("각 포탄의 데칼을 표시하고 발사한 뒤, 그 포탄이 착탄하기까지의 시간입니다.")]
     [Min(0.05f)] public float warningToImpactTime = 1.2f;
-    [Tooltip("앞 포탄과 다음 포탄의 간격. 모든 포탄의 비행 시간이 같아 데칼/발사/착탄 간격이 같습니다. 0이면 동시 발사.")]
+    [Tooltip("발사 후 다음 발의 준비 애니메이션을 시작하기까지의 최소 간격. 후속 동작과 idle 복귀도 기다립니다. 0이어도 애니메이션마다 한 발씩 발사합니다.")]
     [Min(0f)] public float shellInterval = 0.4f;
 
     [Header("데칼 크기 / 착탄 판정 - 월드 크기")]
@@ -175,6 +185,33 @@ public class BossArtilleryAttack : BossAttack
     protected override bool PrepareAttack()
     {
         if (Target == null || !Target.CompareTag("Player")) return false;
+        // 새 Inspector 연결이 비어 있어도 기존 거북이 Animator를 자동으로 사용한다.
+        if (animator == null && Owner != null)
+        {
+            foreach (Animator candidate in Owner.GetComponentsInChildren<Animator>(true))
+            {
+                if (!candidate.isActiveAndEnabled || candidate.runtimeAnimatorController == null ||
+                    !candidate.HasState(0, ShootStateHash)) continue;
+                animator = candidate;
+                break;
+            }
+        }
+        if (animator == null || !animator.isActiveAndEnabled ||
+            animator.runtimeAnimatorController == null ||
+            !animator.HasState(0, ShootStateHash) || !animator.HasState(0, IdleStateHash))
+        {
+            Debug.LogWarning("포격에 BHS_ShootBe와 idle 상태가 있는 활성 Animator를 연결해 주세요.", this);
+            return false;
+        }
+        bool hasShooting = false;
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+            if (parameter.nameHash == IsShootingHash && parameter.type == AnimatorControllerParameterType.Bool)
+                hasShooting = true;
+        if (!hasShooting)
+        {
+            Debug.LogWarning("Animator에 Bool 파라미터 IsShooting을 추가해 주세요.", this);
+            return false;
+        }
         bool hasCollider = false;
         foreach (Collider collider in Target.GetComponentsInChildren<Collider>(true))
             if (collider.enabled && collider.gameObject.activeInHierarchy) { hasCollider = true; break; }
@@ -212,6 +249,8 @@ public class BossArtilleryAttack : BossAttack
         runtimeRoot = new GameObject(name + "_ArtilleryRuntime");
         if (!CreateDecalResources()) return false;
         CreateExplosionQuery();
+        waitingForShoot = false;
+        waitingForIdle = false;
         return true;
     }
 
@@ -248,30 +287,62 @@ public class BossArtilleryAttack : BossAttack
         LaunchDueShells();
         if (!IsRunning) return;
 
-        if (launchedShells < lockedCount) return;
+        if (launchedShells < lockedCount || waitingForIdle) return;
         foreach (Shell shell in shells)
             if (!shell.landed || shell.root != null) return;
         CancelAttack();
     }
 
+    // 한 번의 준비 동작 완료당 정확히 한 발만 발사한다.
     private void LaunchDueShells()
     {
-        if (launchedShells >= lockedCount || elapsed < nextLaunchTime) return;
-        if (Target == null || !Target.gameObject.activeInHierarchy)
+        if (animator == null || !animator.isActiveAndEnabled || animator.runtimeAnimatorController == null)
         {
-            // 이미 예고한 포탄은 마저 떨어지고, 남은 조준은 중단한다.
-            lockedCount = launchedShells;
+            CancelAttack();
             return;
         }
-
-        do
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+        if (waitingForIdle)
         {
-            LaunchShell();
-            if (!IsRunning) return;
-            launchedShells++;
-            nextLaunchTime = elapsed + lockedInterval;
-            // 0 간격만 동시 발사. 프레임 지연으로 밀린 발을 한꺼번에 몰아 쏘지 않는다.
-        } while (lockedInterval == 0f && launchedShells < lockedCount);
+            if (animator.IsInTransition(0) || state.fullPathHash != IdleStateHash) return;
+            waitingForIdle = false;
+        }
+        if (launchedShells >= lockedCount) return;
+        if (Target == null || !Target.gameObject.activeInHierarchy)
+        {
+            lockedCount = launchedShells;
+            waitingForShoot = false;
+            StopShootingAnimation();
+            return;
+        }
+        if (!waitingForShoot)
+        {
+            if (elapsed < nextLaunchTime) return;
+            controlsAnimation = true;
+            waitingForShoot = true;
+            shootEntryWait = 0f;
+            animator.SetBool(IsShootingHash, true);
+            return;
+        }
+        if (animator.IsInTransition(0) || state.fullPathHash != ShootStateHash)
+        {
+            shootEntryWait += Time.deltaTime;
+            if (shootEntryWait >= 5f)
+            {
+                Debug.LogWarning("IsShooting으로 BHS_ShootBe에 진입하지 못했습니다. Animator 전이를 확인하세요.", this);
+                CancelAttack();
+            }
+            return;
+        }
+        if (state.normalizedTime < 1f) return;
+
+        LaunchShell();
+        if (!IsRunning) return;
+        launchedShells++;
+        waitingForShoot = false;
+        waitingForIdle = true;
+        nextLaunchTime = elapsed + lockedInterval;
+        StopShootingAnimation();
     }
 
     private void LaunchShell()
@@ -487,8 +558,18 @@ public class BossArtilleryAttack : BossAttack
         return fallback;
     }
 
+    private void StopShootingAnimation()
+    {
+        if (!controlsAnimation) return;
+        controlsAnimation = false;
+        if (animator != null) animator.SetBool(IsShootingHash, false);
+    }
+
     protected override void EndAttack()
     {
+        StopShootingAnimation();
+        waitingForShoot = false;
+        waitingForIdle = false;
         ResetStayTimer();
         if (runtimeRoot != null)
         {

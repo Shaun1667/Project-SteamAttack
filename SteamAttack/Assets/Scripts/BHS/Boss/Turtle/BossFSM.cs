@@ -19,6 +19,8 @@ public class BossFSM : MonoBehaviour
     [Min(0.1f)] public float detectRange = 8f;
     [Min(0.05f)] public float searchInterval = 0.25f;
     [Min(1f)] public float turnSpeed = 180f;
+    [Tooltip("공격 선택 전에 플레이어를 향해 회전하는 시간입니다. 시간이 지나면 정면이 덜 맞아도 현재 방향에서 공격을 준비합니다.")]
+    [Min(0f)] public float aimTime = 1f;
     [Min(0f)] public float heightTolerance = 2f;
 
     [Header("거북이 패턴 목록")]
@@ -108,10 +110,10 @@ public class BossFSM : MonoBehaviour
         Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
-        if (Quaternion.Angle(transform.rotation, targetRotation) <= 1f)
+        // 정면 정렬 여부와 관계없이 지정 시간 동안만 추적한다.
+        // 목표 방향으로 강제 회전하지 않고 현재 방향에서 패턴을 준비한다.
+        if (stateTimer >= Mathf.Max(0f, aimTime))
         {
-            transform.rotation = targetRotation;
-            // 회전이 완료된 순간의 거리로 선택한다.
             ChangeState(State.SelectAttack);
             SelectAttack();
         }
@@ -192,18 +194,25 @@ public class BossFSM : MonoBehaviour
         acquiredCoordinator = attackCoordinator;
         return true;
     }
-
     // 공격이 명중하면 플레이어의 피격 함수를 직접 호출한다.
     private void DamagePlayer(float damage)
     {
         if (player == null) return;
-        /*테스트용*/
-        PlayerHitTeleport receiverA = player.GetComponentInParent<PlayerHitTeleport>();
+       /* 테스트용 */
+       PlayerHitTeleport receiverA = player.GetComponentInParent<PlayerHitTeleport>();
         if (receiverA != null) receiverA.TakeDamage(damage);
-
         PlayerHealth receiver = player.GetComponentInParent<PlayerHealth>();
 
         if (receiver != null) receiver.TakeDamage(damage);
+
+        NGH.PlayerController controller =
+        player.GetComponentInParent<NGH.PlayerController>();
+        if (controller != null)
+        {
+            controller.TakeHit(
+                Mathf.Max(1, Mathf.RoundToInt(damage)),
+                transform.position);
+        }
     }
 
     private void UpdateAttack()
@@ -262,6 +271,7 @@ public class BossFSM : MonoBehaviour
         detectRange = Mathf.Max(0.1f, detectRange);
         searchInterval = Mathf.Max(0.05f, searchInterval);
         turnSpeed = Mathf.Max(1f, turnSpeed);
+        aimTime = Mathf.Max(0f, aimTime);
         heightTolerance = Mathf.Max(0f, heightTolerance);
     }
 

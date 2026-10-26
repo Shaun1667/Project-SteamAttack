@@ -31,7 +31,7 @@ public class BossSnakeBiteAttack : BossAttack
     [Min(0.01f)] public float returnTime = 0.35f;
     [Tooltip("플레이어 Transform에서 위로 더한 조준 높이입니다. 발밑이 피벗이면 몸통 높이에 맞추세요.")]
     public float targetHeightOffset = 1f;
-    [Tooltip("예고 때 정한 조준점을 이 거리만큼 지나가도록 뻗습니다.")]
+    [Tooltip("입을 벌린 뒤 돌진 시작 순간에 정한 조준점을 이 거리만큼 지나가도록 뻗습니다.")]
     [Min(0f)] public float extraDistance = 0.2f;
     [Tooltip("Chain IK 본 길이 합의 이 비율까지만 뻗습니다. 완전히 일자로 펴지는 것을 피합니다.")]
     [Range(0.5f, 0.99f)] public float reachRatio = 0.98f;
@@ -145,16 +145,8 @@ public class BossSnakeBiteAttack : BossAttack
         savedLocalRotation = controlledTarget.localRotation;
         readyStart = controlledTarget.position;
         lockedRotation = controlledTarget.rotation;
-        aimPoint = Target.position + Vector3.up * targetHeightOffset;
-
         Vector3 mouthCenter = GetMouthCenter();
-        Vector3 direction = aimPoint - mouthCenter;
-        if (direction.sqrMagnitude < 0.000001f) direction = Direction * Vector3.forward;
-        direction.Normalize();
-        pulledBack = ClampToReach(readyStart - direction * Mathf.Max(0f, pullbackDistance));
-        // IK Target은 머리 끝의 목표점이므로 입 중심과 실제 Tip 사이의 차이를 보정합니다.
-        Vector3 mouthOffset = mouthCenter - data.tip.position;
-        strikePoint = ClampToReach(aimPoint - mouthOffset + direction * Mathf.Max(0f, extraDistance));
+        RefreshAim();
 
         lockedReadyTime = Mathf.Max(0f, readyTime);
         lockedExtendTime = Mathf.Max(0.01f, extendTime);
@@ -171,6 +163,8 @@ public class BossSnakeBiteAttack : BossAttack
         driverWasEnabled = controlledDriver.enabled;
         controlsTarget = true;
         controlledDriver.enabled = false;
+        // 추적 스크립트는 꺼 두고 입 동작만 이 공격에서 진행한다.
+        controlledDriver.OpenAttackMouth();
         DisablePhysicalMouthCollider();
         return true;
     }
@@ -193,6 +187,7 @@ public class BossSnakeBiteAttack : BossAttack
                 CancelAttack();
                 return;
             }
+            RefreshAim();
             float t = lockedReadyTime > 0f ? (Time.time - readyStartedAt) / lockedReadyTime : 1f;
             SetTargetPose(Vector3.Lerp(readyStart, pulledBack, Smooth(t)), lockedRotation);
             return;
@@ -215,6 +210,30 @@ public class BossSnakeBiteAttack : BossAttack
         }
     }
 
+    // 준비 중에는 추적하고, 돌진을 시작할 때 마지막 조준 위치를 고정한다.
+    private void RefreshAim()
+    {
+        if (Target == null || chainIK == null || chainIK.data.tip == null) return;
+        aimPoint = Target.position + Vector3.up * targetHeightOffset;
+        Vector3 mouthCenter = GetMouthCenter();
+        Vector3 direction = aimPoint - mouthCenter;
+        if (direction.sqrMagnitude < 0.000001f) direction = Direction * Vector3.forward;
+        direction.Normalize();
+        pulledBack = ClampToReach(readyStart - direction * Mathf.Max(0f, pullbackDistance));
+        Vector3 mouthOffset = mouthCenter - chainIK.data.tip.position;
+        strikePoint = ClampToReach(aimPoint - mouthOffset + direction * Mathf.Max(0f, extraDistance));
+    }
+
+    protected override bool WaitBeforeActive(float deltaTime)
+    {
+        if (controlledDriver == null || !controlledDriver.gameObject.activeInHierarchy)
+        {
+            CancelAttack();
+            return true;
+        }
+        return !controlledDriver.IsAttackMouthOpen;
+    }
+
     protected override void StartActive()
     {
         if (controlledTarget == null || chainRoot == null || mouthCollider == null)
@@ -228,6 +247,8 @@ public class BossSnakeBiteAttack : BossAttack
             CancelAttack();
             return;
         }
+        // 입이 열린 현재 자세와 최신 플레이어 위치로 최종 조준한다.
+        RefreshAim();
         // Ready Time이 0이어도 뒤로 순간이동하지 않고 현재 위치에서 뻗습니다.
         pulledBack = ClampToReach(controlledTarget.position);
         previousMouthCenter = GetMouthCenter();
@@ -240,6 +261,9 @@ public class BossSnakeBiteAttack : BossAttack
     protected override void TickActive(float deltaTime)
     {
         elapsed += deltaTime;
+        // 목표점까지 뻗기가 끝나는 순간부터 입을 닫는다.
+        if (elapsed >= lockedExtendTime && controlledDriver != null)
+            controlledDriver.CloseAttackMouth();
         // 뒤로 회수할 때는 피해를 주지 않습니다.
         canDamage = elapsed <= lockedExtendTime + lockedHoldTime;
     }
@@ -248,6 +272,8 @@ public class BossSnakeBiteAttack : BossAttack
     private void LateUpdate()
     {
         if (!IsRunning || !controlsTarget || mouthCollider == null) return;
+        // 비활성 SnakeSphereTarget은 LateUpdate가 없으므로 여기서 한 번 진행한다.
+        if (controlledDriver != null) controlledDriver.TickAttackMouth(Time.deltaTime);
         Vector3 center = GetMouthCenter();
         float radius = GetMouthRadius();
         Vector3 from = previousMouthCenter;
@@ -319,7 +345,11 @@ public class BossSnakeBiteAttack : BossAttack
             controlledTarget.localPosition = savedLocalPosition;
             controlledTarget.localRotation = savedLocalRotation;
         }
-        if (controlledDriver != null) controlledDriver.enabled = driverWasEnabled;
+        if (controlledDriver != null)
+        {
+            controlledDriver.RestoreBreathMouth();
+            controlledDriver.enabled = driverWasEnabled;
+        }
         controlledTarget = null;
         controlledDriver = null;
         chainRoot = null;
