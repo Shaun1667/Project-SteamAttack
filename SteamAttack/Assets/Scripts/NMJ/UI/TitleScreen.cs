@@ -40,6 +40,11 @@ namespace NMJ
         [SerializeField] private Texture2D backgroundImage;
         [Tooltip("배경 그림 위에 까는 어둠 (글자가 잘 읽히게)")]
         [SerializeField, Range(0f, 1f)] private float backgroundDim = 0.35f;
+        [Tooltip("배경 그림에 로고·문구가 이미 그려져 있다 (UI_TitleBG_SteamInk). 켜면 글자 로고·어둠·아래 글을 숨기고 메뉴를 그림 왼쪽에 둔다")]
+        [SerializeField] private bool artIncludesLogo;
+        [Tooltip("그림 모드 메뉴 자리 (화면 비율 0~1, 첫 줄 왼쪽 기준)")]
+        [SerializeField] private Vector2 artMenuAnchor = new Vector2(0.095f, 0.565f);
+        [SerializeField] private Color artTextColor = new Color(0.13f, 0.12f, 0.12f, 1f);   // 먹
         [SerializeField] private AudioClip music;
         [SerializeField, Range(0f, 1f)] private float musicVolume = 0.7f;
 
@@ -217,13 +222,23 @@ namespace NMJ
             if (font == null) font = FindDefaultFont();
             if (glyphFont == null) glyphFont = FindGlyphFont();
 #endif
-            style = new Style { font = font, textColor = textColor, selectedColor = brassColor, underlineColor = sealColor, buttonHeight = 64f, fontSize = 34f };
+            style = artIncludesLogo && backgroundImage != null
+                // 밝은 수묵 그림 위: 먹색 글자, 고르면 붉은 글자와 붉은 붓줄
+                ? new Style { font = font, textColor = artTextColor, selectedColor = sealColor, underlineColor = sealColor, buttonHeight = 54f, fontSize = 28f }
+                : new Style { font = font, textColor = textColor, selectedColor = brassColor, underlineColor = sealColor, buttonHeight = 64f, fontSize = 34f };
 
             Canvas canvas = NewCanvas("NMJ_TitleCanvas", transform, 10, out group);
             BuildBackground(canvas.transform);
-            BuildLogo(canvas.transform);
-            BuildMenu(canvas.transform);
-            BuildFooter(canvas.transform);
+            if (artIncludesLogo && backgroundImage != null)
+            {
+                BuildArtMenu(canvas.transform);   // 로고·문구는 그림에 있다
+            }
+            else
+            {
+                BuildLogo(canvas.transform);
+                BuildMenu(canvas.transform);
+                BuildFooter(canvas.transform);
+            }
 
             // 맨 위 검은 막 (들어올 때·게임 시작할 때)
             Image black = NewImage("Fade", canvas.transform, Color.black, Vector2.zero, Vector2.zero);
@@ -240,7 +255,7 @@ namespace NMJ
                 var fit = img.gameObject.AddComponent<AspectRatioFitter>();
                 fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;   // 화면을 꽉 채우고 넘치는 쪽은 잘림
                 fit.aspectRatio = (float)backgroundImage.width / backgroundImage.height;
-                NewImage("Dim", bg, new Color(0f, 0f, 0f, backgroundDim), Vector2.zero, Vector2.zero);
+                if (!artIncludesLogo) NewImage("Dim", bg, new Color(0f, 0f, 0f, backgroundDim), Vector2.zero, Vector2.zero);
                 return;
             }
 
@@ -328,6 +343,29 @@ namespace NMJ
             settingsButton = AddButton(buttons, list, style, "환경 설정", OnSettingsPressed);
             AddButton(buttons, list, style, "게임 종료", OnQuit);
             LayoutColumn(buttons, 64f);
+        }
+
+        /// <summary>그림 모드: 그림 왼쪽 안개 자리에 왼쪽 정렬 메뉴 (그림의 NEW GAME 자리)</summary>
+        private void BuildArtMenu(Transform parent)
+        {
+            RectTransform list = NewRect("Menu", parent);
+            list.anchorMin = list.anchorMax = artMenuAnchor;
+            list.pivot = new Vector2(0f, 1f);
+            list.sizeDelta = new Vector2(380f, style.buttonHeight * 3f);
+            startButton = AddButton(buttons, list, style, "게임 시작", OnStart);
+            settingsButton = AddButton(buttons, list, style, "환경 설정", OnSettingsPressed);
+            AddButton(buttons, list, style, "게임 종료", OnQuit);
+            LayoutColumn(buttons, style.buttonHeight);
+            foreach (MenuButton b in buttons)
+            {
+                b.label.alignment = TextAlignmentOptions.Left;
+                b.label.characterSpacing = 12f;
+                b.label.rectTransform.offsetMin = new Vector2(28f, 0f);   // 왼쪽에 붉은 마름모 자리
+                b.underline.anchorMin = b.underline.anchorMax = new Vector2(0f, 0.5f);
+                b.underline.pivot = new Vector2(0f, 0.5f);
+                b.underline.anchoredPosition = new Vector2(20f, -style.fontSize * 0.68f);
+                b.soonTag.GetComponent<TMP_Text>().alignment = TextAlignmentOptions.Right;
+            }
         }
 
         private void BuildFooter(Transform parent)
