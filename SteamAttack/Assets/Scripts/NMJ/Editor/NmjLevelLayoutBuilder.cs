@@ -35,21 +35,47 @@ namespace NMJ.EditorTools
         const string MatDir = "Assets/Materials/NMJ/HyeonmuWorld/";
         const float PocheolWander = 2.5f;   // 기본 6m면 옆 구간까지 걸어가 구간이 섞인다
 
+        const string MainScenePath = "Assets/Scenes/Common/Main.unity";
+        static readonly List<string> Missing = new List<string>();
+
         [MenuItem("SteamAttack/NMJ/레벨 배치 v2 적용")]
         public static void Apply()
         {
+            if (EditorApplication.isPlaying) { EditorUtility.DisplayDialog("레벨 배치 v2", "Play를 멈춘 뒤에 눌러 주세요.", "확인"); return; }
+
+            // Main이 안 열려 있으면 열어 준다 (예전엔 오류 한 줄만 남기고 조용히 끝나 '안 된다'로 보였다)
             var world = FindWorld();
-            if (world == null) { Debug.LogError("[NMJ 레벨] Common/Main을 열고 실행하세요 (현무_세계관 없음)"); return; }
+            if (world == null)
+            {
+                if (!EditorUtility.DisplayDialog("레벨 배치 v2", "공용 씬 Common/Main을 열고 적용할까요?", "열고 적용", "취소")) return;
+                if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+                EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Single);
+                world = FindWorld();
+                if (world == null) { EditorUtility.DisplayDialog("레벨 배치 v2", "Main 씬에 '현무_세계관'이 없습니다. 최신 내용을 Pull 했는지 확인하세요.", "확인"); return; }
+            }
+            var scene = world.gameObject.scene;
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            Missing.Clear();
 
             ApplyEnemies();
             ApplyStory();
             ApplyQuestZones();
             ApplyWorld(world);
             BuildDressing(world);
-            EnsureInstance(DressingPrefab);
+            // 씬에서 배치 묶음을 지웠거나 덮어쓴 경우도 프리팹 그대로 되돌린다
+            EnsureInstance(scene, EnemyPrefab);
+            EnsureInstance(scene, StoryPrefab);
+            EnsureInstance(scene, QuestZonePrefab);
+            EnsureInstance(scene, DressingPrefab);
 
-            EditorSceneManager.MarkSceneDirty(world.gameObject.scene);
-            Debug.Log("[NMJ 레벨] 배치 v2 적용 완료 — 씬을 저장하세요");
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+
+            string msg = "배치 v2를 적용하고 Main 씬을 저장했습니다.";
+            if (Missing.Count > 0) msg += "\n\n못 찾은 것 " + Missing.Count + "개 (Console 참고):\n" + string.Join("\n", Missing.GetRange(0, Mathf.Min(8, Missing.Count)));
+            Debug.Log("[NMJ 레벨] " + msg);
+            EditorUtility.DisplayDialog("레벨 배치 v2", msg, "확인");
         }
 
         // ---------------------------------------------------------------- 적
@@ -70,7 +96,7 @@ namespace NMJ.EditorTools
             foreach (var kv in p)
             {
                 var t = root.transform.Find(kv.Key);
-                if (t == null) { Debug.LogWarning("[NMJ 레벨] 적 없음: " + kv.Key); continue; }
+                if (t == null) { Miss("적 " + kv.Key); continue; }
                 t.localPosition = kv.Value;
                 if (t.name.StartsWith("변이포졸")) SetFloat(t.gameObject, "EnemyAI", "_wanderRadius", PocheolWander);
                 // 문 바로 앞 마지막 포졸: 내려치기(동심원 강공격)를 자주 → 받아치기 → 경직 → 강공격을 자연스럽게 보게 (육조 받아치기 포졸은 1)
@@ -248,9 +274,21 @@ namespace NMJ.EditorTools
         // ---------------------------------------------------------------- 도우미
         static Transform FindWorld()
         {
-            foreach (var go in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
-                if (go.name.StartsWith("현무_세계관")) return go.transform;
+            // 씬을 여러 개 열어 둔 경우(Title·BossArena 함께)에도 찾는다
+            for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
+            {
+                var sc = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);
+                if (!sc.isLoaded) continue;
+                foreach (var go in sc.GetRootGameObjects())
+                    if (go.name.StartsWith("현무_세계관")) return go.transform;
+            }
             return null;
+        }
+
+        static void Miss(string what)
+        {
+            Missing.Add(what);
+            Debug.LogWarning("[NMJ 레벨] 못 찾음: " + what);
         }
 
         static Transform World(Transform world, string path) => world.Find(path);
@@ -258,7 +296,7 @@ namespace NMJ.EditorTools
         static void SetActive(Transform world, string path, bool on)
         {
             var t = world.Find(path);
-            if (t == null) return;
+            if (t == null) { Miss(path); return; }
             Undo.RecordObject(t.gameObject, "레벨 v2");
             t.gameObject.SetActive(on);
         }
@@ -266,7 +304,7 @@ namespace NMJ.EditorTools
         static void MoveX(Transform world, string path, float x)
         {
             var t = world.Find(path);
-            if (t == null) return;
+            if (t == null) { Miss(path); return; }
             Undo.RecordObject(t, "레벨 v2");
             var p = t.position; p.x = x; t.position = p;
         }
@@ -302,10 +340,11 @@ namespace NMJ.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void EnsureInstance(string prefabPath)
+        static void EnsureInstance(UnityEngine.SceneManagement.Scene scene, string prefabPath)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            foreach (var go in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
+            if (prefab == null) { Miss(prefabPath); return; }
+            foreach (var go in scene.GetRootGameObjects())
                 if (PrefabUtility.GetCorrespondingObjectFromSource(go) == prefab)
                 {
                     // 프리팹이 정답 — 씬 쪽 덧붙임·수정은 지운다

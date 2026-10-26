@@ -88,13 +88,13 @@ namespace NMJ
             public bool burst;           // 증기 분출 베기: 다 그은 순간 발밑에 붉은 김 고리
         }
         private static readonly Look LookC2 = new Look { whiffEmbers = 3, hitEmbers = 8, hitDrops = 3, cinders = 14, puffs = 0, puffSize = new Vector2(0.10f, 0.2f), puffInner = 0.9f, life = 0.32f, fade = 0.45f };
-        private static readonly Look LookC3 = new Look { whiffEmbers = 4, hitEmbers = 14, hitDrops = 4, cinders = 20, puffs = 10, puffSize = new Vector2(0.30f, 0.48f), puffInner = 0.88f, life = 0.40f, fade = 0.5f };
+        private static readonly Look LookC3 = new Look { whiffEmbers = 4, hitEmbers = 14, hitDrops = 4, cinders = 20, puffs = 10, puffSize = new Vector2(0.40f, 0.62f), puffInner = 0.88f, life = 0.40f, fade = 0.5f };
         // 화려판(Flair): 증기 단계
         //   일반 공격  증기 50~99 = 가는 주홍 칼금 + 흰 김 몇 줄 / 증기 100 = 붉은 김이 칼을 휘감음
         //   강공격     증기 100으로 시작 = 증기 분출 베기 (칼금이 길게 남고, 다 그은 순간 발밑에 붉은 김 고리)
         private static readonly Look LookLight1 = new Look { whiffEmbers = 1, hitEmbers = 3, hitDrops = 0, cinders = 6, puffs = 4, puffSize = new Vector2(0.14f, 0.24f), puffInner = 0.9f, life = 0.22f, fade = 0.3f, edgeWidth = 0.05f, whiteSteam = true };
         private static readonly Look LookLight2 = new Look { whiffEmbers = 2, hitEmbers = 5, hitDrops = 1, cinders = 10, puffs = 8, puffSize = new Vector2(0.22f, 0.36f), puffInner = 0.85f, life = 0.28f, fade = 0.36f, edgeWidth = 0.06f };
-        private static readonly Look LookBurst = new Look { whiffEmbers = 6, hitEmbers = 16, hitDrops = 5, cinders = 26, puffs = 16, puffSize = new Vector2(0.32f, 0.52f), puffInner = 0.85f, life = 0.55f, fade = 0.6f, edgeWidth = 0.1f, burst = true };
+        private static readonly Look LookBurst = new Look { whiffEmbers = 6, hitEmbers = 16, hitDrops = 5, cinders = 26, puffs = 16, puffSize = new Vector2(0.42f, 0.68f), puffInner = 0.85f, life = 0.55f, fade = 0.6f, edgeWidth = 0.1f, burst = true };
 
         private float lastPressure, actionPressure;   // 동작 시작 직전의 증기 (강공격은 시작하며 30을 쓰므로 그 전 값으로 단계를 정함)
         private bool ActionFull => actionPressure >= MaxPressure() - 0.5f;
