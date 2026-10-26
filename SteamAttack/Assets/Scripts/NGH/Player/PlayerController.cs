@@ -225,6 +225,9 @@ namespace NGH
         public float ActionClipSeconds => _attack != null ? _attack.clipLength / Mathf.Max(0.01f, _actionPlaySpeed) : 0f;
         /// <summary>동작이 새로 시작될 때마다 1씩 증가. 같은 동작이 다시 시작된 것도 구분 (AttackFx 용)</summary>
         public int ActionSerial { get; private set; }
+        /// <summary>공격(약·강)이 끝나 대기·이동 자세로 섞이는 중이면 진행도 0~1, 아니면 -1 (ArmBodyGuard 용)</summary>
+        public float AttackEndBlend01 => action == ActionState.None && Time.time - _attackEndedAt < attackEndBlend
+            ? (Time.time - _attackEndedAt) / Mathf.Max(0.01f, attackEndBlend) : -1f;
 
         CharacterController _cc;
         float _vy;
