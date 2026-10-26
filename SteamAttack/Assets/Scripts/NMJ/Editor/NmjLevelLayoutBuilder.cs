@@ -30,8 +30,10 @@ namespace NMJ.EditorTools
         const string DressingPrefab = "Assets/Prefabs/NMJ/NMJ_LevelDressing.prefab";
         const string QuestZonePrefab = "Assets/Prefabs/NMJ/NMJ_QuestZones.prefab";
         // 보스방(향원정) 안개문 — 근정전 계단(답도, z 36.7~) 바로 앞 마당. 궁 안 이동 147m(49초) → 64m(21초)
-        static readonly Vector3 FogGatePos = new Vector3(0f, 0f, 33f);
-        static readonly Vector3 FogReturnPos = new Vector3(0f, 0.1f, 29f);   // 보스방에서 돌아오는 자리 (문을 등지고 선다)
+        static readonly Vector3 FogGatePos = new Vector3(0f, 0f, -90f);    // v4: 육조거리 한가운데 (광화문을 나와 남쪽으로)
+        static readonly Vector3 FogReturnPos = new Vector3(0f, 0.1f, -85f);  // 보스방에서 돌아오는 자리 (문을 등지고 북쪽을 본다)
+        // v4 시작: 근정전 계단 앞 서쪽 (남쪽을 보고 선다). 향원정 옆(-35, 80)에서 당겨 이동 171m → 약 120m
+        static readonly Vector3 StartPos = new Vector3(-12f, 0.1f, 30f);
         const string MatDir = "Assets/Materials/NMJ/HyeonmuWorld/";
         const float PocheolWander = 2.5f;   // 기본 6m면 옆 구간까지 걸어가 구간이 섞인다
 
@@ -84,20 +86,25 @@ namespace NMJ.EditorTools
             var root = PrefabUtility.LoadPrefabContents(EnemyPrefab);
             var p = new Dictionary<string, Vector3>
             {
-                { "육조거리/변이포졸_육조_1", new Vector3(-4f, 0.1f, -86f) },
-                { "육조거리/변이포졸_육조_2", new Vector3(4f, 0.1f, -85f) },
-                { "육조거리/궁수자리_육조거리(누각)", new Vector3(13f, 0f, -76f) },
-                { "육조거리/흑수회궁수_육조", new Vector3(13f, 3.1f, -76f) },
-                { "육조거리/변이포졸_육조_3_받아치기", new Vector3(0f, 0.1f, -70f) },
-                { "광화문/변이포졸_광화문_1", new Vector3(-6f, 0.1f, -55f) },
-                { "광화문/변이포졸_광화문_2", new Vector3(6f, 0.1f, -55f) },
-                { "광화문/변이포졸_광화문_3", new Vector3(0f, 0.1f, -51f) },   // 마지막 한 명: 얼음 문 바로 앞
+                // v4: 모든 전투를 궁 안 → 광화문 안쪽에서. 북쪽에서 내려오는 플레이어를 보게 (yaw 0)
+                // (묶음 이름 '육조거리'는 퀘스트 아이디·리젠이 쓰므로 그대로 — 실제 자리는 근정전 마당)
+                { "육조거리/변이포졸_육조_1", new Vector3(-5f, 0.1f, 3f) },          // 근정전 마당 첫 전투
+                { "육조거리/변이포졸_육조_2", new Vector3(5f, 0.1f, 4f) },
+                { "육조거리/궁수자리_육조거리(누각)", new Vector3(14f, 0f, -10f) },   // 동쪽 단상 위 궁수 → 사격
+                { "육조거리/흑수회궁수_육조", new Vector3(14f, 3.1f, -10f) },
+                { "육조거리/변이포졸_육조_3_받아치기", new Vector3(0f, 0.1f, -17f) },  // 혼자 내려치기 → 첫 받아치기
+                { "광화문/변이포졸_광화문_1", new Vector3(-6f, 0.1f, -32f) },        // 광화문 안쪽 전투
+                { "광화문/변이포졸_광화문_2", new Vector3(6f, 0.1f, -32f) },
+                { "광화문/궁수자리_광화문(해태 뒤 단상)", new Vector3(-15.5f, 0f, -36f) },
+                { "광화문/흑수회궁수_광화문", new Vector3(-15.5f, 3.05f, -36f) },
+                { "광화문/변이포졸_광화문_3", new Vector3(0f, 0.1f, -39f) },   // 마지막 한 명: 얼음 문 바로 앞
             };
             foreach (var kv in p)
             {
                 var t = root.transform.Find(kv.Key);
                 if (t == null) { Miss("적 " + kv.Key); continue; }
                 t.localPosition = kv.Value;
+                t.localRotation = Quaternion.Euler(0f, t.name.StartsWith("흑수회궁수_광화문") ? 30f : t.name.StartsWith("흑수회궁수") ? 300f : 0f, 0f);
                 if (t.name.StartsWith("변이포졸")) SetFloat(t.gameObject, "EnemyAI", "_wanderRadius", PocheolWander);
                 // 문 바로 앞 마지막 포졸: 내려치기(동심원 강공격)를 자주 → 받아치기 → 경직 → 강공격을 자연스럽게 보게 (육조 받아치기 포졸은 1)
                 if (t.name == "변이포졸_광화문_3") SetFloat(t.gameObject, "EnemyMeleeAttack", "_heavyChance", 0.75f);
@@ -111,9 +118,11 @@ namespace NMJ.EditorTools
         {
             var root = PrefabUtility.LoadPrefabContents(StoryPrefab);
             var gwaeseo = root.transform.Find("NMJ_괘서_육조거리");
-            if (gwaeseo) { gwaeseo.localPosition = new Vector3(-7f, 0f, -97f); gwaeseo.localEulerAngles = new Vector3(0f, 60f, 0f); }
+            if (gwaeseo) { gwaeseo.localPosition = new Vector3(-7f, 0f, -60f); gwaeseo.localEulerAngles = new Vector3(0f, 120f, 0f); }   // 광화문을 나서자마자 보이는 도성의 괘서
             var memo = root.transform.Find("NMJ_비망록_육조거리");
-            if (memo) { memo.localPosition = new Vector3(-6f, 0f, -81f); memo.localEulerAngles = new Vector3(0f, 17f, 0f); }
+            if (memo) { memo.localPosition = new Vector3(-6f, 0f, -3f); memo.localEulerAngles = new Vector3(0f, 197f, 0f); }   // 궁수 사격 직전
+            var tut = root.transform.Find("NMJ_시작튜토리얼_증기충전");
+            if (tut) { tut.localPosition = new Vector3(StartPos.x, 0f, StartPos.z - 6f); tut.localEulerAngles = new Vector3(0f, 180f, 0f); }   // 시작 자리 바로 앞 허수아비
             PrefabUtility.SaveAsPrefabAsset(root, StoryPrefab);
             PrefabUtility.UnloadPrefabContents(root);
         }
@@ -155,14 +164,38 @@ namespace NMJ.EditorTools
                     Undo.RecordObject(c.gameObject, "레벨 v2");
                     c.gameObject.SetActive(c.name == "성벽을 감은 꼬리");
                 }
+                // v3: 꼬리가 z 88~222(근정전 뒤 멀리)라 궁 안 길에서 거의 안 보였다 → 60m 남쪽으로 내려
+                // 동쪽 담(x 70)을 따라 근정전 옆까지 감기게. 궁 안을 달리는 동안 오른쪽 담 너머로 계속 보인다 (4.4)
+                var tail = hm.Find("성벽을 감은 꼬리");
+                if (tail) { Undo.RecordObject(tail, "레벨 v3"); tail.position = new Vector3(0f, 1.5f, -60f); }
             }
 
             // 안개문을 근정전 앞으로 당긴다 (예전 자리 z 80은 근정전 뒤를 돌아가야 해 49초 걸렸다)
             var gate2 = world.Find("07_향원정_얼어붙은_연못/NMJ_FogGate_향원정");
-            if (gate2) { Undo.RecordObject(gate2, "레벨 v2"); gate2.position = FogGatePos; gate2.rotation = Quaternion.identity; }
+            if (gate2) { Undo.RecordObject(gate2, "레벨 v2"); gate2.position = FogGatePos; gate2.rotation = Quaternion.Euler(0f, 180f, 0f); }   // 북쪽에서 온다
             // 보스방에서 돌아오는 자리: 안개문 앞, 문을 등지고 (예전 z 74는 월대 모서리라 몸이 박혔다)
             var back = world.Find("07_향원정_얼어붙은_연못/NMJ_FogGate_돌아온자리");
-            if (back) { Undo.RecordObject(back, "레벨 v2"); back.position = FogReturnPos; back.rotation = Quaternion.Euler(0f, 180f, 0f); }
+            if (back) { Undo.RecordObject(back, "레벨 v2"); back.position = FogReturnPos; back.rotation = Quaternion.identity; }
+
+            // v4: 시장길(운종가)·기기창은 동선 밖이라 잘라 낸다 — 향원정 → 궁 안 → 광화문 → 육조거리만 남김
+            foreach (var cut in new[]
+            {
+                "05_운종가_저잣거리", "08_삼청동_기기창", "00_지면/운종가 길", "00_지면/삼청동 길",
+                "13_인물/흑수회 광신도", "13_인물/기기창 기술자 (얼어붙음)", "13_인물/얼어붙은 백성 (운종가)",   // 백성은 육조거리 사본만 남김
+                "시점 표식/시점_운종가", "시점 표식/시점_기기창 포대", "시점 표식/시점_전경 (도성 동남쪽)",
+            })
+                SetActive(world, cut, false);
+
+            // v4: 플레이어 시작 자리 (향원정 남서쪽) — 씬의 플레이어·카메라를 옮긴다
+            var scene = world.gameObject.scene;
+            foreach (var go in scene.GetRootGameObjects())
+            {
+                if (go.name == "NGH_Player") { Undo.RecordObject(go.transform, "레벨 v4"); go.transform.SetPositionAndRotation(StartPos, Quaternion.Euler(0f, 180f, 0f)); }
+                if (go.name == "NGH_PlayerCamera") { Undo.RecordObject(go.transform, "레벨 v4"); go.transform.SetPositionAndRotation(StartPos + new Vector3(-0.25f, 1.3f, 2.4f), Quaternion.Euler(0f, 180f, 0f)); }
+            }
+            // 보스방(별도 씬)에서 돌아올 때 나타나는 자리도 안개문 앞으로
+            var portal = GameObject.Find("NGH_Spawn_FromBossArena");
+            if (portal) { Undo.RecordObject(portal.transform, "레벨 v4"); portal.transform.SetPositionAndRotation(FogReturnPos + new Vector3(2f, -0.1f, 0f), Quaternion.identity); }
 
             // 얼음 문은 광화문 앞 4명만 지킨다 (받아치기 포졸 z -70은 빼고 해태 뒤 궁수는 넣는 거리)
             var gate = world.Find("02_광화문/NMJ_광화문_얼음문");
@@ -173,8 +206,10 @@ namespace NMJ.EditorTools
         static void ApplyQuestZones()
         {
             var root = PrefabUtility.LoadPrefabContents(QuestZonePrefab);
+            var gw = root.transform.Find("도달_광화문앞");
+            if (gw) gw.localPosition = new Vector3(0f, 2f, -26f);   // 받아치기 포졸 뒤, 광화문 안쪽 전투 직전
             var z = root.transform.Find("도달_향원정안개문");
-            if (z) z.localPosition = new Vector3(FogGatePos.x, 2f, FogGatePos.z - 5f);   // 안개문 바로 앞 마당 (상자 12×4×5)
+            if (z) z.localPosition = new Vector3(FogGatePos.x, 2f, FogGatePos.z + 5f);   // 안개문 바로 앞 마당 (상자 12×4×5)
             PrefabUtility.SaveAsPrefabAsset(root, QuestZonePrefab);
             PrefabUtility.UnloadPrefabContents(root);
         }
@@ -212,7 +247,8 @@ namespace NMJ.EditorTools
             var g3 = Group(root, "궁안_시간부스러기_길잡이");
             var path = new[]
             {
-                new Vector3(0f, 0f, -30f), new Vector3(-2f, 0f, -5f), new Vector3(2f, 0f, 15f), new Vector3(0f, 0f, 31f),   // 어도를 따라 근정전 앞 안개문까지
+                // v4: 시작(근정전 앞) → 근정전 마당 → 광화문
+                new Vector3(-12f, 0f, 20f), new Vector3(-6f, 0f, 10f), new Vector3(-2f, 0f, -6f), new Vector3(0f, 0f, -22f),
             };
             int n = 0;
             for (int i = 0; i < path.Length - 1; i++)
@@ -267,8 +303,158 @@ namespace NMJ.EditorTools
                 }
             }
 
+            BuildDressingV3(world, root, people, cart, spike, ice, glow);
+
             PrefabUtility.SaveAsPrefabAsset(root, DressingPrefab);
             Object.DestroyImmediate(root);
+        }
+
+        // ---------------------------------------------------------------- v3: 기획서 4장 장면을 크게 (2026-10-26)
+        // 가운데 길(x -6 ~ 6)은 비워 두어 동선·전투는 v2 그대로. 위에서 봐도 구간마다 무슨 일이 있었는지 보이게 채운다.
+        static void BuildDressingV3(Transform world, GameObject root, Transform people, Transform cart, Mesh spike, Material ice, Material glow)
+        {
+            // 1) 육조거리: 북쪽(재앙)에서 남쪽으로 달아나다 그대로 얼어붙은 백성 무리 (4.2 "도망치다 멈춘 아이와 어미")
+            var crowd = Group(root, "v3_육조거리_달아나다_멈춘_백성");
+            if (people)
+            {
+                var spots = new (float x, float z, string src)[]
+                {
+                    (-9f, -66f, "달아나던 백성"), (-10.5f, -67.5f, "아이"), (-8f, -69f, "달아나던 백성"),
+                    (9.5f, -73f, "빌고 있는 백성"), (11f, -71f, "달아나던 백성"),
+                    (-11f, -79f, "달아나던 백성"), (-9.5f, -80.5f, "달아나던 백성"), (-11.5f, -82f, "아이"),
+                    (10f, -88f, "달아나던 백성"), (11.5f, -89.5f, "아이"), (9f, -91f, "달아나던 백성"),
+                    (-9f, -95f, "빌고 있는 백성"), (-11f, -100f, "달아나던 백성"), (10.5f, -103f, "달아나던 백성"),
+                };
+                for (int i = 0; i < spots.Length; i++)
+                {
+                    var s = spots[i];
+                    CopyPerson(people, s.src, crowd, new Vector3(s.x, 0f, s.z), 180f + (i % 5 - 2) * 14f, $"얼어붙은 백성_{i + 1:00}");
+                    IceBase(crowd, spike, ice, new Vector3(s.x, 0f, s.z), i);   // 발이 얼음에 붙잡혔다
+                }
+            }
+
+            // 2) 육조거리 가장자리: 버려진 수레·짐 (달아나다 놓고 간 것)
+            if (cart)
+            {
+                var carts = Group(root, "v3_육조거리_버려진_수레");
+                var cs = new (Vector3 p, float yaw, bool tipped)[]
+                {
+                    (new Vector3(-10f, 0f, -74f), 160f, false), (new Vector3(10f, 0.6f, -96f), 20f, true),
+                    (new Vector3(-10.5f, 0.6f, -88f), 250f, true), (new Vector3(9.5f, 0f, -64f), 200f, false),
+                };
+                for (int i = 0; i < cs.Length; i++)
+                {
+                    var c = Object.Instantiate(cart.gameObject, carts.transform);
+                    c.name = $"버려진 수레_{i + 1}";
+                    c.transform.position = cs[i].p;
+                    c.transform.rotation = Quaternion.Euler(0f, cs[i].yaw, cs[i].tipped ? 80f : 0f);
+                    var bc = c.AddComponent<BoxCollider>();
+                    bc.center = new Vector3(0f, 0.6f, 0f); bc.size = new Vector3(2.2f, 1.6f, 3.4f);
+                }
+            }
+
+            // 3) 관아 앞 서리 — 길 양쪽 처마 밑에 얼음 결정 무리 (도성이 얼어붙었다)
+            if (spike && ice)
+            {
+                var frost = Group(root, "v3_길가_얼음결정");
+                int k = 0;
+                for (float z = -108f; z <= -60f; z += 8f)
+                    foreach (var side in new[] { -1f, 1f })
+                        for (int j = 0; j < 3; j++, k++)
+                            Spike(frost, spike, ice, new Vector3(side * (16f + j * 1.6f), 0f, z + (j - 1) * 2f), k, 2.2f + (k % 4) * 0.9f);
+
+                // 4) 광화문: 얼음에 덮인 해태상 (4.3) — 해태 둘레를 큰 얼음 결정이 감싼다
+                var haetae = Group(root, "v3_광화문_얼음에_덮인_해태");
+                foreach (var hx in new[] { -12f, 12f })
+                    for (int j = 0; j < 7; j++, k++)
+                    {
+                        float a = j / 7f * Mathf.PI * 2f;
+                        Spike(haetae, spike, ice, new Vector3(hx + Mathf.Cos(a) * 2.8f, 0f, -58f + Mathf.Sin(a) * 2.8f), k, 3.5f + (j % 3) * 1.2f);
+                    }
+
+                // 5) 궁 안: 서리 낀 어도와 품계석 (6장) — 품계석 줄을 따라 작은 얼음, 근정전 계단 양옆에 큰 얼음
+                var court = Group(root, "v3_궁안_서리");
+                for (float z = 12f; z <= 32f; z += 4f)
+                    foreach (var side in new[] { -1f, 1f })
+                    {
+                        Spike(court, spike, ice, new Vector3(side * 8.5f, 0f, z), k, 1.4f + (k % 3) * 0.6f);
+                        k++;
+                    }
+                foreach (var p in new[] { new Vector3(-9f, 0f, 36f), new Vector3(9f, 0f, 36f), new Vector3(-12f, 0f, 37.5f), new Vector3(12f, 0f, 37.5f) })
+                    Spike(court, spike, ice, p, k++, 4.5f);
+            }
+
+            // 5-2) 얼어붙은 웅덩이 — 길과 마당 바닥에 푸른 얼음판 (위에서 봐도 '얼어붙은 도성'이 보이게)
+            var disc = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Arts/Models/NMJ/HyeonmuWorld/Disc.asset");
+            var iceFlat = AssetDatabase.LoadAssetAtPath<Material>(MatDir + "M_Ice.mat");
+            if (disc && iceFlat)
+            {
+                var pools = Group(root, "v3_얼어붙은_웅덩이");
+                var ps = new (float x, float z, float r)[]
+                {
+                    (-5f, -100f, 5f), (6f, -92f, 6f), (-6f, -78f, 7f), (5f, -66f, 5f), (0f, -56f, 8f),   // 육조거리 ~ 광화문 앞
+                    (-14f, -20f, 8f), (15f, -8f, 9f), (-16f, 12f, 7f), (16f, 26f, 8f),                    // 근정전 마당
+                };
+                for (int i = 0; i < ps.Length; i++)
+                {
+                    var d = new GameObject($"얼음판_{i + 1}");
+                    d.transform.SetParent(pools.transform);
+                    d.transform.position = new Vector3(ps[i].x, 0.03f, ps[i].z);
+                    d.transform.rotation = Quaternion.Euler(0f, i * 47f, 0f);
+                    d.transform.localScale = new Vector3(ps[i].r, 1f, ps[i].r * 0.7f);
+                    d.AddComponent<MeshFilter>().sharedMesh = disc;
+                    var mr = d.AddComponent<MeshRenderer>();
+                    mr.sharedMaterial = iceFlat;
+                    mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+            }
+
+            // 6) 푸른 시간 부스러기를 시작부터 광화문까지 (4.2 "그 사이로 푸른 시간 부스러기가 보인다") — 궁 안 길잡이와 이어진다
+            var trail = Group(root, "v3_육조거리_시간부스러기");
+            int n = 0;
+            for (float z = -86f; z <= -50f; z += 3.5f, n++)   // v4: 광화문을 나와 안개문까지
+            {
+                var shard = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                Object.DestroyImmediate(shard.GetComponent<Collider>());
+                shard.name = $"부스러기_{n + 1:00}";
+                shard.transform.SetParent(trail.transform);
+                shard.transform.position = new Vector3(Mathf.Sin(n * 1.7f) * 4.5f, 1.6f + (n % 4) * 0.45f, z);   // 공중에 멈춰 떠 있다
+                shard.transform.rotation = Quaternion.Euler(45f, n * 41f, 45f);
+                shard.transform.localScale = Vector3.one * (0.14f + (n % 3) * 0.05f);
+                var r = shard.GetComponent<Renderer>();
+                if (glow) r.sharedMaterial = glow;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            foreach (var z in new[] { -84f, -68f, -54f })
+            {
+                var l = new GameObject("부스러기 빛").AddComponent<Light>();
+                l.transform.SetParent(trail.transform);
+                l.transform.position = new Vector3(0f, 2.5f, z);
+                l.type = LightType.Point; l.color = new Color(0.45f, 0.75f, 1f); l.range = 10f; l.intensity = 2.5f;
+                l.shadows = LightShadows.None;
+                l.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalLightData>();
+            }
+        }
+
+        static void Spike(GameObject parent, Mesh mesh, Material mat, Vector3 pos, int i, float height)
+        {
+            var s = new GameObject($"얼음_{i:000}");
+            s.transform.SetParent(parent.transform);
+            s.transform.position = pos;
+            s.transform.rotation = Quaternion.Euler((i % 3 - 1) * 14f, i * 61f, (i % 2 == 0 ? 12f : -10f));
+            s.transform.localScale = new Vector3(0.45f + height * 0.18f, height, 0.45f + height * 0.18f);
+            s.AddComponent<MeshFilter>().sharedMesh = mesh;
+            s.AddComponent<MeshRenderer>().sharedMaterial = mat;
+        }
+
+        static void IceBase(GameObject parent, Mesh mesh, Material mat, Vector3 pos, int i)
+        {
+            if (!mesh || !mat) return;
+            for (int j = 0; j < 3; j++)
+            {
+                float a = (i * 50f + j * 120f) * Mathf.Deg2Rad;
+                Spike(parent, mesh, mat, pos + new Vector3(Mathf.Cos(a) * 0.45f, 0f, Mathf.Sin(a) * 0.45f), i * 3 + j, 0.5f + j * 0.15f);
+            }
         }
 
         // ---------------------------------------------------------------- 도우미

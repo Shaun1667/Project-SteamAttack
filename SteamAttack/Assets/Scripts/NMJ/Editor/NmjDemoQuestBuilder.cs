@@ -8,9 +8,9 @@ namespace NMJ.EditorTools
     /// 5분 시연용 퀘스트 한 줄기 (기획서 v4 4-2, 세계관 v6 5장).
     /// 오프닝에서 어명을 이미 받았으므로 육조거리부터 시작한다.
     ///
-    ///   dq_01 육조거리를 지나        육조거리의 적을 잠재운다 (0/4) · 광화문 앞에 닿는다
+    ///   dq_01 궁 안을 지나          근정전 마당의 적을 잠재운다 (0/4) · 광화문 안쪽에 닿는다
     ///   dq_02 한 호흡에, 한 점에     광화문을 지키는 적을 잠재운다 (0/4) · 얼음 문을 깬다
-    ///   dq_03 현무를 잠재우라        향원정 안개문으로 들어간다 · 현무를 잠재운다
+    ///   dq_03 현무를 잠재우라        육조거리 안개문으로 들어간다 · 현무를 잠재운다
     ///
     /// 목표 아이디 (씬 쪽에서 보고):
     ///   enemy_yukjo / enemy_gwanghwa — NMJ_EnemySpawns의 적에 붙은 QuestKillReporter
@@ -38,12 +38,12 @@ namespace NMJ.EditorTools
         {
             if (!AssetDatabase.IsValidFolder(Folder)) AssetDatabase.CreateFolder("Assets/GameData/NMJ", "DemoQuests");
 
-            var q1 = Quest("dq_01_yukjo", "육조거리를 지나",
+            var q1 = Quest("dq_01_yukjo", "궁 안을 지나",
                 "멈춘 백성 사이를 지나 광화문으로 간다. 베인 이는 죽지 않고 얼음이 깨지며 잠든다.",
                 new[]
                 {
-                    new Obj { type = QuestObjectiveType.Kill, id = "enemy_yukjo", amount = 4, text = "육조거리의 적을 잠재운다" },
-                    new Obj { type = QuestObjectiveType.Reach, id = "loc_gwanghwamun", amount = 1, text = "광화문 앞에 닿는다" },
+                    new Obj { type = QuestObjectiveType.Kill, id = "enemy_yukjo", amount = 4, text = "근정전 마당의 적을 잠재운다" },
+                    new Obj { type = QuestObjectiveType.Reach, id = "loc_gwanghwamun", amount = 1, text = "광화문 안쪽에 닿는다" },
                 }, "dq_02_gwanghwamun", null);
 
             var q2 = Quest("dq_02_gwanghwamun", "한 호흡에, 한 점에",
@@ -58,7 +58,7 @@ namespace NMJ.EditorTools
                 "향원정 안개문 너머, 얼어붙은 연못 위의 현무. 다리를 무너뜨리고 신핵을 쳐 삼킨 열을 토하게 한다.",
                 new[]
                 {
-                    new Obj { type = QuestObjectiveType.Reach, id = "loc_hyangwonjeong", amount = 1, text = "향원정 안개문으로 들어간다" },
+                    new Obj { type = QuestObjectiveType.Reach, id = "loc_hyangwonjeong", amount = 1, text = "육조거리 안개문으로 들어간다" },
                     new Obj { type = QuestObjectiveType.Kill, id = "boss_hyeonmu", amount = 1, text = "현무를 잠재운다" },
                 }, "", "dq_02_gwanghwamun");
 

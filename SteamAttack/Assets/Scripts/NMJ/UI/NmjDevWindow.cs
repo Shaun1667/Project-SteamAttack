@@ -42,18 +42,16 @@ namespace NMJ
         private const string GateFrontName = "NMJ_FogGate_돌아온자리";
         private const string BossGateName = "NMJ_FogGate_향원정";   // 안개문 — 도착 자리(Target)가 보스방 입구
 
-        // 순간이동 — 레벨 배치 v2 구간 (NmjLevelLayoutBuilder, 맵구상 2장). 모두 북쪽(광화문·향원정)을 보고 선다
+        // 순간이동 — 레벨 배치 v4 구간 (NmjLevelLayoutBuilder, 맵구상 2장). 향원정 → 광화문 → 육조거리, 모두 남쪽을 보고 선다
         private struct Warp { public string label; public Vector3 pos; }
         private static readonly Warp[] Warps =
         {
-            new Warp { label = "2. 첫 전투 앞 · 포졸 2", pos = new Vector3(0f, 0.1f, -94f) },
-            new Warp { label = "3. 비망록 · 누각 궁수", pos = new Vector3(-4f, 0.1f, -84f) },
-            new Warp { label = "4. 첫 받아치기 · 포졸 1", pos = new Vector3(0f, 0.1f, -77f) },
-            new Warp { label = "5. 광화문 앞 · 얼음 문 전투", pos = new Vector3(0f, 0.1f, -66f) },
-            new Warp { label = "6. 궁 안 · 광화문 안쪽", pos = new Vector3(0f, 0.1f, -30f) },
-            new Warp { label = "7. 근정전 마당 · 길잡이", pos = new Vector3(0f, 0.1f, 5f) },
+            new Warp { label = "2. 근정전 마당 · 첫 전투 포졸 2", pos = new Vector3(0f, 0.1f, 14f) },
+            new Warp { label = "3. 비망록 · 궁수 · 첫 받아치기", pos = new Vector3(-3f, 0.1f, -4f) },
+            new Warp { label = "4. 광화문 안쪽 · 얼음 문 전투", pos = new Vector3(0f, 0.1f, -24f) },
+            new Warp { label = "5. 광화문 밖 · 육조거리", pos = new Vector3(0f, 0.1f, -56f) },
         };
-        private static readonly Vector3 GateFrontFallback = new Vector3(0f, 0.1f, 29f);   // 근정전 앞 안개문(z 33) 바로 앞
+        private static readonly Vector3 GateFrontFallback = new Vector3(0f, 0.1f, -85f);  // 육조거리 안개문(z -90) 바로 앞
         private const float BossArenaRadius = 45f;
 
         private static NmjDevWindow instance;
@@ -327,7 +325,7 @@ namespace NMJ
         private void MoveToBossGate()
         {
             Transform t = FindInScene(GateFrontName);
-            Teleport(t != null ? t.position : GateFrontFallback, Quaternion.identity);
+            Teleport(t != null ? t.position : GateFrontFallback, Quaternion.Euler(0f, 180f, 0f));   // 안개문을 본다
         }
 
         /// <summary>안개문을 지난 것과 같은 자리 (안개문 Target)</summary>
@@ -514,10 +512,10 @@ namespace NMJ
             foreach (Warp w in Warps)
             {
                 Vector3 to = w.pos;
-                list.Add(new Item { label = "이동 " + w.label, act = () => Teleport(to, Quaternion.identity), small = true });
+                list.Add(new Item { label = "이동 " + w.label, act = () => Teleport(to, Quaternion.Euler(0f, 180f, 0f)), small = true });
             }
-            list.Add(new Item { label = "이동 8. 안개문 앞 · 근정전", act = MoveToBossGate, small = true });
-            list.Add(new Item { label = "이동 9. 보스방 안", act = MoveToBossRoom, small = true });
+            list.Add(new Item { label = "이동 6. 안개문 앞 · 육조거리", act = MoveToBossGate, small = true });
+            list.Add(new Item { label = "이동 7. 보스방 안", act = MoveToBossRoom, small = true });
             return list;
         }
 

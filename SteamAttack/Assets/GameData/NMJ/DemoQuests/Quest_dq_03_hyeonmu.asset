@@ -22,21 +22,16 @@ MonoBehaviour:
   objectives:
   - type: 3
     targetId: loc_hyangwonjeong
-    targetItem: {fileID: 0}
-    description: "\uD5A5\uC6D0\uC815 \uC548\uAC1C\uBB38\uC73C\uB85C \uB4E4\uC5B4\uAC04\uB2E4"
+    description: "\uC721\uC870\uAC70\uB9AC \uC548\uAC1C\uBB38\uC73C\uB85C \uB4E4\uC5B4\uAC04\uB2E4"
     requiredAmount: 1
   - type: 1
     targetId: boss_hyeonmu
-    targetItem: {fileID: 0}
     description: "\uD604\uBB34\uB97C \uC7A0\uC7AC\uC6B4\uB2E4"
     requiredAmount: 1
   autoComplete: 1
-  consumeCollectedItems: 1
   reward:
-    items: []
     exp: 0
     gold: 0
-    extraInventorySlots: 0
   prerequisiteQuestIds:
   - dq_02_gwanghwamun
   nextQuestId: 
