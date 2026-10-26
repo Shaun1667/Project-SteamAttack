@@ -324,7 +324,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 2800000, guid: 70a421887e070414c98f767271f77325, type: 3}
   backgroundDim: 0.35
   artIncludesLogo: 1
-  artMenuAnchor: {x: 0.095, y: 0.565}
+  artMenuAnchor: {x: 0.07, y: 0.567}
   artTextColor: {r: 0.13, g: 0.12, b: 0.12, a: 1}
   music: {fileID: 0}
   musicVolume: 0.7
@@ -334,9 +334,9 @@ MonoBehaviour:
   settings: {fileID: 2116303578}
   font: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
   glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
-  logoText: "\u7384\u6B66"
+  logoText: "\uCCA0\uACFC \uBB35"
   logoSeal: "\u547D"
-  subtitle: "\uC5ED\uB958\uC758 \uC5B4\uBA85"
+  subtitle: STEAM & INK
   tagline: "1887\uB144 3\uC6D4 \xB7 \uC2DC\uAC04\uC774 \uBA48\uCD98 \uD55C\uC591"
   notice: "\uC774 \uC791\uD488\uC740 \uC2E4\uC874 \uC778\uBB3C\xB7\uC0AC\uAC74\uACFC \uBB34\uAD00\uD55C \uCC3D\uC791\uC785\uB2C8\uB2E4"
   version: "\uC2DC\uC5F0\uD310"

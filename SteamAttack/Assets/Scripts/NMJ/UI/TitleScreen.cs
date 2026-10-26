@@ -11,9 +11,10 @@ namespace NMJ
     /// <summary>
     /// 타이틀 화면 (회의 1.6, 기획안 v4 3-5): 게임 시작 / 환경 설정 / 게임 종료
     ///
-    ///                 玄武  [命]
-    ///               역류의 어명
+    ///               철과 묵  [命]
+    ///               STEAM & INK
     ///        1887년 3월 · 시간이 멈춘 한양
+    ///   (지금은 그림 모드: UI_TitleBG_SteamInk에 로고·문구가 그려져 있다)
     ///
     ///                 게임 시작
     ///                 환경 설정
@@ -42,8 +43,8 @@ namespace NMJ
         [SerializeField, Range(0f, 1f)] private float backgroundDim = 0.35f;
         [Tooltip("배경 그림에 로고·문구가 이미 그려져 있다 (UI_TitleBG_SteamInk). 켜면 글자 로고·어둠·아래 글을 숨기고 메뉴를 그림 왼쪽에 둔다")]
         [SerializeField] private bool artIncludesLogo;
-        [Tooltip("그림 모드 메뉴 자리 (화면 비율 0~1, 첫 줄 왼쪽 기준)")]
-        [SerializeField] private Vector2 artMenuAnchor = new Vector2(0.095f, 0.565f);
+        [Tooltip("그림 모드 메뉴 자리 (그림 안 비율 0~1, 첫 줄 왼쪽 위 기준). 그림이 화면 비율과 달라도 그림을 따라간다")]
+        [SerializeField] private Vector2 artMenuAnchor = new Vector2(0.07f, 0.567f);
         [SerializeField] private Color artTextColor = new Color(0.13f, 0.12f, 0.12f, 1f);   // 먹
         [SerializeField] private AudioClip music;
         [SerializeField, Range(0f, 1f)] private float musicVolume = 0.7f;
@@ -64,9 +65,9 @@ namespace NMJ
         private TMP_FontAsset HanjaFont => glyphFont != null ? glyphFont : font;
 
         [Header("글자 로고 (Logo Image가 없을 때)")]
-        [SerializeField] private string logoText = "玄武";
+        [SerializeField] private string logoText = "철과 묵";
         [SerializeField] private string logoSeal = "命";
-        [SerializeField] private string subtitle = "역류의 어명";
+        [SerializeField] private string subtitle = "STEAM & INK";
         [SerializeField] private string tagline = "1887년 3월 · 시간이 멈춘 한양";
 
         [Header("아래 글")]
@@ -88,6 +89,7 @@ namespace NMJ
         private CanvasGroup group, fade;
         private readonly List<MenuButton> buttons = new List<MenuButton>();
         private MenuButton startButton, settingsButton;
+        private RectTransform artRect;   // 그림 모드: 화면 안에 다 보이게 맞춘 그림 자리 (메뉴가 여기에 붙는다)
         private readonly List<Texture2D> owned = new List<Texture2D>();
 
         private struct Flake { public RectTransform rt; public Image img; public Vector2 basePos; public float phase, speed, size; }
@@ -249,13 +251,29 @@ namespace NMJ
         private void BuildBackground(Transform parent)
         {
             RectTransform bg = NewRect("Background", parent);
+            if (backgroundImage != null && artIncludesLogo)
+            {
+                // 로고가 그림에 있으니 잘리면 안 된다: 그림 전체를 화면 안에 맞추고(FitInParent),
+                // 남는 위아래·양옆은 같은 그림을 꽉 채워 깔고 안개색으로 덮어 이어진 것처럼 보이게
+                RawImage under = NewRawImage("Fill", bg, backgroundImage);
+                var underFit = under.gameObject.AddComponent<AspectRatioFitter>();
+                underFit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+                underFit.aspectRatio = (float)backgroundImage.width / backgroundImage.height;
+                NewImage("Mist", bg, new Color(0.86f, 0.86f, 0.86f, 0.93f), Vector2.zero, Vector2.zero);
+                RawImage art = NewRawImage("Image", bg, backgroundImage);
+                var fitArt = art.gameObject.AddComponent<AspectRatioFitter>();
+                fitArt.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+                fitArt.aspectRatio = (float)backgroundImage.width / backgroundImage.height;
+                artRect = art.rectTransform;
+                return;
+            }
             if (backgroundImage != null)
             {
                 RawImage img = NewRawImage("Image", bg, backgroundImage);
                 var fit = img.gameObject.AddComponent<AspectRatioFitter>();
                 fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;   // 화면을 꽉 채우고 넘치는 쪽은 잘림
                 fit.aspectRatio = (float)backgroundImage.width / backgroundImage.height;
-                if (!artIncludesLogo) NewImage("Dim", bg, new Color(0f, 0f, 0f, backgroundDim), Vector2.zero, Vector2.zero);
+                NewImage("Dim", bg, new Color(0f, 0f, 0f, backgroundDim), Vector2.zero, Vector2.zero);
                 return;
             }
 
@@ -304,7 +322,7 @@ namespace NMJ
             bandImg.rectTransform.anchorMin = new Vector2(0.08f, 0.02f);
             bandImg.rectTransform.anchorMax = new Vector2(0.92f, 0.42f);
 
-            TMP_Text main = NewText("Title", logo, HanjaFont, logoText, 210f, textColor);
+            TMP_Text main = NewText("Title", logo, font, logoText, 180f, textColor);   // 한글 이름이라 일반 폰트
             main.rectTransform.offsetMin = new Vector2(0f, 120f);
             main.characterSpacing = 18f;
 
@@ -348,7 +366,7 @@ namespace NMJ
         /// <summary>그림 모드: 그림 왼쪽 안개 자리에 왼쪽 정렬 메뉴 (그림의 NEW GAME 자리)</summary>
         private void BuildArtMenu(Transform parent)
         {
-            RectTransform list = NewRect("Menu", parent);
+            RectTransform list = NewRect("Menu", artRect != null ? artRect : parent);
             list.anchorMin = list.anchorMax = artMenuAnchor;
             list.pivot = new Vector2(0f, 1f);
             list.sizeDelta = new Vector2(380f, style.buttonHeight * 3f);
