@@ -9336,6 +9336,7 @@ GameObject:
   - component: {fileID: 203965855341721301}
   - component: {fileID: 6142536467970305188}
   - component: {fileID: 7270054889950055605}
+  - component: {fileID: 2266591049911656821}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -17509,6 +17510,25 @@ MonoBehaviour:
   - {fileID: 1485571327789756156}
   heightMax: 0.27
   angleCount: 36
+--- !u!114 &2266591049911656821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b76022e5b25ffdb4da75df0d8c4bb45b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.SleeveActionGuard
+  player: {fileID: 5444686568199331752}
+  sleeves:
+  - {fileID: 625043607466365835}
+  fadeToAnimation: 0.04
+  fadeToSimulation: 0.35
+  resetOnActionEnd: 1
+  ignoredActions: 0000000005000000060000000a0000000b000000i
 --- !u!1 &1768426502158964230
 GameObject:
   m_ObjectHideFlags: 0
