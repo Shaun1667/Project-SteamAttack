@@ -27,6 +27,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: "M_GJJ_\uBCF4\uAC1C"
+    second: {fileID: 2100000, guid: 6110b38059767cf47b8593c5d87d25e5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: "M_GJJ_\uBD89\uC740\uCE60"
     second: {fileID: 2100000, guid: 67abec333cbbf1e40843b6b7dd3acdfd, type: 2}
   - first:
@@ -44,6 +49,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: "M_GJJ_\uC218\uD0A4\uC640"
     second: {fileID: 2100000, guid: eb2d880f509a47d4a86fe27cd3ee5f38, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_\uC548\uCD08\uACF5"
+    second: {fileID: 2100000, guid: 8ae130a1e10dc14419734acde3adec54, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
