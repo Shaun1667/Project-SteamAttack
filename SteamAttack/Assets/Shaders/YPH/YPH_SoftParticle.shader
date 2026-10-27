@@ -2,7 +2,7 @@ Shader "YPH/SoftParticle"
 {
     Properties
     {
-        _BaseColor ("Base Color", Color) = (1,1,1,1)
+        [MainColor] _BaseColor ("Base Color", Color) = (1,1,1,1)
         _Softness ("Softness", Float) = 2
         _NoiseScale ("Noise Scale", Float) = 3
         _NoiseStrength ("Noise Strength", Range(0,1)) = 0.5

@@ -1739,6 +1739,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Archer_Baerae
       objectReference: {fileID: 0}
+    - target: {fileID: 5626734876451929677, guid: 948789039378f2c4ab6df72a3978b839, type: 3}
+      propertyPath: refreshMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 7269006699292685467, guid: 948789039378f2c4ab6df72a3978b839, type: 3}
       propertyPath: m_Controller
       value: 

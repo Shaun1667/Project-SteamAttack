@@ -55,6 +55,12 @@ namespace YPH
         [SerializeField, Tooltip("킥 판정 상자의 크기(m)입니다. 높이면 범위가 넓어집니다.")] private Vector3 _kickHitboxSize = new Vector3(1f, 1f, 1.2f);
         [SerializeField, Tooltip("켜면 킥 준비 때 동심원을 띄우고 받아치기를 허용합니다.")] private bool _kickParryable = true;
         [SerializeField, Range(-45f, 45f), Tooltip("발이 향하는 방향 보정(도)입니다. 양수이면 몸을 오른쪽으로 더 돌립니다.")] private float _kickFacingOffset = 10f;
+        /// <summary>무기 공격 준비 시작. true이면 강공격입니다. 킥에는 발생하지 않습니다.</summary>
+        public event System.Action<bool> WeaponAttackStarted;
+        /// <summary>무기 공격 판정이 시작되는 순간입니다.</summary>
+        public event System.Action WeaponAttackImpact;
+        /// <summary>무기 발광 종료. true이면 취소되어 잔상까지 즉시 지웁니다.</summary>
+        public event System.Action<bool> WeaponAttackEnded;
         private bool _attackChosen, _nextIsHeavy;
         private float _nextKickTime;
         private float AttackWindup => Animation != null && Animation.AttackHitTime >= 0f ? Animation.AttackHitTime : _attackWindup;
@@ -103,6 +109,7 @@ namespace YPH
         public override void Cancel()
         {
             StopSequence();
+            WeaponAttackEnded?.Invoke(true);
         }
         internal void ResetChoice() => _attackChosen = false;
         // 인지 거리와 공격 거리를 서로 다른 컴포넌트에서 편집해도 기존 보정 규칙을 유지합니다.
@@ -119,10 +126,13 @@ namespace YPH
         private IEnumerator NormalRoutine()
         {
             Animation?.Play(EnemyAnimatorLink.AttackHash);
+            WeaponAttackStarted?.Invoke(false);
             yield return WaitActive(AttackWindup, true);
+            WeaponAttackImpact?.Invoke();
             SpawnHitbox(_attackDamage, _attackStagger, _attackHitboxOffset, _attackHitboxSize, _attackActiveTime, "근접 공격");
-            Motor.StartLunge(_attackLungeDistance, _attackLungeDuration, false);
+            Motor.StartLunge(_attackLungeDistance, _attackLungeDuration / (Animation != null ? Animation.MeleePlaybackSpeed : 1f), false);
             yield return WaitActive(_attackActiveTime);
+            WeaponAttackEnded?.Invoke(false);
             yield return WaitActive(_attackCooldown, true);
             yield return WaitActive(RestTime(), true);
             Finish();
@@ -130,6 +140,7 @@ namespace YPH
         private IEnumerator HeavyRoutine()
         {
             Animation?.Play(EnemyAnimatorLink.HeavyAttackHash);
+            WeaponAttackStarted?.Invoke(true);
             Brain.FacePlayer();
             Motor.StartLunge(_heavyDashDistance, HeavyDashTime, true);
             Brain.SetSuperArmor(true);
@@ -138,8 +149,10 @@ namespace YPH
                 Brain.OpenParryWindow(Time.time + HeavyWindup);
             }
             yield return WaitActive(HeavyWindup);
+            WeaponAttackImpact?.Invoke();
             SpawnHitbox(_heavyDamage, _heavyStagger, _heavyHitboxOffset, _heavyHitboxSize, _heavyActiveTime, "강공격");
             yield return WaitActive(_heavyActiveTime);
+            WeaponAttackEnded?.Invoke(false);
             Brain.CloseParryWindow();
             yield return WaitActive(HeavyRecovery);
             Brain.SetSuperArmor(false); // 쉬는 동안은 반격에 경직되게 합니다.

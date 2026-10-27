@@ -1,194 +1,160 @@
-# 기능: FinalPlayer 모델(FBX) 전달과 병합 절차
+# 기능: FinalPlayer 모델 전달과 NGH_Player 연결
 
 | 항목 | 내용 |
 |---|---|
-| 한 줄 설명 | 용량 때문에 git에 없는 `FinalPlayer.fbx`(294MB)를 병합·pull 뒤에 직접 넣어 플레이어 모델을 살리는 방법 |
-| 담당자 | YPH |
-| 사용한 AI | Claude |
-| 완료일 | 2026-10-23 |
-| 브랜치 / 커밋 | `YPH` / `8fdf152` (NGH 플레이어 프리팹 교체), `4b1861a` (부속 에셋·`.fbx.meta`), `f823ac3` (FinalPlayer 프리팹) |
-| 관련 기획서 | 없음 (모델 파일 전달 가이드) · 기준 결정: 없음 |
-| 상태 | 일부 완료(FBX를 어디에 공유할지는 13번 참고) |
+| 한 줄 설명 | ClothTest의 FinalPlayer3 외형과 치마·배래 설정을 기존 NGH 플레이어에 연결한다 |
+| 담당자 | YPH · 플레이어 프리팹 소유자 NGH |
+| 사용한 AI | Codex |
+| 완료일 | 2026-10-27 |
+| 브랜치 / 커밋 | `YPH` / 이번 교체는 미커밋 |
+| 관련 기획서 | 없음 (사용자가 요청한 모델 교체) · 기준 결정: 없음 |
+| 상태 | 로컬 적용·테스트 완료. 다른 PC와 빌드는 미검증 |
 | 대상 플랫폼 | PC |
 
-## 1. 이 문서는 무엇인가
+## 1. 이 기능은 무엇인가
 
-`FinalPlayer.fbx`는 플레이어의 몸·옷·장신구가 들어 있는 3D 모델 파일입니다. 크기가 294MB라서 GitHub의 "파일 하나는 100MB까지" 제한을 넘어 **git에는 올리지 못했습니다.**
+`NGH_Player.prefab`의 몸·옷·장신구를 FinalPlayer3 자산으로 연결했다. 치마와 배래는 MagicaCloth2로 움직이고, 패키지에 들어 있는 피부·조끼 간격 보정도 함께 실행한다. 기존 이동·전투·카메라·무기 기능과 Animator Controller는 유지한다.
 
-그런데 `NGH_Player.prefab`(NGH 플레이어)이 이 모델을 가리키도록 바뀌었습니다(`8fdf152`). 그래서 이 FBX를 따로 받아 넣지 않으면 pull·병합한 사람의 컴퓨터에서 **플레이어의 몸이 비어(Missing) 보입니다.**
+이 문서의 이전 294MB FBX 수동 전달 안내는 10월 23일 모델에 관한 기록이다. 현재 외형 경로는 `Assets/Arts/Models/YPH/FinalPlayer3/`이다. 기존 `FinalPlayerMagica/` 자산은 검·검집 등의 참조가 남아 있으므로 삭제하지 않는다.
 
-비유하면 책 목차(프리팹)와 쪽 번호(`.meta`)는 공유 노트에 있는데, 본문(FBX)만 따로 전달하는 상황입니다. 쪽 번호가 같아야 목차가 본문을 찾으므로, **파일 이름과 위치를 그대로** 지켜야 합니다.
+## 2. 5분 안에 써 보기
 
-## 2. 5분 안에 넣어 보기
+1. Unity 프로젝트 `SteamAttack/`을 연다. MagicaCloth2가 먼저 설치되어 있어야 한다.
+2. `Assets/Scenes/YPH/YPH_MainPlayerTest.unity`를 연다.
+3. Hierarchy의 `NGH_Player/Hero_Bound`에서 `MC2_MeshSkirt`, `MC2_MeshSleeves`를 확인한다.
+4. Play를 누르고 아래 조작으로 이동·공격·사격을 확인한다.
 
-받는 사람(병합 담당자와 모든 팀원)이 할 일입니다.
-
-1. **FBX 받기:** YPH에게서 `FinalPlayer.fbx`(또는 이를 묶은 zip)를 받는다. 공유 위치는 아직 정해지지 않았다(13번).
-2. **받은 파일 확인:** 크기가 **308,193,324바이트**(약 294MB)인지, 해시가 아래와 같은지 확인한다. (4-3)
-3. **Unity 끄기:** 열려 있으면 닫는다. (열린 채로 넣어도 되지만, 닫고 넣는 쪽이 안전하다. 8번 참고)
-4. **git에서 받기:** `YPH` 브랜치를 pull·병합한다. 이때 `FinalPlayer.fbx.meta`가 같이 들어온다.
-5. **FBX 넣기:** 아래 경로에 **이름을 바꾸지 않고** 복사한다.
-   ```text
-   SteamAttack/Assets/Arts/Models/YPH/Player/FinalPlayerMagica/FinalPlayer.fbx
-   ```
-   같은 폴더에 `FinalPlayer.fbx.meta`가 이미 있어야 한다. 없으면 4번을 다시 확인한다.
-6. **Unity 열기:** 처음 열 때 이 FBX를 읽느라 시간이 걸린다.
-7. **확인:** 3-3의 시나리오로 Missing이 없는지 본다.
-8. **git에는 올리지 않기:** `git status`에 `FinalPlayer.fbx`가 "추적 안 됨(untracked)"으로 보이는 게 정상이다. **`git add`하지 않는다.** (100MB를 넘어 푸시가 거부된다.)
+다른 PC에 이 변경을 전달할 때는 프리팹 변경, 새 모델·재질·텍스처, 보정 코드와 각각의 `.meta`를 함께 전달한다. 원본 unitypackage를 Import하는 것만으로 기존 NGH_Player 프리팹 교체까지 자동 수행되지는 않는다.
 
 ## 3. 테스트 조작법
 
 ### 3-1. 게임 조작 키
 
-없음
-
-### 3-2. 테스트 전용 키 (디버그)
-
-없음
-
-### 3-3. 확인 시나리오
-
-| # | 하는 일 (순서대로) | 정상이라면 보이는 것 |
+| 입력 | 동작 | 조건 |
 |---|---|---|
-| 1 | Project 창에서 `Arts/Models/YPH/Player/FinalPlayerMagica/FinalPlayer.fbx`를 선택한다 | Inspector에 Model·Rig 탭이 나온다. Rig 탭의 Animation Type이 **Humanoid**다 |
-| 2 | `Prefabs/NGH/NGH_Player.prefab`을 연다 | 몸·머리·장신구가 보이고, 메시 칸에 `None (Mesh)`나 Missing 표시가 없다 |
-| 3 | `Prefabs/YPH/HeroPlayer/Models/FinalPlayer.prefab`을 연다 | 같은 모델이 보인다 |
-| 4 | `Scenes/YPH/YPH_MainPlayerTest.unity`를 열고 Play를 누른다 | 플레이어가 서 있고 움직이면 애니메이션이 재생된다 |
-| 5 | Console을 본다 | `missing`·`The referenced script` 경고가 없다 (Magica Cloth 2가 없으면 천 관련 경고는 나온다. 10번) |
+| WASD / Shift | 걷기 / 달리기 | 조작 안내창이 닫혀 있어야 한다 |
+| Space | 구르기 | 행동 중에는 기존 플레이어 규칙을 따른다 |
+| F | 발도·납도 | 검 장착 상태 |
+| 좌클릭 / 우클릭 | 검 약공격 / 강공격 | 검 장착 상태 |
+| Tab | 무기 교체 | 총 장착 후 우클릭으로 조준한다 |
+| 우클릭 유지 + 좌클릭 | 총 조준 + 발사 | 증기가 있고 재장전이 끝난 상태 |
 
-## 4. 어떻게 만들어졌나 (구조)
+입력 방식은 기존 `NGH.PlayerController`와 `NGH.CombatBridge`의 Input System을 그대로 사용한다.
 
-### 4-1. 관련 파일
+### 3-2. 테스트 전용 키
 
-| 경로 | git 상태 | 역할 |
-|---|---|---|
-| `Assets/Arts/Models/YPH/Player/FinalPlayerMagica/FinalPlayer.fbx` | **없음 (직접 넣기)** | 몸·옷·장신구 메시와 뼈대. 294MB |
-| `Assets/Arts/Models/YPH/Player/FinalPlayerMagica/FinalPlayer.fbx.meta` | 있음 (`4b1861a`) | 이 FBX의 고유 번호(guid)와 읽기 설정을 보관 |
-| `Assets/Arts/Models/YPH/Player/FinalPlayerMagica/Materials/`, `Textures/`, `Cloth/` | 있음 | 머티리얼 17개, 텍스처 33개, 천 메시 |
-| `Assets/Prefabs/YPH/HeroPlayer/Models/FinalPlayer.prefab` | 있음 (`f823ac3`) | 모델만 담은 프리팹 |
-| `Assets/Prefabs/NGH/NGH_Player.prefab` | 있음 (`8fdf152`) | NGH 플레이어. 이 FBX의 메시·머티리얼을 직접 가리킴 (15곳) |
+새 키·런타임 테스트 컴포넌트는 추가하지 않았다. 로컬 검사 명령은 임시 입력 장치를 만들고, 종료 시 제거한 뒤 저장된 씬을 다시 연다.
 
-### 4-2. 왜 이름과 위치를 그대로 지켜야 하나
+### 3-3. 테스트 시나리오
 
-Unity는 파일을 이름이 아니라 **guid(고유 번호)** 로 찾습니다. 이 FBX의 guid는 아래와 같고 `FinalPlayer.fbx.meta`에 적혀 있습니다.
-
-```text
-0860b529352414c4ba7109524ccd7ae9
-```
-
-`NGH_Player.prefab`은 "guid 0860b529…의 메시"라고 적혀 있습니다. 같은 폴더에 `.meta`와 짝이 맞는 FBX가 들어오면 Unity가 이 번호로 다시 이어 줍니다. 파일 이름을 바꾸거나 `.meta`를 새로 만들게 하면 번호가 달라져 다시 Missing이 됩니다.
-
-### 4-3. 받은 파일이 맞는지 확인하기
-
-| 항목 | 값 |
+| 순서 | 확인 내용 |
 |---|---|
-| 크기 | 308,193,324 바이트 |
-| SHA-256 | `9d01f247618a11cec503fe0b425c9558e1496e74e2a89c7eeec5cffb84471750` |
+| 대기·걷기·달리기 | 메시가 보이고 발 위치와 의상 시뮬레이션이 유지된다 |
+| 구르기·발도·공격·받아치기 | 기존 Animator와 무기 연결이 유지된다 |
+| 총 교체·조준·발사 | `Shot`이 재생되고 실제 발사 이벤트가 발생한다 |
+| Play 종료 | 테스트 입력·적 비활성화·임시 상태가 저장되지 않는다 |
 
-PowerShell에서 확인하는 방법입니다.
+## 4. 어떻게 만들어졌나
 
-```powershell
-Get-FileHash .\FinalPlayer.fbx -Algorithm SHA256
-```
+### 4-1. 파일
 
-해시가 다르면 전송 중에 깨졌거나 다른 버전입니다. 다시 받습니다.
-
-### 4-4. 병합 중 충돌이 나면
-
-`NGH_Player.prefab`은 NGH 소유 파일이고, `8fdf152`에서 약 12,900줄이 추가되고 17,200줄이 삭제될 만큼 크게 바뀌었습니다. NGH도 이 프리팹을 고치고 있었다면 충돌이 납니다.
-
-- 프리팹은 한 줄씩 합치기 어려운 글 파일(YAML)이라, 충돌이 나면 **한쪽 버전을 통째로 고르고 다른 쪽 변경을 Unity에서 다시 적용**하는 방식이 안전합니다.
-- 어느 쪽을 고를지는 YPH와 NGH가 함께 정합니다. 이 문서가 정하지 않습니다.
-
-## 5. 왜 이렇게 했나
-
-| 결정 | 이유 | 버린 대안과 그 이유 |
+| 경로 | 변경 | 역할 |
 |---|---|---|
-| FBX를 git에서 뺐다 | 294MB라 GitHub 파일당 100MB 제한을 넘어 푸시가 거부된다 | 그냥 올리기: 푸시 실패. 한 번 커밋하면 기록에도 남아 `.git`이 커진다 |
-| `.meta`는 git에 올렸다 | guid를 지켜야 프리팹 참조가 이어진다 | `.meta`도 빼기: 팀원마다 guid가 달라져 Missing |
-| 파일을 직접 전달 | 가장 간단하다 | Git LFS: 저장소 설정이 필요해 아직 결정되지 않음(13번) |
+| `Assets/Prefabs/NGH/NGH_Player.prefab` | 수정 | 실제 게임 플레이어의 모델·Avatar·의상 설정 |
+| `Assets/Scenes/YPH/YPH_MainPlayerTest.unity` | 수정 | MagicaCloth의 씬 위치별 초기화 기록 갱신 |
+| `Assets/Prefabs/YPH/HeroPlayer/Models/FinalPlayer3.prefab` | 신규 | 가져온 모델 원본 프리팹 |
+| `Assets/Arts/Models/YPH/FinalPlayer3/` | 신규 | FBX, 보정 메시, 재질, 텍스처 |
+| `Assets/Scripts/YPH/FinalPlayer3Cloth/` | 신규 | 패키지의 의상 보정 코드 6개 |
 
-일부러 단순하게 둔 곳과 한계: 손으로 전달하므로 **빠뜨리거나 오래된 버전을 쓸 수 있습니다.** 해시 확인(4-3)이 그걸 막는 유일한 장치입니다.
+### 4-2. 관계와 처리 순서
+
+기존 Animator가 본을 움직인다. MagicaCloth2가 치마·배래를 계산하고, 패키지의 `SkirtBodySurfaceContact`, `SkirtVestLayerContact`, `NGHSleeveSkirtSeparation`, `AttachedSleeveSkinContact`가 보정한다. `RearSkirtSurfacePatch`, `SleeveSeparationGuard`는 이 코드들이 사용하는 보조 클래스다.
+
+### 4-3. 기존 연결 보존
+
+기존 `Hero_Bound`, Animator, 본 66개를 유지했다. 원래 객체 ID 427개를 모두 보존하고 게임 컴포넌트 103개의 직렬화 설정이 바뀌지 않았음을 검사했다. 검·총·스팀백·무기 소켓과 카메라가 참조하는 기존 본도 그대로다.
+
+기존 모델은 패키지보다 Armature가 `(0, 0.5783447, -0.007424336)`만큼 올라가 있다. 기존 본 위치를 보존하고 새 모델 직속 자식에 이 좌표 차이를 적용해 발 위치를 유지했다. 패키지 루트의 ClothTest 씬 좌표는 가져오지 않았다.
+
+### 4-4. 중복 방지
+
+기존 `YPH.SkirtBodySurfaceContact`는 비활성화했다. `YPH.FinalPlayer3Cloth` 버전이 보정을 맡는다. 기존 장식용 `Sword`, `SwordHouse`의 비활성 상태와 게임용 검·검집은 유지했다. MagicaCloth2 본체와 게임 애니메이션은 추가 Import하지 않았다.
+
+## 5. 왜 이렇게 만들었나
+
+본을 새로 만들면 외부 컴포넌트가 참조하던 손·머리·무기 연결을 다시 지정해야 한다. 두 모델의 본 구조가 같아 기존 객체를 보존한 채 메시와 의상 데이터를 옮겼다. 현재 Move/Fixed 영역과 물리 수치를 임의로 다시 조정하지 않았다.
 
 ## 6. 인스펙터 값 설명
 
-없음 (이 문서는 코드·인스펙터를 바꾸지 않는다). FBX 읽기 설정은 `.meta`에 들어 있다(Animation Type = Humanoid, Import BlendShapes 켜짐). 바꾸면 모든 팀원의 `.meta`가 달라지므로 YPH와 상의한다.
+| 항목 | 현재 값·의미 |
+|---|---|
+| Animator Controller | `Assets/Animations/NGH/NGH_HeroAnimator.controller` 유지 |
+| Avatar | `FinalPlayer3/Model/FinalPlayer.fbx`의 Humanoid Avatar |
+| MagicaSettings | 150Hz, 프레임당 최대 5회, OnAwake |
+| 치마 | 충돌체 13개, 패키지 설정과 Move/Fixed 영역 유지 |
+| 배래 | 충돌체 8개, 패키지 설정과 Move/Fixed 영역 유지 |
+| 기존 치마 피부 보정 | `YPH.SkirtBodySurfaceContact.enabled = false` |
 
 ## 7. 내 코드에서 쓰는 법
 
 ### 7-1. 공개 API
 
-없음
+기존 플레이어 API는 바꾸지 않았다. 의상 보정은 각 컴포넌트가 MagicaCloth2의 시뮬레이션 이벤트에 연결한다.
 
 ### 7-2. 사용 예시
 
-없음
+추가 코드는 필요 없다. 기존 `NGH_Player.prefab`을 사용한다.
 
-### 7-3. 이 기능에 연결하려면
+### 7-3. 연결 시 주의
 
-없음
+의상 Renderer만 따로 복사하면 충돌체·본·보정 메시 참조가 빠진다. 같은 본을 재사용하는 이번 적용 명령처럼 모든 직렬화 참조를 대응 객체에 연결하거나, 모델 전체와 게임 참조를 함께 옮겨야 한다.
 
-## 8. 확장하는 법
+## 8. 확장·복구 방법
 
-| 하고 싶은 일 | 하는 방법 (순서대로) | 고치지 않아도 되는 것 |
-|---|---|---|
-| 모델을 새 버전으로 바꾸기 | 1. 같은 이름 `FinalPlayer.fbx`로 덮어쓴다 2. Unity에서 다시 읽게 한다 3. 새 파일의 크기·해시를 이 문서 4-3에 고치고 모두에게 알린다 | `.meta`, `NGH_Player.prefab` (이름·위치가 같으면 연결 유지) |
-| Unity를 이미 연 채로 FBX를 넣었을 때 | Unity 창으로 돌아가면 자동으로 읽는다. Console의 `.meta` 관련 경고가 있으면 3-3을 다시 확인한다 | |
+이전 상태 복구 자료는 로컬 `Docs/Archive/2026-10-27_FinalPlayer3교체/Backups/`의 `NGH_Player.before.prefab`과 `YPH_MainPlayerTest.before.unity`다. 복구 전 이후에 사용자가 추가한 변경이 있는지 먼저 비교한다. 새 모델 자산을 먼저 삭제하면 현재 프리팹의 참조가 끊긴다.
 
 ## 9. 협업 가이드
 
-- **소유자:** FBX와 `FinalPlayerMagica/` 폴더는 YPH. `NGH_Player.prefab`은 NGH.
-- **수정이 필요하면:** 직접 고치지 말고 [요청문서_템플릿.md](../Templates/요청문서_템플릿.md)로 소유자에게 요청한다.
-- **씬·프리팹:** 한 사람만 수정하는 파일 — `Prefabs/NGH/NGH_Player.prefab`(NGH), `Prefabs/YPH/HeroPlayer/Models/FinalPlayer.prefab`(YPH)
-- **함부로 바꾸면 안 되는 것:** `FinalPlayer.fbx`의 이름·위치, `FinalPlayer.fbx.meta`의 guid
-- **이 기능을 쓰고 있는 곳:** `NGH_Player.prefab`이 FBX를 직접 가리킨다. `FinalPlayer.prefab`은 아직 어디에서도 쓰이지 않는다.
-- **연락할 곳:** YPH
+플레이어 프리팹 소유자는 NGH이고, 이번 수정은 사용자의 해당 프리팹 모델 교체 요청에 따라 수행했다. 모델과 보정 코드는 YPH 경로에 둔다. 본 이름·객체 ID·게임 컴포넌트 필드·무기 소켓을 임의로 바꾸지 않는다. 커밋·push는 수행하지 않았다.
 
 ## 10. 의존성과 준비물
 
-| 종류 | 이름 | 설명 |
-|---|---|---|
-| 큰 파일 | `FinalPlayer.fbx` | git에 없음. 직접 넣어야 한다 |
-| 유료 에셋 | Magica Cloth 2 | `FinalPlayer.prefab`과 `NGH_Player.prefab`이 천 물리에 쓴다. 이것도 git에 없다(`Scripts/YPH/ThirdParty/`). 없으면 몸은 보이지만 천 컴포넌트가 Missing이고 천이 흔들리지 않는다. 별도로 설치한다 |
-| 패키지 | `Unity.AI.Navigation` | `NGH_Player.prefab`의 `NavMeshModifier`가 쓴다 |
-| 다른 작업자의 코드·에셋 | `NGH_Player.prefab` | NGH 소유 |
+Unity `6000.6.0f1`, URP, 기존 MagicaCloth2 `2.18.3`, Burst·Collections·Mathematics를 사용한다. MagicaCloth2는 `Assets/Scripts/YPH/ThirdParty/MagicaCloth2/`의 기존 설치를 사용한다. 원본 패키지에는 유료 플러그인 본체·클립·Animator Controller가 없다.
 
-## 11. 성능 기록 (PC, 목표 60FPS)
+원본 패키지는 `C:/Project/Unity6.6_ClothTest/Exports/FinalPlayer3/FinalPlayer3_NoAnimations.unitypackage`이며 SHA-256은 `60f5cb455a2511edec6e9c925ade143b07e44136b9eb9e82beea146835595f45`다. FBX의 중복 내장 텍스처는 제거된 상태이며 외부 텍스처를 함께 사용한다.
 
-미측정
+## 11. 성능 기록
+
+별도 성능 측정은 하지 않았다. 캡처·진단이 포함된 Editor 테스트의 프레임 수를 실제 게임 FPS로 해석하지 않는다.
 
 ## 12. 검증 결과
 
-| 완료 조건 | 결과 | 확인 방법 |
-|---|---|---|
-| FBX 크기·해시 계산 | 완료 | 2026-10-23 작성자 PC의 파일로 계산 |
-| 3-3 시나리오를 다른 팀원 PC에서 실행 | **미실행** | 작성자 PC에서만 모델이 있는 상태로 확인했고, FBX 없이 pull한 환경에서 Missing이 어떻게 보이는지, 이 절차로 복구되는지는 아직 시험하지 않았다 |
+| 항목 | 결과 |
+|---|---|
+| Import·명령 컴파일·본·Avatar·참조 | 통과. 누락 스크립트·끊어진 직렬화 참조 없음 |
+| 치마·배래 설정과 페인트 | 프리팹·현재 씬에서 패키지와 일치 |
+| 기존 객체·게임 연결 | 객체 ID 427개, 본 66개, 게임 컴포넌트 설정 103개 보존 |
+| 실제 입력 Play | 829프레임. 걷기 1.95m, 달리기 1.60m, 구르기·발도·약공격·받아치기·총 발사 1회 실행 |
+| 의상 | 두 MagicaCloth 유효, 두 Renderer의 시뮬레이션 메시 활성, 유한한 정점 좌표 확인 |
+| 테스트 중 로그 | 오류 0, 경고 0 |
+| 렌더링 | 대기·달리기·총 장착 캡처. 일부 구도는 테스트 오브젝트에 가려 정밀한 손·총구 외형 검수에 한계가 있음 |
 
-- 콘솔 에러·경고: 미확인
-- 코드 컨벤션 점검: 해당 없음 (코드 변경 없음)
+첫 검사는 우클릭 조준을 넣지 않아 발사 수 0으로 검사 조건에 실패했다. 조준 입력을 추가한 두 번째 검사에서 통과했다. 게임 코드를 수정해서 통과시킨 것은 아니다. 로컬 결과는 `Docs/Archive/2026-10-27_FinalPlayer3교체/UnityCommands/play-result.txt`에 있다.
 
-## 13. 알려진 문제와 앞으로 할 일
+## 13. 알려진 문제와 확인하지 않은 범위
 
-| 구분 | 내용 | 영향 | 해결 방향 |
-|---|---|---|---|
-| 알려진 문제 | FBX 없이 pull하면 NGH 플레이어가 Missing | 병합 후 모두의 플레이어가 안 보임 | 이 문서 2번 절차 |
-| 결정 필요 | FBX를 **어디에 공유할지** 정해지지 않았다 (공유 드라이브 / Git LFS / 메신저) | 받을 곳이 없다 | 팀장과 결정. 결정되면 2번 1단계에 적는다 |
-| 확인 필요 | Unity가 `.meta`만 있고 FBX가 없는 상태를 어떻게 처리하는지 확인하지 못했다. 경고만 하는지 `.meta`를 지우는지 모른다 | `.meta`가 지워지면 guid가 사라질 수 있다 | 지워졌다면 `git checkout -- SteamAttack/Assets/Arts/Models/YPH/Player/FinalPlayerMagica/FinalPlayer.fbx.meta`로 복구한 뒤 FBX를 넣는다. 가능하면 FBX를 넣은 뒤 Unity를 연다 |
-| 한계 | `.git`이 이미 커서 이번 텍스처 약 287MB가 더해졌다 | 푸시·clone이 느리다 | 푸시 전 용량 점검 |
-| 다음에 할 일 | `.gitignore`에 `FinalPlayer.fbx`를 추가해 실수로 올리지 않게 하기 | `git add -A` 때 실수로 들어갈 수 있다 | `.gitignore`는 팀장 소관이므로 요청 문서로 부탁한다 |
+- 패키지에 남아 있던 빠른 팔 비틀림 등의 일부 배래 관통 한계는 이번 모델 교체로 해결된 것이 아니다.
+- ClothTest의 ArmContinuity 테스트 애니메이션은 포함하지 않았고 SteamAttack 원본 애니메이션을 유지했다.
+- 모든 공격·전환의 관통, 적 공격을 실제 받아치는 판정, Main·BossArena 씬 전환, 다른 PC Import와 Player 빌드는 확인하지 않았다.
+- 기존 FBX·재질·검·검집 참조가 남아 있으므로 이전 자산 폴더를 일괄 삭제하지 않는다.
 
 ## 14. 용어
 
-| 용어 | 뜻 |
-|---|---|
-| FBX | 3D 모델·뼈대·애니메이션을 담는 파일 형식 |
-| `.meta` | Unity가 파일마다 만드는 짝 파일. 고유 번호(guid)와 읽기 설정이 들어 있다 |
-| guid | 파일의 고유 번호. 프리팹은 파일 이름이 아니라 이 번호로 파일을 찾는다 |
-| Missing | 프리팹이 가리키는 파일을 못 찾은 상태 |
-| Humanoid | 사람 모양 뼈대로 읽는 설정. 다른 사람의 애니메이션을 같이 쓸 수 있다 |
+GUID는 Unity 자산의 고유 번호이고, 객체 ID는 프리팹 내부 연결에 쓰이는 번호다. Avatar는 사람 본 구조와 애니메이션을 연결하는 자산이다. Move/Fixed는 천에서 움직일 영역과 고정할 영역이다.
 
 ## 15. 변경 이력
 
-| 날짜 | 작성·수정 | 바뀐 내용 | 커밋 |
+| 날짜 | 작성·수정 | 내용 | 커밋 |
 |---|---|---|---|
-| 2026-10-23 | YPH(Claude) | 최초 작성 | 미커밋 |
+| 2026-10-23 | YPH(Claude) | 기존 FinalPlayer FBX 전달 문서 작성, 이후 Git LFS 안내 추가 | 기존 기록 참고 |
+| 2026-10-27 | YPH(Codex) | FinalPlayer3 적용 경로·본 보존·의상·Play 검증·복구 절차로 갱신 | 미커밋 |
