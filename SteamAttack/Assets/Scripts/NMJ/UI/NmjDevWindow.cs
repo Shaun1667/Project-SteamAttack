@@ -446,8 +446,11 @@ namespace NMJ
         /// <summary>Alt를 누르는 동안: 마우스 보이기, 플레이어 입력·카메라·시간 멈춤</summary>
         private void UpdateMouseMode(Keyboard kb)
         {
+            // PauseMenu.IsOpen은 ControlsOverlay.MenuOpen을 그대로 읽는데, 이 창도 열릴 때 그 플래그를 켠다.
+            // 그래서 열린 뒤에는 ESC 메뉴 검사를 건너뛰어야 한다 (안 그러면 다음 프레임에 스스로 닫히고 다시 열리기를 반복)
+            bool blockedByMenu = !open && PauseMenu.IsOpen;
             bool want = DevDisplay && kb != null && (kb.leftAltKey.isPressed || kb.rightAltKey.isPressed)
-                        && !EndingCredits.IsPlaying && !PauseMenu.IsOpen;
+                        && !EndingCredits.IsPlaying && !blockedByMenu;
             if (want && !open) EnterMouseMode();
             else if (!want && open) ExitMouseMode();
         }
