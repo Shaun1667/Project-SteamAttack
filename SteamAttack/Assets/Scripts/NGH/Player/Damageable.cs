@@ -15,7 +15,9 @@ namespace NGH
         public float markerHeight = 1.3f;
 
         Renderer[] _renderers;
-        Color[] _baseColors;
+        Material[][] _baseMats;
+        Material[][] _flashMats;
+        static Material s_flashMat;
         Collider[] _colliders;
         GameObject _marker;
         Coroutine _flash;
@@ -24,11 +26,29 @@ namespace NGH
         void Awake()
         {
             hp = maxHp;
-            _renderers = GetComponentsInChildren<Renderer>();
+            // 처음부터 꺼 둔 렌더러(모델로 겉모습을 바꾼 뒤 숨긴 임시 캡슐 등)는 부활할 때 다시 켜지 않게 뺌
+            var all = GetComponentsInChildren<Renderer>();
+            var shown = new System.Collections.Generic.List<Renderer>(all.Length);
+            foreach (var r in all) if (r.enabled) shown.Add(r);
+            _renderers = shown.ToArray();
             _colliders = GetComponentsInChildren<Collider>();
-            _baseColors = new Color[_renderers.Length];
+            // 맞으면 잠깐 새하얀 머티리얼로 바꿔 끼움 (텍스처 입힌 모델은 색만 흰색으로 바꾸면 티가 안 나서)
+            if (s_flashMat == null)
+            {
+                var sh = Shader.Find("Universal Render Pipeline/Unlit");
+                if (sh == null) sh = Shader.Find("Unlit/Color");
+                s_flashMat = new Material(sh) { name = "Damageable_HitFlash" };
+                s_flashMat.SetColor("_BaseColor", Color.white);
+                s_flashMat.color = Color.white;
+            }
+            _baseMats = new Material[_renderers.Length][];
+            _flashMats = new Material[_renderers.Length][];
             for (int i = 0; i < _renderers.Length; i++)
-                _baseColors[i] = _renderers[i].material.color;
+            {
+                _baseMats[i] = _renderers[i].sharedMaterials;
+                _flashMats[i] = new Material[_baseMats[i].Length];
+                for (int k = 0; k < _flashMats[i].Length; k++) _flashMats[i][k] = s_flashMat;
+            }
 
             // 락온 표시용 작은 구 (UI 대신 월드 오브젝트) — 오브젝트 풀에서 꺼냄
             _marker = ObjectPool.Spawn("chg_LockMarker", CreateMarker, transform);
@@ -56,7 +76,7 @@ namespace NGH
             _flash = null;
             hp = maxHp;
             _alive = true;
-            for (int i = 0; i < _renderers.Length; i++) if (_renderers[i]) _renderers[i].material.color = _baseColors[i];
+            SetFlash(false);
             SetVisible(true);
             SetLocked(false);
         }
@@ -64,6 +84,7 @@ namespace NGH
         public void OnDespawned()
         {
             StopAllCoroutines();
+            SetFlash(false);
             SetLocked(false);
         }
 
@@ -92,9 +113,15 @@ namespace NGH
 
         IEnumerator Flash()
         {
-            for (int i = 0; i < _renderers.Length; i++) _renderers[i].material.color = Color.white;
+            SetFlash(true);
             yield return new WaitForSeconds(0.08f);
-            for (int i = 0; i < _renderers.Length; i++) _renderers[i].material.color = _baseColors[i];
+            SetFlash(false);
+        }
+
+        void SetFlash(bool on)
+        {
+            for (int i = 0; i < _renderers.Length; i++)
+                if (_renderers[i]) _renderers[i].sharedMaterials = on ? _flashMats[i] : _baseMats[i];
         }
 
         IEnumerator DieAndRespawn()

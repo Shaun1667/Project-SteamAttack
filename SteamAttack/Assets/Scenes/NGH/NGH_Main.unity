@@ -4714,6 +4714,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -5754084199372789682, guid: b7a50201ca6e4c84785cc00ee7024f19, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: 4ec58063f17458f42921ce65f90ba9a3, type: 2}
     - target: {fileID: 919132149155446097, guid: b7a50201ca6e4c84785cc00ee7024f19, type: 3}
       propertyPath: m_Name
       value: PR_OxCart
@@ -102669,6 +102673,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -5754084199372789682, guid: b0c8629339f39664e9afc60f226ff462, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: 91aebc63738247843b91f808492c3b63, type: 2}
     - target: {fileID: 919132149155446097, guid: b0c8629339f39664e9afc60f226ff462, type: 3}
       propertyPath: m_Name
       value: PR_HandCart
@@ -132811,6 +132819,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -5754084199372789682, guid: b7a50201ca6e4c84785cc00ee7024f19, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: 4ec58063f17458f42921ce65f90ba9a3, type: 2}
     - target: {fileID: 919132149155446097, guid: b7a50201ca6e4c84785cc00ee7024f19, type: 3}
       propertyPath: m_Name
       value: PR_OxCart
@@ -265327,6 +265339,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -5754084199372789682, guid: b0c8629339f39664e9afc60f226ff462, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: 91aebc63738247843b91f808492c3b63, type: 2}
     - target: {fileID: 919132149155446097, guid: b0c8629339f39664e9afc60f226ff462, type: 3}
       propertyPath: m_Name
       value: PR_HandCart
