@@ -505,9 +505,9 @@ MonoBehaviour:
   _camera: {fileID: 0}
   _aimFovMultiplier: 0.8
   _orbitCamera: {fileID: 0}
-  _aimDistance: 0.92
+  _aimDistance: 0.8
   _head: {fileID: 0}
-  _headViewport: {x: 0.1, y: 0.45}
+  _headViewport: {x: 0.3, y: 0.45}
   _collisionRadius: 0.15
   _collisionMask:
     serializedVersion: 2
