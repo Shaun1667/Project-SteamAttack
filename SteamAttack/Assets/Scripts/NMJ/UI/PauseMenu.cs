@@ -389,7 +389,7 @@ namespace NMJ
                 "WASD  이동      Shift  달리기      Space  구르기\n" +
                 "좌클릭  공격 · 사격      우클릭  강공격 · 조준\n" +
                 "Tab  환도 ↔ 화승총      C  발도 · 납도      Ctrl  받아치기\n" +
-                "Q  시간 역행      F  상호작용      T  락온      ESC  메뉴",
+                "Q  시간 역행      F  상호작용      ESC  메뉴",
                 30f, textColor);
             controlsFallback.lineSpacing = 40f;
 

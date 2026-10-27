@@ -29,7 +29,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Chroma: 0.3
+    - _Chroma: 0
     - _Dark: 0.22
     - _Distort: 0.045
     - _GlowIntensity: 0.25

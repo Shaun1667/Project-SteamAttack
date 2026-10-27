@@ -18,8 +18,6 @@ namespace YPH
         private SteamTank _steam;
         private Camera _camera;
         private Material _laserMaterial;
-        private Transform _lockTarget;
-        private EnemyAI _lockedEnemy;
         private bool _savedPlayerHitKeys, _ownsTestKeys;
         private float _nextLookup;
         private string _helpText = BuildHelpText(25);
@@ -217,7 +215,7 @@ namespace YPH
             {
                 return;
             }
-            EnemyAI target = FindTarget(out _);
+            EnemyAI target = FindTarget();
             if (target == null)
             {
                 Debug.Log("[YPH 테스트] 살아 있는 적이 없습니다.");
@@ -253,19 +251,8 @@ namespace YPH
                 default: return false;
             }
         }
-        private EnemyAI FindTarget(out bool byLockOn)
+        private EnemyAI FindTarget()
         {
-            Transform current = _player != null && _player.LockTarget != null ? _player.LockTarget.transform : null;
-            if (current != _lockTarget)
-            {
-                _lockTarget = current;
-                _lockedEnemy = current != null ? current.GetComponentInParent<EnemyAI>() : null;
-            }
-            byLockOn = _lockedEnemy != null && _lockedEnemy.isActiveAndEnabled && _lockedEnemy.Health.IsAlive;
-            if (byLockOn)
-            {
-                return _lockedEnemy;
-            }
             Vector3 origin = _player != null ? _player.transform.position : _camera != null ? _camera.transform.position : transform.position;
             EnemyAI best = null;
             float distance = float.MaxValue;
@@ -289,7 +276,7 @@ namespace YPH
         {
             return "<b>개발용 표시 ON</b>  0: 끄기\n" +
                 "<b>플레이어</b>\n1: 작은 경직(피해 1)  2: 큰 경직(피해 " + threshold + ")\n3: 증기 -20  4: 증기 +20\nCtrl: 붉은 동심원 받아치기(기본 증기 소모 없음)\n" +
-                "<b>대상 적: 락온, 없으면 가장 가까운 적</b>\n5: 패링당함  7: 체력바\n" +
+                "<b>대상 적: 가장 가까운 적</b>\n5: 패링당함  7: 체력바\n" +
                 "<b>원</b> 노랑: 인지  옅은 노랑: 놓침\n빨강: 근접 사거리/원거리 후퇴  자주: 강공격/킥\n초록: 원거리 유지/사격 거리\n" +
                 "<b>빨간 상자</b> 실제 공격 판정\n<b>레이저</b> 빨강: 조준  노랑: 발사 방향";
         }
@@ -300,11 +287,11 @@ namespace YPH
                 return;
             }
             Rect help = DebugView.DrawBox(_helpText, Vector2.zero);
-            EnemyAI target = FindTarget(out bool locked);
+            EnemyAI target = FindTarget();
             string info = "<b>대상 적</b>\n없음";
             if (target != null)
             {
-                info = "<b>대상 적</b> (" + (locked ? "락온" : "가장 가까움") + ")\n" + target.name +
+                info = "<b>대상 적</b> (가장 가까움)\n" + target.name +
                     "\n종류: " + (target.UsesRanged ? "원거리" : "근접") + "\n상태: " + target.CurrentState +
                     "\nHP: " + Mathf.CeilToInt(target.Health.CurrentHp) + " / " + Mathf.CeilToInt(target.Health.MaxHp);
             }

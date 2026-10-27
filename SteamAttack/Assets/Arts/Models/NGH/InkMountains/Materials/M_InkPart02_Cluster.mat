@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_InkPart02_Cluster
-  m_Shader: {fileID: 4800000, guid: 650dd9526735d5b46b79224bc6e94025, type: 3}
+  m_Shader: {fileID: 4800000, guid: 5c9685acecd659744aa02084172e0248, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -17,8 +17,7 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap:
-    RenderType: Opaque
+  stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
@@ -40,20 +39,37 @@ Material:
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendOp: 0
+    - _Contrast: 1.2
     - _Cull: 2
     - _Cutoff: 0.5
+    - _Desaturate: 0.6
     - _DstBlend: 0
     - _DstBlendAlpha: 0
+    - _FarAmount: 0.35
+    - _FarEnd: 1000
+    - _FarStart: 300
+    - _MistAmount: 0.6
+    - _MistBottom: -5
+    - _MistTop: 35
+    - _PaperGrain: 0.05
     - _QueueOffset: 0
+    - _RimDry: 0.5
+    - _RimInk: 0.55
+    - _RimWidth: 0.3
     - _SampleGI: 0
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
+    - _StrokeInk: 0.18
+    - _StrokeLength: 45
+    - _StrokeWidth: 6
     - _Surface: 0
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _InkTint: {r: 0.93, g: 0.93, b: 0.95, a: 1}
+    - _MistColor: {r: 0.82, g: 0.83, b: 0.83, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &1980263853809064696
