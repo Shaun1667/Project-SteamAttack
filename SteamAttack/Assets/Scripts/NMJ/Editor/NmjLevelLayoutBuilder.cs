@@ -33,7 +33,7 @@ namespace NMJ.EditorTools
         static readonly Vector3 FogGatePos = new Vector3(0f, 0f, -90f);    // v4: 육조거리 한가운데 (광화문을 나와 남쪽으로)
         static readonly Vector3 FogReturnPos = new Vector3(0f, 0.1f, -85f);  // 보스방에서 돌아오는 자리 (문을 등지고 북쪽을 본다)
         // v4 시작: 근정전 계단 앞 서쪽 (남쪽을 보고 선다). 향원정 옆(-35, 80)에서 당겨 이동 171m → 약 120m
-        static readonly Vector3 StartPos = new Vector3(-12f, 0.1f, 30f);
+        static readonly Vector3 StartPos = new Vector3(-12f, 0.1f, 27f);   // 계단(x ±5, z 29~36) 옆, 얼음과 겹치지 않게
         const string MatDir = "Assets/Materials/NMJ/HyeonmuWorld/";
         const float PocheolWander = 2.5f;   // 기본 6m면 옆 구간까지 걸어가 구간이 섞인다
 
@@ -380,7 +380,7 @@ namespace NMJ.EditorTools
                         Spike(court, spike, ice, new Vector3(side * 8.5f, 0f, z), k, 1.4f + (k % 3) * 0.6f);
                         k++;
                     }
-                foreach (var p in new[] { new Vector3(-9f, 0f, 33f), new Vector3(9f, 0f, 33f), new Vector3(-12f, 0f, 34f), new Vector3(12f, 0f, 34f) })   // 새 근정전 하월대 앞 가장자리(z 36) 앞으로
+                foreach (var p in new[] { new Vector3(-17f, 0f, 33f), new Vector3(17f, 0f, 33f), new Vector3(-20f, 0f, 34f), new Vector3(20f, 0f, 34f) })   // 계단·시작 자리를 막지 않게 하월대 양 끝 앞으로
                     Spike(court, spike, ice, p, k++, 4.5f);
             }
 

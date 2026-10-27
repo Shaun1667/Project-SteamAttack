@@ -37,11 +37,17 @@ namespace NMJ
 
         private void Update()
         {
-            if (player == null && Time.time >= nextSearch)
+            // Player 태그가 여럿일 수 있다 (Main에 시험용 캡슐도 Player 태그·CharacterController) → 0.5초마다 문에 가장 가까운 것을 쓴다
+            if (Time.time >= nextSearch)
             {
-                nextSearch = Time.time + 1f;
-                var p = GameObject.FindGameObjectWithTag(playerTag);
-                if (p != null) player = p.transform;
+                nextSearch = Time.time + 0.5f;
+                player = null; float best = float.MaxValue;
+                foreach (var p in GameObject.FindGameObjectsWithTag(playerTag))
+                {
+                    Vector3 a = p.transform.position, c = closedCenter; a.y = c.y = 0f;
+                    float dd = (a - c).sqrMagnitude;
+                    if (dd < best) { best = dd; player = p.transform; }
+                }
             }
             if (player != null)
             {
