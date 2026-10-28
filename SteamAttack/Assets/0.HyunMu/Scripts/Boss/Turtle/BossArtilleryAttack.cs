@@ -100,6 +100,13 @@ public class BossArtilleryAttack : BossAttack
     private Mesh explosionMesh;
     private MeshCollider explosionQuery;
     private readonly List<Shell> shells = new List<Shell>();
+    private readonly List<Shell> shellPool = new List<Shell>();
+    private GameObject pooledVisual;
+    private ParticleSystem pooledImpact;
+    private Material pooledWarning;
+    private Color pooledColor;
+    private Vector2 pooledShape;
+    public int PooledShellCount => shellPool.Count;
 
     private class Shell
     {
@@ -111,6 +118,9 @@ public class BossArtilleryAttack : BossAttack
         public GameObject root;
         public Transform visual;
         public DecalProjector projector;
+        public ParticleSystem impact;
+        public ParticleSystem[] particles;
+        public Vector3 baseScale;
     }
 
     // 마지막 착탄과 표시 정리가 끝날 때 직접 종료한다.
@@ -246,9 +256,20 @@ public class BossArtilleryAttack : BossAttack
         ResetStayTimer();
 
         // 부모 없음 / Scale 1. 보스의 크기나 이후 이동이 데칼과 착탄 좌표를 바꾸지 않는다.
-        runtimeRoot = new GameObject(name + "_ArtilleryRuntime");
-        if (!CreateDecalResources()) return false;
-        CreateExplosionQuery();
+        if (runtimeRoot != null && (pooledVisual != lockedVisualPrefab || pooledImpact != lockedImpactPrefab ||
+            pooledWarning != warningMaterial || pooledColor != warningColor || pooledShape != new Vector2(lockedRadius,lockedHeight)))
+            DisposePool();
+        if (runtimeRoot == null)
+        {
+            runtimeRoot = new GameObject(name + "_ArtilleryPool");
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(runtimeRoot, gameObject.scene);
+            if (!CreateDecalResources()) { DisposePool(); return false; }
+            CreateExplosionQuery();
+            pooledVisual=lockedVisualPrefab; pooledImpact=lockedImpactPrefab;
+            pooledWarning=warningMaterial; pooledColor=warningColor; pooledShape=new Vector2(lockedRadius,lockedHeight);
+        }
+        while (shellPool.Count < lockedCount) shellPool.Add(CreatePooledShell());
+        runtimeRoot.SetActive(true);
         waitingForShoot = false;
         waitingForIdle = false;
         return true;
@@ -280,8 +301,6 @@ public class BossArtilleryAttack : BossAttack
             if (shell.landed && elapsed - shell.impactTime >= lockedDisplayTime && shell.root != null)
             {
                 shell.root.SetActive(false);
-                Destroy(shell.root);
-                shell.root = null;
             }
         }
         LaunchDueShells();
@@ -289,7 +308,7 @@ public class BossArtilleryAttack : BossAttack
 
         if (launchedShells < lockedCount || waitingForIdle) return;
         foreach (Shell shell in shells)
-            if (!shell.landed || shell.root != null) return;
+            if (!shell.landed || (shell.root != null && shell.root.activeSelf)) return;
         CancelAttack();
     }
 
@@ -345,48 +364,22 @@ public class BossArtilleryAttack : BossAttack
         StopShootingAnimation();
     }
 
-    private void LaunchShell()
+private void LaunchShell()
     {
-        Vector3 destination = Target.position;
-        destination.y = lockedGroundY;
-        Vector3 start = Owner.position + Vector3.up * lockedFallbackHeight;
-        if (lockedFirePoints.Length > 0)
-        {
-            Transform firePoint = lockedFirePoints[launchedShells % lockedFirePoints.Length];
-            if (firePoint != null) start = firePoint.position;
-        }
-        Shell shell = new Shell
-        {
-            start = start,
-            destination = destination,
-            launchTime = elapsed,
-            root = new GameObject("Shell_" + (launchedShells + 1))
-        };
-        shell.root.transform.SetParent(runtimeRoot.transform, false);
-        shells.Add(shell);
-
-        GameObject warning = new GameObject("LandingWarning");
-        warning.transform.SetParent(shell.root.transform, false);
-        warning.transform.SetPositionAndRotation(destination, Quaternion.Euler(90f, 0f, 0f));
-        shell.projector = warning.AddComponent<DecalProjector>();
+        Vector3 destination=Target.position; destination.y=lockedGroundY;
+        Vector3 start=Owner.position+Vector3.up*lockedFallbackHeight;
+        if(lockedFirePoints.Length>0) {var point=lockedFirePoints[launchedShells%lockedFirePoints.Length];if(point!=null)start=point.position;}
+        Shell shell=shellPool[launchedShells];
+        shell.start=start; shell.destination=destination; shell.launchTime=elapsed; shell.impactTime=0; shell.landed=false;
+        foreach(var ps in shell.particles) if(ps!=null) ps.Stop(false,ParticleSystemStopBehavior.StopEmittingAndClear);
+        if(shell.impact!=null) shell.impact.gameObject.SetActive(false);
+        shell.projector.transform.SetPositionAndRotation(destination,Quaternion.Euler(90,0,0));
         ConfigureProjector(shell.projector);
-
-        GameObject visual = lockedVisualPrefab != null
-            ? Instantiate(lockedVisualPrefab, shell.root.transform)
-            : GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        visual.name = "ShellVisual";
-        visual.transform.SetParent(shell.root.transform, false);
-        visual.transform.localScale *= lockedShellScale;
-        // 외형 프리팹의 물리 컴포넌트는 판정에 쓰지 않는다.
-        foreach (Collider collider in visual.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
-        foreach (Rigidbody body in visual.GetComponentsInChildren<Rigidbody>(true))
-        {
-            body.isKinematic = true;
-            body.detectCollisions = false;
-        }
-        visual.SetActive(true);
-        shell.visual = visual.transform;
-        MoveShell(shell, 0f);
+        shell.visual.localScale=shell.baseScale*lockedShellScale;
+        MoveShell(shell,0);
+        shell.visual.gameObject.SetActive(true); shell.root.SetActive(true);
+        foreach(var ps in shell.visual.GetComponentsInChildren<ParticleSystem>(true)) ps.Play(false);
+        shells.Add(shell);
     }
 
     private void MoveShell(Shell shell, float t)
@@ -412,11 +405,10 @@ public class BossArtilleryAttack : BossAttack
         if (shell.visual != null) shell.visual.gameObject.SetActive(false);
         // 남아 있는 데칼은 착탄 잔상이다. 지속 피해는 없다.
         if (shell.projector != null) shell.projector.fadeFactor = 0.3f;
-        if (lockedImpactPrefab != null)
+        if (shell.impact != null)
         {
-            ParticleSystem effect = Instantiate(lockedImpactPrefab, shell.destination,
-                Quaternion.identity, shell.root.transform);
-            effect.Play(true);
+            shell.impact.transform.SetPositionAndRotation(shell.destination,Quaternion.identity);
+            shell.impact.gameObject.SetActive(true); shell.impact.Play(true);
         }
 
         // 각 포탄은 순간 판정 한 번으로 완결된다. 동시 착탄도 포탄별 최대 1회다.
@@ -565,29 +557,21 @@ public class BossArtilleryAttack : BossAttack
         if (animator != null) animator.SetBool(IsShootingHash, false);
     }
 
-    protected override void EndAttack()
+protected override void EndAttack()
     {
-        StopShootingAnimation();
-        waitingForShoot = false;
-        waitingForIdle = false;
-        ResetStayTimer();
-        if (runtimeRoot != null)
+        StopShootingAnimation();waitingForShoot=false;waitingForIdle=false;ResetStayTimer();
+        foreach(var shell in shellPool)
         {
-            runtimeRoot.SetActive(false);
-            Destroy(runtimeRoot);
+            if(shell.root==null)continue;
+            foreach(var ps in shell.particles)if(ps!=null)ps.Stop(false,ParticleSystemStopBehavior.StopEmittingAndClear);
+            shell.root.SetActive(false);
         }
-        if (explosionMesh != null) Destroy(explosionMesh);
-        if (runtimeWarningMaterial != null) Destroy(runtimeWarningMaterial);
-        if (warningTexture != null) Destroy(warningTexture);
-        runtimeRoot = null;
-        explosionQuery = null;
-        explosionMesh = null;
-        runtimeWarningMaterial = null;
-        warningTexture = null;
+        if(explosionQuery!=null)explosionQuery.enabled=false;
+        if(runtimeRoot!=null)runtimeRoot.SetActive(false);
         shells.Clear();
     }
 
-    private void OnDestroy() => EndAttack();
+private void OnDestroy() { EndAttack(); DisposePool(); }
 
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
@@ -639,4 +623,34 @@ public class BossArtilleryAttack : BossAttack
         }
     }
 #endif
+
+
+private void DisposePool()
+    {
+        if(runtimeRoot!=null)Destroy(runtimeRoot);
+        if(explosionMesh!=null)Destroy(explosionMesh);
+        if(runtimeWarningMaterial!=null)Destroy(runtimeWarningMaterial);
+        if(warningTexture!=null)Destroy(warningTexture);
+        runtimeRoot=null;explosionQuery=null;explosionMesh=null;runtimeWarningMaterial=null;warningTexture=null;
+        shellPool.Clear();shells.Clear();
+    }
+
+
+private Shell CreatePooledShell()
+    {
+        var shell=new Shell();
+        shell.root=new GameObject("PooledShell_"+shellPool.Count);
+        shell.root.transform.SetParent(runtimeRoot.transform,false);shell.root.SetActive(false);
+        var warning=new GameObject("LandingWarning");warning.transform.SetParent(shell.root.transform,false);
+        shell.projector=warning.AddComponent<DecalProjector>();ConfigureProjector(shell.projector);
+        var visual=lockedVisualPrefab!=null ? Instantiate(lockedVisualPrefab,shell.root.transform) : GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        visual.transform.SetParent(shell.root.transform,false);visual.name="ShellVisual";
+        shell.visual=visual.transform;shell.baseScale=visual.transform.localScale;
+        foreach(var c in visual.GetComponentsInChildren<Collider>(true))c.enabled=false;
+        foreach(var rb in visual.GetComponentsInChildren<Rigidbody>(true)){rb.isKinematic=true;rb.detectCollisions=false;}
+        foreach(var ps in visual.GetComponentsInChildren<ParticleSystem>(true)){var main=ps.main;main.scalingMode=ParticleSystemScalingMode.Hierarchy;main.stopAction=ParticleSystemStopAction.None;}
+        if(lockedImpactPrefab!=null){shell.impact=Instantiate(lockedImpactPrefab,shell.root.transform);shell.impact.gameObject.SetActive(false);foreach(var ps in shell.impact.GetComponentsInChildren<ParticleSystem>(true)){var main=ps.main;main.stopAction=ParticleSystemStopAction.None;}}
+        shell.particles=shell.root.GetComponentsInChildren<ParticleSystem>(true);
+        return shell;
+    }
 }

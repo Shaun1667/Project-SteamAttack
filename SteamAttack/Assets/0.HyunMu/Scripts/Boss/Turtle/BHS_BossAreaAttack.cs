@@ -39,6 +39,14 @@ public class BossAreaAttack : BossAttack
     public Color waveColor = new Color(1f, 0.55f, 0.05f, 0.65f);
     public bool showWaveGizmos = true;
 
+    [Header("지면 충격파 VFX")]
+    public GameObject waveShockwavePrefab;
+    [Tooltip("충격파 앞쪽 테두리의 월드 두께입니다. 피해 범위는 Wave Width를 따릅니다.")]
+    [Range(.04f, .4f)] public float shockwaveRimWidth = .14f;
+    public Color shockwaveColor = new Color(.78f, .91f, 1f, .9f);
+    private GameObject shockwave;
+    private HyunMuEffects.ReusableGroundShockwave shockwaveEffect;
+
     private const int Sides = 48;
     private const int TextureSize = 256;
     private Collider[] playerColliders;
@@ -269,6 +277,7 @@ public class BossAreaAttack : BossAttack
         visibleWaveRadii = new Vector2(Mathf.Max(0f, front - lockedWaveWidth),
             Mathf.Min(front, lockedWaveMaxRadius));
         UpdateWaveVisual();
+        UpdateShockwave();
 
         // 이번 프레임에 파동이 지나간 구간까지 검사하여 빠른 파동의 누락을 줄인다.
         float sweptInner = Mathf.Max(0f, previousFront - lockedWaveWidth);
@@ -313,6 +322,7 @@ public class BossAreaAttack : BossAttack
         if (waveVisualObject != null) waveVisualObject.SetActive(false);
         if (waveQueryObject != null) waveQueryObject.SetActive(false);
         waveStarted = false;
+        if (shockwave != null) shockwave.SetActive(false);
     }
 
     private void CreateHitbox()
@@ -505,8 +515,39 @@ public class BossAreaAttack : BossAttack
         return true;
     }
 
+    // Only the VFX adapter changes: the collision radii and attack timing remain authoritative.
+    private void UpdateShockwave()
+    {
+        if (waveShockwavePrefab == null) return;
+        float inner = visibleWaveRadii.x, outer = visibleWaveRadii.y;
+        if (outer <= inner)
+        {
+            if (shockwave != null) shockwave.SetActive(false);
+            return;
+        }
+        if (shockwave == null)
+        {
+            shockwave = Instantiate(waveShockwavePrefab);
+            shockwave.name = name + "_GroundShockwave";
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(shockwave, gameObject.scene);
+            shockwaveEffect = shockwave.GetComponent<HyunMuEffects.ReusableGroundShockwave>();
+            if (shockwaveEffect != null) shockwaveEffect.IgnoreRoot = transform.root;
+        }
+        if (shockwaveEffect == null) return;
+        shockwave.transform.SetPositionAndRotation(wavePosition, Quaternion.identity);
+        shockwave.transform.localScale = Vector3.one;
+        if (!shockwave.activeSelf) shockwave.SetActive(true);
+        shockwaveEffect.RenderWave(inner, outer, lockedWaveMaxRadius, lockedWaveWidth,
+            shockwaveColor, shockwaveRimWidth);
+    }
+
     private void UpdateWaveVisual()
     {
+        if (waveShockwavePrefab != null)
+        {
+            waveVisualObject.SetActive(false);
+            return;
+        }
         float inner = visibleWaveRadii.x;
         float outer = visibleWaveRadii.y;
         if (outer <= inner)
@@ -608,6 +649,7 @@ public class BossAreaAttack : BossAttack
         if (hitboxMesh != null) Destroy(hitboxMesh);
         DestroyWarning();
         DestroyWaveResources();
+        if (shockwave != null) Destroy(shockwave);
     }
 
     private void OnDrawGizmosSelected()

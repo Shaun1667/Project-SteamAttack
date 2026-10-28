@@ -40,6 +40,29 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
     [SerializeField, Min(.1f)] private float groundProbeHeight = 3f;
     [SerializeField, Min(.1f)] private float groundProbeDepth = 6f;
 
+    [Header("Pressure steam (optional replacement for laser)")]
+    [SerializeField] private ParticleSystem pressureJetPrefab;
+    [SerializeField, Min(.1f)] private float pressureJetSize = 1f;
+    [SerializeField] private bool showInnerHeat = true;
+    [SerializeField] private Color innerHeatColor = new Color(1f,.10f,.025f,.9f);
+    [SerializeField, Range(.1f,1f)] private float innerHeatWidth = .45f;
+    
+    [Header("Frozen breath eruption")]
+    [SerializeField] private bool iceBreath;
+    [SerializeField] private ParticleSystem iceSpikesPrefab;
+    [SerializeField] private ParticleSystem iceFragmentsPrefab;
+    [SerializeField, Range(.1f,.5f)] private float iceShatterFraction = .22f;
+    [SerializeField, Min(.1f)] private float iceHeight = 1.6f;
+    private ParticleSystem iceSpikes, iceFragments;
+    private float iceClock, coldCharge;
+    private bool iceShattered;
+    private bool UseIce => iceBreath && iceSpikes != null && iceFragments != null;
+    public bool AreIceSpikesVisible => iceSpikes != null && iceSpikes.particleCount > 0;
+    public bool HasIceShattered => iceShattered;
+
+    private ParticleSystem pressureJet;
+    private float pressureBudget;
+    public bool IsShowingSteam => pressureJet != null && sweeping;
     private const int Capacity = 81, HelixSamples = 97;
     private readonly Vector3[] points = new Vector3[Capacity];
     private readonly Vector3[] normals = new Vector3[Capacity];
@@ -70,11 +93,11 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
     public int SweepCount { get; private set; }
     public int ExplosionCount { get; private set; }
     public bool IsExplosionVisible => burstPool != null && burstPool.gameObject.activeInHierarchy;
-    public EntityId BurstPoolInstanceId =>
-     burstPool != null ? burstPool.GetEntityId() : EntityId.None;
+    public UnityEngine.EntityId BurstPoolInstanceId =>
+       burstPool != null ? burstPool.GetEntityId() : default;
 
-    public EntityId TraceMeshInstanceId =>
-        traceMesh != null ? traceMesh.GetEntityId() : EntityId.None;
+    public UnityEngine.EntityId TraceMeshInstanceId =>
+        traceMesh != null ? traceMesh.GetEntityId() : default;
     public Vector3 BeamStart => core != null ? core.GetPosition(0) : Vector3.zero;
     public Vector3 BeamEnd => core != null ? core.GetPosition(1) : Vector3.zero;
     public Vector3 LastTracePoint => count > 0 ? points[count - 1] : Vector3.zero;
@@ -109,9 +132,24 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
     {
         traceBlock = new MaterialPropertyBlock();
         snapGround = SnapGround;
-        cacheRoot = new GameObject(
-    "HyunMu_BreathVFX_Cache_" + GetEntityId());
+        cacheRoot = new GameObject("HyunMu_BreathVFX_Cache_" + GetEntityId());
         SceneManager.MoveGameObjectToScene(cacheRoot, gameObject.scene);
+        if (pressureJetPrefab != null)
+        {
+            pressureJet = Instantiate(pressureJetPrefab, cacheRoot.transform);
+            pressureJet.name = "HyunMuPressureSteamJet";
+            pressureJet.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+        if (iceSpikesPrefab != null)
+        {
+            iceSpikes = Instantiate(iceSpikesPrefab, cacheRoot.transform);
+            iceSpikes.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+        if (iceFragmentsPrefab != null)
+        {
+            iceFragments = Instantiate(iceFragmentsPrefab, cacheRoot.transform);
+            iceFragments.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
         core = CreateLine("BlueLaserCore", coreMaterial, coreWidth, 2);
         spiral = CreateLine("BlueLaserHelix", spiralMaterial, spiralWidth, HelixSamples);
         var ground = new GameObject("BreathGroundTrace");
@@ -221,9 +259,11 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
             PlayGroundExplosion();
         if (exploded && breath != null && breath.IsExplosionActive)
         {
+            UpdateIceExplosion(dt);
             ApplyTrace(0f, 1f);
             return;
         }
+        StopIceParticles();
         if (IsExplosionVisible)
         {
             burstPool.StopAndHide();
@@ -231,7 +271,8 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
         }
         if (explosionArmed && breath != null && breath.IsRunning)
         {
-            // Keep the completed trace visible for the whole attack-owned waiting period.
+            // Cold pressure builds only after the sweep has finished.
+            if (iceBreath) coldCharge = Mathf.Clamp01(coldCharge + dt / Mathf.Max(.01f, breath.explosionDelay));
             ApplyTrace(1f, 1f);
             EmitSmoke(dt, .2f);
             return;
@@ -266,6 +307,11 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
             main.simulationSpeed = speed;
         }
         burstPool.Begin();
+        if (UseIce)
+        {
+            BeginIceEruption();
+            return;
+        }
         // All recorded ground points erupt together, using the same three pooled systems.
         for (int i = 0; i < count; i++)
             if (valid[i]) burstPool.EmitAt(points[i], normals[i], ExplosionCount * 1013 + i * 47);
@@ -274,6 +320,9 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
     private void BeginVisualSweep()
     {
         sweeping = true;
+        StopIceParticles();
+        coldCharge = iceClock = 0f;
+        iceShattered = false;
         explosionArmed = exploded = false;
         if (burstPool != null) burstPool.StopAndHide();
         count = 0;
@@ -293,6 +342,37 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
             (head.mouthHead != null ? head.mouthHead : head.ikTarget));
         if (origin == null) { core.enabled = spiral.enabled = false; return; }
         Vector3 start = origin.TransformPoint(mouthLocalOffset);
+        if (pressureJet != null)
+        {
+            core.SetPosition(0, start); core.SetPosition(1, target);
+            core.enabled = spiral.enabled = false;
+            if (dt <= 0f) return;
+            if (!pressureJet.isPlaying) pressureJet.Play(false);
+            Vector3 jetDirection = (target - start).normalized;
+            pressureBudget += dt * 800f;
+            int amount = Mathf.Min(100, (int)pressureBudget); pressureBudget -= amount;
+            for (int i = 0; i < amount; i++)
+            {
+                float t = Random.Range(0f, .995f);
+                var e = new ParticleSystem.EmitParams();
+                e.position = Vector3.Lerp(start, target, t) + Vector3.ProjectOnPlane(Random.insideUnitSphere, jetDirection) * Mathf.Lerp(.015f, .14f, t) * pressureJetSize;
+                float remaining = Vector3.Distance(start,target) * (1f-t);
+                e.velocity = jetDirection * Mathf.Min(Random.Range(13f,19f), remaining / .12f);
+                e.startSize = Mathf.Lerp(.055f, .22f, t) * Random.Range(.8f, 1.2f) * pressureJetSize;
+                e.startLifetime = .12f;
+                e.startColor = new Color(.70f,.94f,1f,Mathf.Lerp(.50f,.90f,t));
+                e.rotation = 0f; e.applyShapeToPosition = false;
+                pressureJet.Emit(e, 1);
+                if (showInnerHeat && (i & 1) == 0)
+                {
+                    e.position = Vector3.Lerp(start, target, t);
+                    e.startSize *= innerHeatWidth;
+                    e.startColor = innerHeatColor;
+                    pressureJet.Emit(e, 1);
+                }
+            }
+            return;
+        }
         core.SetPosition(0, start);
         core.SetPosition(1, target);
         core.startWidth = core.endWidth = Mathf.Max(.01f, coreWidth);
@@ -373,6 +453,7 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
         // Only points already visited exist in the mesh, so no guessed fan is revealed.
         traceBlock.SetFloat(RevealId, 1.01f);
         traceBlock.SetFloat(HeatId, heat);
+        traceBlock.SetFloat("_Charge", coldCharge);
         traceBlock.SetFloat(FadeId, fade);
         traceBlock.SetFloat(BlastId, exploded ? 1f : -1f);
         traceRenderer.SetPropertyBlock(traceBlock);
@@ -389,9 +470,76 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
             if (!valid[i]) continue;
             var emission = new ParticleSystem.EmitParams();
             emission.position = points[i] + normals[i] * .06f;
-            emission.velocity = normals[i] * .3f;
+            emission.velocity = iceBreath ? new Vector3(Mathf.Sin(i * 2.4f) * .16f, .025f, Mathf.Cos(i * 2.4f) * .16f) : normals[i] * .3f;
             smoke.Emit(emission, 1);
         }
+    }
+
+    private void BeginIceEruption()
+    {
+        StopIceParticles();
+        iceClock = 0f;
+        iceShattered = false;
+        iceSpikes.Play(false);
+        float life = Mathf.Max(.01f, breath.ExplosionDuration * iceShatterFraction);
+        Vector3 previous = Vector3.positiveInfinity;
+        for (int i = 0; i < count; i++)
+        {
+            if (!valid[i] || (points[i] - previous).sqrMagnitude < .28f) continue;
+            previous = points[i];
+            Vector3 side = Vector3.Cross(normals[i], Vector3.forward).normalized;
+            if (side.sqrMagnitude < .1f) side = Vector3.right;
+            var e = new ParticleSystem.EmitParams();
+            e.position = points[i] + normals[i] * .015f + side * Mathf.Sin(i * 2.3f) * traceWidth * .22f;
+            e.velocity = Vector3.zero;
+            float h = iceHeight * (.75f + .25f * Mathf.Sin(i * 3.71f));
+            e.startSize3D = new Vector3(.58f, h, .58f);
+            e.rotation3D = new Vector3(0f, i * 137.5f, 0f);
+            e.startLifetime = life;
+            e.startColor = Color.white;
+            iceSpikes.Emit(e, 1);
+        }
+    }
+
+    private void UpdateIceExplosion(float dt)
+    {
+        if (!UseIce || iceShattered) return;
+        iceClock += Mathf.Max(0f, dt);
+        if (iceClock < breath.ExplosionDuration * iceShatterFraction) return;
+        iceShattered = true;
+        iceSpikes.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+        iceFragments.Play(false);
+        float remaining = Mathf.Max(.01f, breath.ExplosionDuration - iceClock);
+        foreach (var system in burstParticles)
+        {
+            var main = system.main;
+            main.simulationSpeed = burstNativeDuration / remaining;
+        }
+        Vector3 previous = Vector3.positiveInfinity;
+        for (int i = 0; i < count; i++)
+        {
+            if (!valid[i] || (points[i] - previous).sqrMagnitude < .28f) continue;
+            previous = points[i];
+            burstPool.EmitAt(points[i], normals[i], ExplosionCount * 1013 + i * 47);
+            for (int j = 0; j < 6; j++)
+            {
+                var e = new ParticleSystem.EmitParams();
+                Vector3 lateral = Vector3.ProjectOnPlane(Random.insideUnitSphere, normals[i]);
+                e.position = points[i] + normals[i] * Random.Range(.25f, iceHeight * .7f);
+                e.velocity = lateral * Random.Range(2f, 4f) + normals[i] * Random.Range(1.5f, 4f);
+                e.startSize3D = new Vector3(Random.Range(.07f,.17f), Random.Range(.16f,.45f), Random.Range(.07f,.17f));
+                e.rotation3D = new Vector3(Random.value, Random.value, Random.value) * 360f;
+                e.startLifetime = Mathf.Min(.7f, remaining);
+                e.startColor = Color.white;
+                iceFragments.Emit(e, 1);
+            }
+        }
+    }
+
+    private void StopIceParticles()
+    {
+        if (iceSpikes != null) iceSpikes.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+        if (iceFragments != null) iceFragments.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
 
     private void StopContact()
@@ -413,6 +561,11 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
         if (traceMesh != null) traceMesh.Clear(false);
         if (contact != null) contact.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         if (smoke != null) smoke.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        if (pressureJet != null) pressureJet.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        pressureBudget = 0f;
+        StopIceParticles();
+        coldCharge = iceClock = 0f;
+        iceShattered = false;
     }
 
     private void OnDisable() => ClearVisuals();
