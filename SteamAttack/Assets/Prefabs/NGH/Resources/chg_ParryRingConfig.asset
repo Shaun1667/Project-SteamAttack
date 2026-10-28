@@ -16,7 +16,7 @@ MonoBehaviour:
   whiteRing: {fileID: 2800000, guid: 4e78b2c4f446441b8eb456ffa69dd599, type: 3}
   redRing: {fileID: 2800000, guid: 1ba54194a3b222d4e88b67cfe405f27c, type: 3}
   overlapSfx: {fileID: 0}
-  successSfx: {fileID: 0}
+  successSfx: {fileID: 8300000, guid: 0518f24e1eae22543ac67b62503f0192, type: 3}
   sfxVolume: 0.8
   ringSize: 120
   bodyHeight: 1.2
