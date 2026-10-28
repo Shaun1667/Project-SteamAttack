@@ -74,7 +74,11 @@ public abstract class BossAttack : MonoBehaviour
         timer = 0f;
         currentPhase = Phase.Ready;
 
-        if (PrepareAttack()) return true;
+        if (PrepareAttack())
+        {
+            if (this is BossSnakeBiteAttack) NGH.ReviewedAudio.Play("Initial/08_Boss/SnakeHiss_v01");
+            return true;
+        }
         CancelAttack();
         return false;
     }
@@ -103,6 +107,9 @@ public abstract class BossAttack : MonoBehaviour
             currentPhase = Phase.Active;
             StartActive();
             if (!IsRunning) return;
+            if (this is BossDashAttack) NGH.ReviewedAudio.Play("Initial/08_Boss/BossCharge_v01");
+            else if (this is BossAreaAttack) NGH.ReviewedAudio.Play("Initial/08_Boss/BossAreaBurst_v02");
+            else if (this is BossSnakeBiteAttack) NGH.ReviewedAudio.Play("Initial/08_Boss/SnakeBite_v02");
             if (attackEffect != null) attackEffect.Play(true);
             TickActive(0f);
             return;
@@ -127,6 +134,7 @@ public abstract class BossAttack : MonoBehaviour
         // 여러 콜라이더가 겹쳐도 같은 피해 단계에서는 한 번만 피해를 준다.
         hasHit = true;
         reportHit?.Invoke(Mathf.Max(0f, amount));
+        if (this is BossDashAttack) NGH.ReviewedAudio.Play("Initial/08_Boss/BossChargeHit_v01");
     }
 
     // 다음 피해 단계가 시작될 때 한 번만 호출한다. 이전 단계의 판정은 먼저 종료해야 한다.

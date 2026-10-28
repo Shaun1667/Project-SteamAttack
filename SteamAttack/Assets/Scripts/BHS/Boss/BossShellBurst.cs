@@ -72,6 +72,7 @@ public sealed class BossShellBurst : MonoBehaviour
             return;
         }
         burst = true;
+        NGH.ReviewedAudio.Play("Revision/47_ShellBreak_v01");
         Vector3 center = burstCenter != null ? burstCenter.position : transform.position;
         foreach (PieceState state in states)
         {

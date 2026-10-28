@@ -177,6 +177,8 @@ namespace NMJ
             if (boss == null) boss = GetComponentInParent<BossHealth>();
             if (boss == null) boss = FindAnyObjectByType<BossHealth>();
             if (boss == null) return;
+            NGH.ReviewedAudio.PlayUi("Initial/11_UI/BossBar_v03");
+            NGH.ReviewedAudio.Play("Revision/41_BossRoar_v02");
             bossResolved = true;
 
             if (legs == null || legs.Length == 0)

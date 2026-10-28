@@ -128,6 +128,7 @@ namespace YPH
             Animation?.Play(EnemyAnimatorLink.AttackHash);
             WeaponAttackStarted?.Invoke(false);
             yield return WaitActive(AttackWindup, true);
+            NGH.ReviewedAudio.Play("Initial/07_Enemy/SpearThrust_v01", 0.7f);
             WeaponAttackImpact?.Invoke();
             SpawnHitbox(_attackDamage, _attackStagger, _attackHitboxOffset, _attackHitboxSize, _attackActiveTime, "근접 공격");
             Motor.StartLunge(_attackLungeDistance, _attackLungeDuration / (Animation != null ? Animation.MeleePlaybackSpeed : 1f), false);
@@ -149,6 +150,7 @@ namespace YPH
                 Brain.OpenParryWindow(Time.time + HeavyWindup);
             }
             yield return WaitActive(HeavyWindup);
+            NGH.ReviewedAudio.Play("Initial/07_Enemy/SpearSwing_v03", 0.7f);
             WeaponAttackImpact?.Invoke();
             SpawnHitbox(_heavyDamage, _heavyStagger, _heavyHitboxOffset, _heavyHitboxSize, _heavyActiveTime, "강공격");
             yield return WaitActive(_heavyActiveTime);

@@ -118,6 +118,7 @@ namespace NMJ
 
         private void ShowLine(int i)
         {
+            if (i > 0) NGH.ReviewedAudio.PlayUi("Initial/11_UI/DialogueNext_v02");
             index = i;
             timer = 0f;
             typed = 0f;

@@ -176,6 +176,7 @@ namespace NMJ
         public void Open()
         {
             if (page != Page.Closed) return;
+            NGH.ReviewedAudio.PlayUi("Initial/11_UI/PauseOpen_v03");
             EnsureEventSystem();
             RefreshAvailability();
 
@@ -193,6 +194,7 @@ namespace NMJ
         public void Close()
         {
             if (page == Page.Closed) return;
+            NGH.ReviewedAudio.PlayUi("Initial/11_UI/UICancel_v03");
             page = Page.Closed;   // 화면은 페이드가 끝나면 숨긴다
             if (settings != null && settings.IsOpen) settings.Close();
 

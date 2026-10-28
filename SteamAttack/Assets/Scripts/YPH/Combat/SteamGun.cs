@@ -84,7 +84,7 @@ namespace YPH
         /// <summary>발당 증기를 낸 뒤 한 번 판정합니다. 발사 불가 시 상태·증기·이벤트를 바꾸지 않고 false를 반환합니다.</summary>
         public bool TryFire()
         {
-            if (!CanFire || !_tank.TryConsume(_steamCostPerShot))
+            if (!CanFire || !_tank.TryConsume(_steamCostPerShot, true))
             {
                 return false;
             }
@@ -94,6 +94,7 @@ namespace YPH
             OnFired?.Invoke(_muzzle.position, end, hitEnemy);
             if (hitSomething)
             {
+                NGH.ReviewedAudio.Play("AdditionalReview/R19_LongImpact_v02");
                 OnImpact?.Invoke(hit.point, hit.normal, hitEnemy);
             }
             FinishElapsedStates(); // 시간이 0인 설정은 다음 프레임을 기다리지 않습니다.
@@ -107,6 +108,7 @@ namespace YPH
             {
                 // 증기가 모자랄 때만 부르므로 소비되지 않고 실패 신호만 남습니다. 재장전 중에는 탱크를 건드리지 않습니다.
                 _tank.TryConsume(_steamCostPerShot);
+                NGH.ReviewedAudio.Play("Initial/04_Steam/SFX_GunEmpty_01");
             }
             OnFireBlocked?.Invoke();
         }

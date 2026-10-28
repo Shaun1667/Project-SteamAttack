@@ -160,6 +160,7 @@ namespace NMJ
             var reward = progress.Data.Reward;
 
             progress.Status = QuestStatus.Completed;
+            NGH.ReviewedAudio.PlayUi("Initial/11_UI/QuestComplete_v03");
             RewardGranted?.Invoke(reward.Exp, reward.Gold);
             QuestCompleted?.Invoke(progress);
             QuestStatusChanged?.Invoke(progress);

@@ -41,7 +41,11 @@ namespace NGH
         /// <summary>세기를 더함 (0~1). 이미 흔들리는 중이면 쌓임</summary>
         public static void Add(float amount)
         {
-            if (_instance) _instance._trauma = Mathf.Clamp01(_instance._trauma + amount);
+            if (_instance)
+            {
+                _instance._trauma = Mathf.Clamp01(_instance._trauma + amount);
+                if (amount > 0f) ReviewedAudio.Play("Initial/11_UI/CameraRumble_v02", 0.35f);
+            }
         }
 
         void OnEnable()
@@ -69,6 +73,7 @@ namespace NGH
                 default: amount = lightHit; break;
             }
             // 이미 세게 흔들리는 중이면 더 약한 타격이 덮어써서 약해지지 않도록 쌓기만 함
+            ReviewedAudio.Play("Initial/11_UI/CameraRumble_v02", 0.25f);
             _trauma = Mathf.Clamp01(Mathf.Max(_trauma, amount) + 0.15f * amount);
         }
 

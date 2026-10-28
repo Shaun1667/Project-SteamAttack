@@ -70,6 +70,7 @@ public sealed class BossCoreController : MonoBehaviour
     {
         if (!ready || !exposureStarted || IsMainCoreExposed || IsDead) return;
         IsMainCoreExposed = true;
+        NGH.ReviewedAudio.Play("Revision/48_CoreExpose_v02");
         mainCore.SetDamageEnabled(true);
         onMainCoreExposed.Invoke();
     }
@@ -78,6 +79,7 @@ public sealed class BossCoreController : MonoBehaviour
     {
         if (IsDead) return;
         IsDead = true;
+        NGH.ReviewedAudio.Play("Initial/08_Boss/BossCollapse_v01");
         onBossDied.Invoke();
     }
 

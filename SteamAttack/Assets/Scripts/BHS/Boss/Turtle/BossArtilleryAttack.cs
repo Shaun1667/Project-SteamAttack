@@ -276,6 +276,8 @@ public class BossArtilleryAttack : BossAttack
 
     private void LaunchShell()
     {
+        NGH.ReviewedAudio.Play("Initial/08_Boss/BossCannonShot_v02");
+        NGH.ReviewedAudio.Play("Initial/08_Boss/BossShellFall_v03", 0.7f);
         Vector3 destination = Target.position;
         destination.y = lockedGroundY;
         Vector3 start = Owner.position + Vector3.up * lockedFallbackHeight;
@@ -335,6 +337,7 @@ public class BossArtilleryAttack : BossAttack
 
     private void Impact(Shell shell)
     {
+        NGH.ReviewedAudio.Play("Initial/08_Boss/BossShellBurst_v03");
         shell.landed = true;
         shell.impactTime = elapsed;
         landedShells++;

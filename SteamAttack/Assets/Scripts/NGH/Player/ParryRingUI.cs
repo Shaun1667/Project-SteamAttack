@@ -330,7 +330,8 @@ namespace NGH
                         if (perfect && !e.sfxPlayed)
                         {
                             e.sfxPlayed = true;
-                            PlaySfx(c.overlapSfx, c);
+                            if (c.overlapSfx) PlaySfx(c.overlapSfx, c);
+                            else ReviewedAudio.Play("AdditionalReview/R14_ParryCue_v01");
                         }
                         float glow = perfect ? 1f - 0.5f * (fromCenter / EnemyAI.ParryHalfWindow) : 0f;
                         SetRed(e, perfect ? 1f : 0f, c);
