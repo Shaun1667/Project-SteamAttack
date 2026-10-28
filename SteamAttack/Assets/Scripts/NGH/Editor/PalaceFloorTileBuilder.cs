@@ -154,7 +154,21 @@ namespace NGH.EditorTools
         static readonly Vector2 SnowCenter = new Vector2(0f, -112f);
         static readonly Vector2 SnowRadius = new Vector2(90f, 70f);
         const float SnowTile = 8f;     // 타일 한 장 크기 (텍스처는 4m 마다 반복 — 월드 기준이라 이어짐)
-        const float SnowTopY = 0.03f;  // 눈 지면(0)보다 살짝 위
+        const float SnowTopY = 0.008f; // 눈 지면(0)보다 아주 살짝 위 — 높으면 경계에 단차 그늘(선)이 보임
+        // 가장자리: 타원 반지름 비율 EdgeInner 부터 EdgeOuter 까지 바깥 지면 색으로 서서히 녹아듦 (노이즈로 경계선을 흐트러뜨림)
+        const float EdgeInner = 0.80f, EdgeOuter = 1.12f;
+
+        /// <summary>월드 XZ 에서 눈밭이 얼마나 보이는지 (1 = 눈밭, 0 = 바깥 지면)</summary>
+        static float SnowWeight(float x, float z)
+        {
+            float ex = (x - SnowCenter.x) / SnowRadius.x, ez = (z - SnowCenter.y) / SnowRadius.y;
+            float e = Mathf.Sqrt(ex * ex + ez * ez);
+            // 큰 굽이 + 잔 굽이 → 둥근 타원이 아니라 눈이 흩어진 듯 들쭉날쭉한 경계
+            float n = (Mathf.PerlinNoise(x * 0.045f + 11.3f, z * 0.045f + 7.1f) - 0.5f) * 0.16f
+                    + (Mathf.PerlinNoise(x * 0.18f + 3.7f, z * 0.18f + 19.2f) - 0.5f) * 0.06f;
+            float t = Mathf.InverseLerp(EdgeInner, EdgeOuter - 0.04f, e + n);
+            return 1f - t * t * (3f - 2f * t);
+        }
 
         /// <summary>
         /// 육조거리 일대(타원 구역)를 8m 타일로 나눠 '눈이 소복이 쌓인' 텍스처를 깐다.
@@ -187,24 +201,45 @@ namespace NGH.EditorTools
             }
             var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(RoadTexPath);
             if (tex && mat.GetTexture("_BaseMap") != tex) { mat.SetTexture("_BaseMap", tex); EditorUtility.SetDirty(mat); }
+            // 가장자리 색 = 바깥 '눈 덮인 지면'(NMJ M_SnowGround) 재질 값 → 경계에서 두 바닥이 같은 색이 되어 이음매가 사라짐
+            var outer = GameObject.Find(GroundPath + "/눈 덮인 지면");
+            var outerMat = outer ? outer.GetComponent<Renderer>().sharedMaterial : null;
+            if (outerMat)
+            {
+                mat.SetColor("_EdgeBaseColor", outerMat.GetColor("_BaseColor"));
+                mat.SetColor("_EdgeShadowColor", outerMat.GetColor("_ShadowColor"));
+                mat.SetFloat("_EdgeGrain", outerMat.GetFloat("_Grain"));
+                mat.SetFloat("_EdgeRimInk", outerMat.GetFloat("_RimInk"));
+                EditorUtility.SetDirty(mat);
+            }
 
             var meshes = new MeshCache(RoadMeshPath);
-            float minX = SnowCenter.x - SnowRadius.x, maxX = SnowCenter.x + SnowRadius.x;
-            float minZ = SnowCenter.y - SnowRadius.y, maxZ = SnowCenter.y + SnowRadius.y;
+            // 가장자리 녹아드는 띠까지 깔 수 있게 타원보다 넉넉히 훑는다
+            float minX = SnowCenter.x - SnowRadius.x * EdgeOuter, maxX = SnowCenter.x + SnowRadius.x * EdgeOuter;
+            float minZ = SnowCenter.y - SnowRadius.y * EdgeOuter, maxZ = SnowCenter.y + SnowRadius.y * EdgeOuter;
             // 격자를 4m 배수에 맞춰 시작 → UV 시작점이 항상 0 (메시 종류가 적음)
             minX = Mathf.Floor(minX / Tile) * Tile; minZ = Mathf.Floor(minZ / Tile) * Tile;
-            int count = 0;
+            int count = 0, edgeTiles = 0;
             for (float z0 = minZ; z0 < maxZ; z0 += SnowTile)
             for (float x0 = minX; x0 < maxX; x0 += SnowTile)
             {
+                // 칸 네 귀퉁이·가운데의 '눈밭 진하기' — 모두 0 이면 바깥, 모두 1 이면 안쪽
+                float wMin = 1f, wMax = 0f;
+                for (int sz = 0; sz <= 4; sz++) for (int sx = 0; sx <= 4; sx++)
+                {
+                    float w = SnowWeight(x0 + SnowTile * sx / 4f, z0 + SnowTile * sz / 4f);
+                    wMin = Mathf.Min(wMin, w); wMax = Mathf.Max(wMax, w);
+                }
+                if (wMax <= 0.001f) continue;
                 float cx = x0 + SnowTile * 0.5f, cz = z0 + SnowTile * 0.5f;
-                float ex = (cx - SnowCenter.x) / SnowRadius.x, ez = (cz - SnowCenter.y) / SnowRadius.y;
-                if (ex * ex + ez * ez > 1f) continue;
                 float u0 = Mathf.Repeat(x0 / Tile, 1f), v0 = Mathf.Repeat(z0 / Tile, 1f);
                 var go = new GameObject($"눈밭_{count:0000}");
                 go.transform.SetParent(root.transform, false);
                 go.transform.localPosition = new Vector3(cx, SnowTopY, cz);
-                go.AddComponent<MeshFilter>().sharedMesh = meshes.Get(SnowTile, SnowTile, 0f, u0, v0);
+                Mesh mesh;
+                if (wMin >= 0.999f) mesh = meshes.Get(SnowTile, SnowTile, 0f, u0, v0);
+                else { mesh = meshes.GetEdge(x0, z0, SnowTile, u0, v0, SnowWeight); edgeTiles++; }
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var mr = go.AddComponent<MeshRenderer>();
                 mr.sharedMaterial = mat;
                 GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI);
@@ -223,7 +258,7 @@ namespace NGH.EditorTools
                 if (rr && rr.enabled) { Undo.RecordObject(rr, "육조거리 눈밭 타일"); rr.enabled = false; }
             }
             EditorSceneManager.MarkSceneDirty(ground.scene);
-            Debug.Log($"[YukjoSnow] 눈밭 타일 {count}장 ({SnowTile}m), 발자국 영역 타원 {SnowCenter} ± {SnowRadius}");
+            Debug.Log($"[YukjoSnow] 눈밭 타일 {count}장 ({SnowTile}m, 가장자리 {edgeTiles}장은 바깥 지면으로 녹아듦), 발자국 영역 타원 {SnowCenter} ± {SnowRadius}");
         }
 
         // 윗면이 박석 높이(BaksukY)인 보이지 않는 바닥 판정 상자
@@ -265,8 +300,9 @@ namespace NGH.EditorTools
                     m.SetFloat("_RimInk", 0.1f);
                     AssetDatabase.CreateAsset(m, path);
                 }
+                // 텍스처가 비어 있을 때만 기본 텍스처를 넣는다 (눈 쓸어낸 _Swept 처럼 직접 바꿔 둔 텍스처는 덮어쓰지 않음)
                 var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{TexDir}/T_PalaceFloor_{key}.png");
-                if (tex && m.GetTexture("_BaseMap") != tex)
+                if (tex && m.GetTexture("_BaseMap") == null)
                 {
                     m.SetTexture("_BaseMap", tex);
                     m.SetColor("_BaseColor", new Color(0.95f, 0.95f, 0.95f));   // 텍스처 본래 색 (살짝만 눌러 수묵 톤에 맞춤)
@@ -326,6 +362,40 @@ namespace NGH.EditorTools
                 AssetDatabase.SaveAssets();
             }
 
+            /// <summary>
+            /// 가장자리 칸: 1m 간격 격자로 쪼개고 정점 알파에 '눈밭 진하기'를 넣은 판 (칸마다 하나씩).
+            /// 셰이더가 알파 0 쪽을 바깥 지면 색으로 칠해 경계가 녹아듦
+            /// </summary>
+            public Mesh GetEdge(float x0, float z0, float size, float u0, float v0, System.Func<float, float, float> weight)
+            {
+                string key = $"Edge_{x0:0.#}_{z0:0.#}";
+                if (map.TryGetValue(key, out var m)) return m;
+                int seg = Mathf.Max(1, Mathf.RoundToInt(size));   // 1m 칸
+                var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var col = new List<Color>(); var tri = new List<int>();
+                float h = size * 0.5f;
+                for (int iz = 0; iz <= seg; iz++)
+                for (int ix = 0; ix <= seg; ix++)
+                {
+                    float fx = ix / (float)seg, fz = iz / (float)seg;
+                    v.Add(new Vector3(-h + size * fx, 0f, -h + size * fz));
+                    n.Add(Vector3.up);
+                    uv.Add(new Vector2(u0 + size * fx / Tile, v0 + size * fz / Tile));
+                    col.Add(new Color(1f, 1f, 1f, weight(x0 + size * fx, z0 + size * fz)));
+                }
+                int row = seg + 1;
+                for (int iz = 0; iz < seg; iz++)
+                for (int ix = 0; ix < seg; ix++)
+                {
+                    int a = iz * row + ix, b = a + 1, c = a + row, d = c + 1;
+                    tri.AddRange(new[] { a, c, d, a, d, b });
+                }
+                m = new Mesh { name = key };
+                m.SetVertices(v); m.SetNormals(n); m.SetUVs(0, uv); m.SetColors(col); m.SetTriangles(tri, 0);
+                m.RecalculateBounds(); m.RecalculateTangents();
+                map[key] = m;
+                return m;
+            }
+
             // 새로 만든 임시 메시를 쓰던 MeshFilter 를 기존 에셋 메시로 바꿈
             static void Replace(Mesh temp, Mesh asset)
             {
@@ -363,7 +433,8 @@ namespace NGH.EditorTools
                     Side(new Vector3(hx, 0, hz), new Vector3(-hx, 0, hz), Vector3.forward, w);
                 }
                 var m = new Mesh();
-                m.SetVertices(v); m.SetNormals(n); m.SetUVs(0, uv); m.SetTriangles(tri, 0);
+                var col = new List<Color>(v.Count); for (int i = 0; i < v.Count; i++) col.Add(Color.white);   // 가장자리 섞임 없음
+                m.SetVertices(v); m.SetNormals(n); m.SetUVs(0, uv); m.SetColors(col); m.SetTriangles(tri, 0);
                 m.RecalculateBounds(); m.RecalculateTangents();
                 return m;
             }

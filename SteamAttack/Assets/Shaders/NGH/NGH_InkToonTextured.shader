@@ -9,6 +9,11 @@ Shader "NGH/InkToonTextured"
         [MainTexture] _BaseMap ("Base Map", 2D) = "white" {}
         [MainColor] _BaseColor ("Base Color", Color) = (0.8, 0.8, 0.8, 1)
         _ShadowColor ("Shadow Tint", Color) = (0.6, 0.58, 0.56, 1)
+        [Header(Edge Blend. vertex alpha 0 is edge)]
+        _EdgeBaseColor ("Edge Base Color", Color) = (0.87, 0.87, 0.85, 1)
+        _EdgeShadowColor ("Edge Shadow Tint", Color) = (0.6, 0.58, 0.57, 1)
+        _EdgeGrain ("Edge Paper Grain", Range(0, 1)) = 0.08
+        _EdgeRimInk ("Edge Rim Ink", Range(0, 1)) = 0.12
         _InkColor ("Ink Color", Color) = (0.07, 0.07, 0.08, 1)
         _RimInk ("Rim Ink", Range(0, 1)) = 0.55
         _Grain ("Paper Grain", Range(0, 1)) = 0.12
@@ -38,6 +43,10 @@ Shader "NGH/InkToonTextured"
                 float4 _BaseMap_ST;
                 half4 _BaseColor;
                 half4 _ShadowColor;
+                half4 _EdgeBaseColor;
+                half4 _EdgeShadowColor;
+                half _EdgeGrain;
+                half _EdgeRimInk;
                 half4 _InkColor;
                 half _RimInk;
                 half _Grain;
@@ -51,6 +60,7 @@ Shader "NGH/InkToonTextured"
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
                 float2 uv : TEXCOORD0;
+                half4 color : COLOR;     // a = 이 바닥이 얼마나 보이는지 (0 이면 가장자리 색으로 녹아듦). 정점색이 없으면 1
             };
 
             struct Varyings
@@ -60,6 +70,7 @@ Shader "NGH/InkToonTextured"
                 float3 normalWS : TEXCOORD1;
                 float fogFactor : TEXCOORD2;
                 float2 uv : TEXCOORD3;
+                half edge : TEXCOORD4;
             };
 
             Varyings vert(Attributes v)
@@ -71,6 +82,7 @@ Shader "NGH/InkToonTextured"
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
                 o.fogFactor = ComputeFogFactor(p.positionCS.z);
                 o.uv = TRANSFORM_TEX(v.uv, _BaseMap);
+                o.edge = v.color.a;
                 return o;
             }
 
@@ -93,15 +105,19 @@ Shader "NGH/InkToonTextured"
                 float band = smoothstep(0.46, 0.60, ndl);
                 band = min(band, smoothstep(0.35, 0.65, mainLight.shadowAttenuation));
 
-                half3 baseCol = _BaseColor.rgb * SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb;
-                half3 col = lerp(baseCol * _ShadowColor.rgb, baseCol, band);
+                // 가장자리(정점 알파 0)에서는 바깥 지면 재질(_Edge*)과 같은 색·그늘·종이결이 되어 경계가 보이지 않음
+                half w = saturate(i.edge);
+                half3 baseCol = lerp(_EdgeBaseColor.rgb, _BaseColor.rgb * SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb, w);
+                half3 shadowTint = lerp(_EdgeShadowColor.rgb, _ShadowColor.rgb, w);
+                half grainAmt = lerp(_EdgeGrain, _Grain, w);
+                half3 col = lerp(baseCol * shadowTint, baseCol, band);
                 col *= lerp(half3(1, 1, 1), mainLight.color, 0.35);
 
                 float rim = pow(1.0 - saturate(dot(n, viewDir)), 3.0);
-                col = lerp(col, _InkColor.rgb, saturate(rim * _RimInk * 1.5));
+                col = lerp(col, _InkColor.rgb, saturate(rim * lerp(_EdgeRimInk, _RimInk, w) * 1.5));   // 비스듬히 볼 때 먹 번짐도 바깥 지면과 맞춤
 
                 float grain = Hash31(floor(i.positionWS * 24.0));
-                col *= 1.0 - _Grain * (grain - 0.5);
+                col *= 1.0 - grainAmt * (grain - 0.5);
 
                 col += _EmissionColor.rgb;
                 col = MixFog(col, i.fogFactor);
@@ -129,6 +145,10 @@ Shader "NGH/InkToonTextured"
                 float4 _BaseMap_ST;
                 half4 _BaseColor;
                 half4 _ShadowColor;
+                half4 _EdgeBaseColor;
+                half4 _EdgeShadowColor;
+                half _EdgeGrain;
+                half _EdgeRimInk;
                 half4 _InkColor;
                 half _RimInk;
                 half _Grain;
@@ -183,6 +203,10 @@ Shader "NGH/InkToonTextured"
                 float4 _BaseMap_ST;
                 half4 _BaseColor;
                 half4 _ShadowColor;
+                half4 _EdgeBaseColor;
+                half4 _EdgeShadowColor;
+                half _EdgeGrain;
+                half _EdgeRimInk;
                 half4 _InkColor;
                 half _RimInk;
                 half _Grain;
@@ -218,6 +242,10 @@ Shader "NGH/InkToonTextured"
                 float4 _BaseMap_ST;
                 half4 _BaseColor;
                 half4 _ShadowColor;
+                half4 _EdgeBaseColor;
+                half4 _EdgeShadowColor;
+                half _EdgeGrain;
+                half _EdgeRimInk;
                 half4 _InkColor;
                 half _RimInk;
                 half _Grain;
