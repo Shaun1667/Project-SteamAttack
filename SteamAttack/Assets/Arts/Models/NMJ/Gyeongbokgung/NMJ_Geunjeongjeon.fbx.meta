@@ -7,6 +7,66 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: "M_GJJ_공포_그늘1"
+    second: {fileID: 2100000, guid: 46af8fec952e401db183661206231f62, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_공포_그늘2"
+    second: {fileID: 2100000, guid: 7d8ed119b23d46d7ad4af88cdb6fc843, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_녹청_그늘1"
+    second: {fileID: 2100000, guid: aa8a2ab408814312b627f0118e7e40ae, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_녹청_그늘2"
+    second: {fileID: 2100000, guid: d3eaeb2772f14826aa7316858d0fb237, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_녹청_그늘3"
+    second: {fileID: 2100000, guid: 1a843c002f2f48b68ead1014fd0714e6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_단청_그늘1"
+    second: {fileID: 2100000, guid: 66ab2a7eafb74beeb878ae3522c1cbcc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_띠단청_그늘1"
+    second: {fileID: 2100000, guid: 0f25cf929a6b4416a26af8957cee54e3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_붉은칠_그늘1"
+    second: {fileID: 2100000, guid: 80ad2742817048f0ae4a09c60e0c8848, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_서까래_그늘1"
+    second: {fileID: 2100000, guid: d09df332210d41afa95db68f844ad7fe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_서까래_그늘2"
+    second: {fileID: 2100000, guid: 102895a3064c484d883459aaf01891d8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_서까래_그늘3"
+    second: {fileID: 2100000, guid: 2c1c6a64199d41eda958f7791c3b48b2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_안초공_그늘1"
+    second: {fileID: 2100000, guid: ce6e938fce67451981c7e7f81f434288, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: "M_GJJ_\uACF5\uD3EC"
     second: {fileID: 2100000, guid: 1fab45793c00be24e809d8db6c0e3e97, type: 2}
   - first:
