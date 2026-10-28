@@ -244,6 +244,9 @@ namespace NGH
                     case PlayerController.ActionState.HitLarge:
                         ReviewedAudio.Play("AdditionalReview/R29_HeavyHurt_v02");
                         break;
+                    case PlayerController.ActionState.HitSmall:
+                        ReviewedAudio.Play("LatestReview/LightHurt_mix_v02");
+                        break;
                 }
             }
             if (!player.IsDead && player.Hp > 0 && player.Hp <= 1 && Time.time >= nextHeartbeat)

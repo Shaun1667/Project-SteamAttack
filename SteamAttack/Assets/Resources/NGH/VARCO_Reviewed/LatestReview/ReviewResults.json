@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "files": {
+    "wav/LightHurt_mix_v02.wav": "keep",
+    "wav/DFT_Title_v02.wav": "keep"
+  },
+  "items": {
+    "28": {
+      "done": true
+    }
+  }
+}

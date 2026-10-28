@@ -120,6 +120,10 @@ namespace NMJ
             LinkColumn(buttons);
             Select(startButton.enabled ? startButton : buttons.Find(b => b.enabled));
 
+            // Use the latest approved title track when it is present, keeping
+            // the scene's assigned clip as a fallback if the asset is missing.
+            var reviewedTitle = Resources.Load<AudioClip>("NGH/VARCO_Reviewed/LatestReview/DFT_Title_v02");
+            if (reviewedTitle != null) music = reviewedTitle;
             if (music != null)
             {
                 var src = gameObject.AddComponent<AudioSource>();
