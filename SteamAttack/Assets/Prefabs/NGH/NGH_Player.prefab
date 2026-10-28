@@ -9339,6 +9339,7 @@ GameObject:
   - component: {fileID: 2266591049911656821}
   - component: {fileID: 8843512113887520929}
   - component: {fileID: 1281605645439820777}
+  - component: {fileID: 4018108885049517133}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -17608,6 +17609,27 @@ MonoBehaviour:
   dropRate: 30
   dropSize: {x: 0.06, y: 0.2}
   dropSpeed: {x: 1.5, y: 4.5}
+--- !u!114 &4018108885049517133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 272963d5297e24c47ba4ec4b439ee47c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.NghFootprints
+  player: {fileID: 5444686568199331752}
+  shader: {fileID: 4800000, guid: 8378e5f3973c6a44fb844dca09a927e1, type: 3}
+  length: 0.3
+  width: 0.13
+  plantHeight: 0.16
+  minStride: 0.35
+  lifetime: 25
+  fadeTime: 4
+  maxPrints: 160
 --- !u!1 &1768426502158964230
 GameObject:
   m_ObjectHideFlags: 0
