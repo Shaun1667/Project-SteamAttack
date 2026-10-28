@@ -9337,6 +9337,7 @@ GameObject:
   - component: {fileID: 6142536467970305188}
   - component: {fileID: 7270054889950055605}
   - component: {fileID: 2266591049911656821}
+  - component: {fileID: 8843512113887520929}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -9656,9 +9657,11 @@ MonoBehaviour:
   travelMode: 0
   followRecordedPath: 1
   cameraLookAlongPath: 1
+  replayRecordedCamera: 1
+  recordedCameraSharpness: 14
   pathLookAhead: 0.25
   travelCameraPitch: 30
-  rewindTravelTime: 1
+  rewindTravelTime: 2.5
   rewindTravelCurve:
     serializedVersion: 2
     m_Curve:
@@ -16249,12 +16252,12 @@ MonoBehaviour:
   normalFadeStart: 2
   tailInk: 0.45
   bodyFade: 0.35
-  rewindWidth: 0.42
+  rewindWidth: 0.14
   spreadPortion: 0.25
-  frontBulge: 0.45
+  frontBulge: 0.12
   frontLength: 0.4
   hidePlayerDuringRewind: 0
-  blotSize: 1.1
+  blotSize: 0
   blotFadeTime: 0.5
   sampleSpacing: 0.06
   textureLength: 1.4
@@ -17529,6 +17532,49 @@ MonoBehaviour:
   fadeToSimulation: 0.35
   resetOnActionEnd: 1
   ignoredActions: 0000000005000000060000000a0000000b000000i
+--- !u!114 &8843512113887520929
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd38707a725c89e48a450ad4f517a5fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.RewindInkGhosts
+  rewind: {fileID: 4929484674498478633}
+  sourceModel: {fileID: 6759029639675979414}
+  dissolveShader: {fileID: 4800000, guid: 27446c449367d90468e597e8618d3f54, type: 3}
+  playerDissolveOut: 1
+  playerDissolveIn: 1
+  ghostInterval: 1
+  segmentPlayTime: 0.6
+  ghostAppear: 0.35
+  ghostDissolveOut: 0.9
+  ghostDissolveStagger: 0.1
+  skipNearTarget: 0.3
+  maxGhosts: 8
+  ghostRenderers:
+  - Body
+  - Head
+  - OutterJeogori_SingleLayer
+  - OutterChima
+  - GatHatBase
+  - HarnessVest
+  - Sword
+  - SwordHouse
+  inkColor: {r: 0.02, g: 0.02, b: 0.025, a: 1}
+  inkRim: {r: 0.16, g: 0.17, b: 0.2, a: 1}
+  noiseScale: 9
+  edgeWidth: 0.05
+  bodyHeight: 1.3
+  measureHeight: 1
+  appearAtProgress: 0.99
+  dripAmount: 0.35
+  dripScale: 14
+  soakWidth: 0.22
 --- !u!1 &1768426502158964230
 GameObject:
   m_ObjectHideFlags: 0
