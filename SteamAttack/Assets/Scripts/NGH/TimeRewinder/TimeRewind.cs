@@ -149,6 +149,8 @@ namespace NGH
         public Vector3 RewindTargetPosition { get; private set; }
         /// <summary>되감기 이동 진행도 (0 = 누른 위치, 1 = 되돌아갈 위치). 경로를 따라갈 때는 지나온 경로 길이 기준</summary>
         public float RewindTravelProgress { get; private set; }
+        /// <summary>되감기 이동 중 지금 지나는 경로 위 발 위치 (떠오른 높이 제외 — 먹선이 그려지는 경로와 같은 높이)</summary>
+        public Vector3 RewindPathPoint { get; private set; }
 
         /// <summary>시간 역행 시작 (연출 시작 직전)</summary>
         public event Action RewindStarted;
@@ -456,6 +458,7 @@ namespace NGH
             bool replayCamera = replayRecordedCamera && playerCamera && target.hasCamera;
             float camYaw = fromView.x, camPitch = fromView.y;
             RewindTravelProgress = 0f;
+            RewindPathPoint = fromPos;
 
             // 애니메이션: 되돌아가는 동안 공중에 뜬 동작 → 도착 직전에 되돌아갈 시점의 동작으로 섞여 넘어감
             // (뜨는 동작이 없으면 처음부터 바로 되돌아갈 시점의 동작으로)
@@ -482,6 +485,7 @@ namespace NGH
                     float lift = travelLiftHeight * Mathf.SmoothStep(0f, 1f, x / travelLiftPortion)
                                * (1f - Mathf.SmoothStep(0f, 1f, (x - (1f - travelLiftPortion)) / travelLiftPortion));
                     RewindTravelProgress = u;
+                    RewindPathPoint = along(u);
                     transform.SetPositionAndRotation(along(u) + Vector3.up * lift, Quaternion.Slerp(fromRot, target.rotation, u));
                     if (replayCamera)
                     {
@@ -509,6 +513,7 @@ namespace NGH
                     yield return null;
                 }
                 RewindTravelProgress = 1f;
+                RewindPathPoint = target.position;
                 transform.SetPositionAndRotation(target.position, target.rotation);
                 if (animate && !landed) BlendToTargetAnimation(target, landBlend);
             }

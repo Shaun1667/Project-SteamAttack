@@ -251,6 +251,9 @@ namespace NGH
 
         Vector3 Body(Vector3 feet) => feet + Vector3.up * (_bodyOffset > 0f ? _bodyOffset : bodyHeight);
 
+        /// <summary>먹선이 그려지는 높이 (발 기준, m) — 시간 역행 먹 연기가 같은 높이에서 나오도록</summary>
+        public float LineHeight => _bodyOffset > 0f ? _bodyOffset : bodyHeight;
+
         // 누적 거리(cum) 기준으로 일정 간격 다시 나누기 (제자리에 몰린 점·꺾임 때문에 띠가 깨지지 않게)
         void Resample(List<Vector3> pos, List<float> cum, List<float> extra, List<Vector3> oPos, List<float> oCum, List<float> oExtra)
         {

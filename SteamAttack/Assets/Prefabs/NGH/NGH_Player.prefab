@@ -9338,6 +9338,7 @@ GameObject:
   - component: {fileID: 7270054889950055605}
   - component: {fileID: 2266591049911656821}
   - component: {fileID: 8843512113887520929}
+  - component: {fileID: 1281605645439820777}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -17575,6 +17576,38 @@ MonoBehaviour:
   dripAmount: 0.35
   dripScale: 14
   soakWidth: 0.22
+--- !u!114 &1281605645439820777
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8704a5c9c89fefe4f958ac50407d05df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.RewindInkSmoke
+  rewind: {fileID: 4929484674498478633}
+  smokeMaterial: {fileID: 2100000, guid: 579374083ae9b6d468ed96e92083478f, type: 2}
+  dropMaterial: {fileID: 2100000, guid: b6e90a90f249b0741b084391e01412d4, type: 2}
+  rampIn: 0.8
+  stopAtProgress: 0.99
+  effectScale: 0.3
+  centerHeight: 0.65
+  columnHeight: 1.3
+  columnWidth: 0.55
+  smokeRate: 90
+  smokePerMeter: 14
+  smokeSize: {x: 0.35, y: 0.85}
+  smokeLifetime: {x: 0.4, y: 0.9}
+  riseSpeed: 0.6
+  smokeColor: {r: 0.02, g: 0.02, b: 0.025, a: 1}
+  edgeSoftness: 0.22
+  smokeOpacity: 0.9
+  dropRate: 30
+  dropSize: {x: 0.06, y: 0.2}
+  dropSpeed: {x: 1.5, y: 4.5}
 --- !u!1 &1768426502158964230
 GameObject:
   m_ObjectHideFlags: 0
