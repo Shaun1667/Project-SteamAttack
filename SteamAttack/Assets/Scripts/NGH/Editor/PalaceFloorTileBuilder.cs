@@ -38,11 +38,11 @@ namespace NGH.EditorTools
         // 깔지 않을 곳: 근정전 월대 하층 (x, z 최소·최대)
         static readonly Rect[] Skip = { Rect.MinMaxRect(-23f, 12.4f, 23f, 48.4f) };
         // 박석을 깔 영역 (x, z 최소·최대): 원래 박석 마당 + 궁성 담장(동·서·남·북) 안쪽까지 꽉 채운 마당
-        //  담장 안쪽 면: 서 x -42.2, 동 x 42.2, 남 z -39.3, 북 z 77.2 (01_경복궁_궁성/담장 석축)
+        //  담장 안쪽 면: 서 x -52.4, 동 x 52.4 (VARCO 궁성 담장 x ±54), 남 z -39.3, 북 z 88.2 (북쪽 담장 z 89.7)
         static readonly Rect[] Fill =
         {
             Rect.MinMaxRect(MinX, MinZ, MaxX, MaxZ),
-            Rect.MinMaxRect(-42.2f, -39.3f, 42.2f, 77.2f),
+            Rect.MinMaxRect(-52.4f, -39.3f, 52.4f, 88.2f),
         };
 
         enum Kind { Baksuk, Sindo, Eodo }

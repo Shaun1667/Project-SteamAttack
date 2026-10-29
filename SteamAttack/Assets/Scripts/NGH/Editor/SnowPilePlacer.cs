@@ -20,7 +20,7 @@ namespace NGH.EditorTools
         const string ModelDir = "Assets/Arts/Models/Varco3D/";
 
         // 궁성 담장 안쪽 (PalaceFloorTileBuilder.Fill 과 같음)
-        const float WallW = -42.2f, WallE = 42.2f, WallS = -39.3f, WallN = 77.2f;
+        const float WallW = -52.4f, WallE = 52.4f, WallS = -39.3f, WallN = 88.2f;
         const float SamdoHalf = 4f;          // 어도+신도 반폭
         static readonly Rect Woldae = Rect.MinMaxRect(-24f, 11.4f, 24f, 49.4f);   // 근정전 월대 (여유 1m)
 
