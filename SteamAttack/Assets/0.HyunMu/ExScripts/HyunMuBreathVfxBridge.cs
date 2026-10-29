@@ -94,7 +94,7 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
     public int ExplosionCount { get; private set; }
     public bool IsExplosionVisible => burstPool != null && burstPool.gameObject.activeInHierarchy;
     public UnityEngine.EntityId BurstPoolInstanceId =>
-       burstPool != null ? burstPool.GetEntityId() : default;
+     burstPool != null ? burstPool.GetEntityId() : default;
 
     public UnityEngine.EntityId TraceMeshInstanceId =>
         traceMesh != null ? traceMesh.GetEntityId() : default;

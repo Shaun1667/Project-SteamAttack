@@ -24,7 +24,11 @@ public class BossSnakeBiteAttack : BossAttack
     [Min(0f)] public float biteBlockRadius = 4f;
 
     [Header("물기 동작 - 월드 거리 / 초")]
-    [Tooltip("Ready Time 동안 머리를 뒤로 당기는 거리입니다.")]
+    [Tooltip("켜면 Ready Time 동안 머리 이동 범위 SphereCollider의 중심으로 IK 타겟을 이동합니다.")]
+    public bool prepareAtMovementCenter = true;
+    [Tooltip("물기 직전 조준을 고정해 피할 틈을 주는 시간입니다.")]
+    [Min(0f)] public float aimLockBeforeStrike = 0.12f;
+    [Tooltip("중심 준비를 끈 경우에만 사용하는 기존 뒤당김 거리입니다.")]
     [Min(0f)] public float pullbackDistance = 0.35f;
     [Min(0.01f)] public float extendTime = 0.2f;
     [Min(0.01f)] public float holdTime = 0.1f;
@@ -44,6 +48,16 @@ public class BossSnakeBiteAttack : BossAttack
     // 이 패턴의 공격 시간은 뻗기 + 유지 + 복귀입니다. 공통 Attack Time은 사용하지 않습니다.
     protected override float ActiveDuration => lockedDuration;
     protected override bool ContinueWithoutTarget => true;
+
+    private SphereCollider movementSphere;
+    private bool aimLocked;
+
+    public bool IsPreparingBite => IsRunning && controlsTarget && !activeStarted;
+    public float BitePreparationProgress => IsPreparingBite
+        ? Mathf.Clamp01(lockedReadyTime > 0f ? (Time.time - readyStartedAt) / lockedReadyTime : 1f) : 0f;
+    public Vector3 BiteWarningStart => pulledBack;
+    public Vector3 BiteWarningEnd => strikePoint;
+    public float BiteWarningRadius => mouthCollider != null ? GetMouthRadius() : .4f;
 
     private SnakeSphereTarget controlledDriver;
     private Transform controlledTarget;
@@ -75,7 +89,7 @@ public class BossSnakeBiteAttack : BossAttack
     {
         minUseDistance = 0f;
         maxUseDistance = 3f;
-        readyTime = 0.6f;
+        readyTime = 0.5f;
         recoveryTime = 1f;
         damage = 2f;
     }
@@ -137,6 +151,10 @@ public class BossSnakeBiteAttack : BossAttack
         maxReach = length * Mathf.Clamp(reachRatio, 0.5f, 0.99f);
         if (maxReach < 0.01f) return SetupError("뱀의 본 길이가 너무 짧습니다. Root와 Tip을 확인하세요.");
 
+        movementSphere = targetController.GetComponent<SphereCollider>();
+        if (prepareAtMovementCenter && movementSphere == null)
+            return SetupError("머리 이동 범위 SphereCollider가 필요합니다.");
+        aimLocked = false;
         controlledDriver = targetController;
         controlledTarget = data.target;
         chainRoot = data.root;
@@ -163,6 +181,8 @@ public class BossSnakeBiteAttack : BossAttack
         driverWasEnabled = controlledDriver.enabled;
         controlsTarget = true;
         controlledDriver.enabled = false;
+        // OnDisable이 이동 구의 흔들림을 복구한 뒤 정확한 중심을 다시 읽습니다.
+        RefreshAim();
         // 추적 스크립트는 꺼 두고 입 동작만 이 공격에서 진행한다.
         controlledDriver.OpenAttackMouth();
         DisablePhysicalMouthCollider();
@@ -181,13 +201,14 @@ public class BossSnakeBiteAttack : BossAttack
 
         if (!activeStarted)
         {
-            // 예고 중 금지 영역으로 피하면 뻗기를 시작하지 않고 추적 상태로 복구한다.
-            if (Target != null && IsInsideBlockedArea(Target.position))
+            if (!aimLocked)
             {
-                CancelAttack();
-                return;
+                RefreshAim();
+                aimLocked |= Time.time - readyStartedAt >=
+                    Mathf.Max(0f, lockedReadyTime - Mathf.Max(0f, aimLockBeforeStrike));
             }
-            RefreshAim();
+            if (prepareAtMovementCenter && movementSphere != null)
+                pulledBack = ClampToReach(movementSphere.transform.TransformPoint(movementSphere.center));
             float t = lockedReadyTime > 0f ? (Time.time - readyStartedAt) / lockedReadyTime : 1f;
             SetTargetPose(Vector3.Lerp(readyStart, pulledBack, Smooth(t)), lockedRotation);
             return;
@@ -210,16 +231,23 @@ public class BossSnakeBiteAttack : BossAttack
         }
     }
 
-    // 준비 중에는 추적하고, 돌진을 시작할 때 마지막 조준 위치를 고정한다.
+    // 금지 영역에 들어오면 직전 유효 조준점을 고정하고, 해당 위치로 물기를 끝까지 진행한다.
     private void RefreshAim()
     {
-        if (Target == null || chainIK == null || chainIK.data.tip == null) return;
+        if (aimLocked || Target == null || chainIK == null || chainIK.data.tip == null) return;
+        if (IsInsideBlockedArea(Target.position))
+        {
+            aimLocked = true;
+            return;
+        }
         aimPoint = Target.position + Vector3.up * targetHeightOffset;
         Vector3 mouthCenter = GetMouthCenter();
         Vector3 direction = aimPoint - mouthCenter;
         if (direction.sqrMagnitude < 0.000001f) direction = Direction * Vector3.forward;
         direction.Normalize();
-        pulledBack = ClampToReach(readyStart - direction * Mathf.Max(0f, pullbackDistance));
+        pulledBack = prepareAtMovementCenter && movementSphere != null
+            ? ClampToReach(movementSphere.transform.TransformPoint(movementSphere.center))
+            : ClampToReach(readyStart - direction * Mathf.Max(0f, pullbackDistance));
         Vector3 mouthOffset = mouthCenter - chainIK.data.tip.position;
         strikePoint = ClampToReach(aimPoint - mouthOffset + direction * Mathf.Max(0f, extraDistance));
     }
@@ -241,14 +269,11 @@ public class BossSnakeBiteAttack : BossAttack
             CancelAttack();
             return;
         }
-        // FSM의 TickAttack이 이 컴포넌트의 Update보다 먼저 호출되어도 차단한다.
-        if (Target != null && IsInsideBlockedArea(Target.position))
-        {
-            CancelAttack();
-            return;
-        }
-        // 입이 열린 현재 자세와 최신 플레이어 위치로 최종 조준한다.
-        RefreshAim();
+        // FSM이 Update보다 먼저 실행되어도 금지 영역 안으로 재조준하지 않습니다.
+        if (!aimLocked) RefreshAim();
+        aimLocked = true;
+        if (prepareAtMovementCenter && movementSphere != null && lockedReadyTime > 0f)
+            SetTargetPose(movementSphere.transform.TransformPoint(movementSphere.center), lockedRotation);
         // Ready Time이 0이어도 뒤로 순간이동하지 않고 현재 위치에서 뻗습니다.
         pulledBack = ClampToReach(controlledTarget.position);
         previousMouthCenter = GetMouthCenter();
@@ -350,6 +375,8 @@ public class BossSnakeBiteAttack : BossAttack
             controlledDriver.RestoreBreathMouth();
             controlledDriver.enabled = driverWasEnabled;
         }
+        aimLocked = false;
+        movementSphere = null;
         controlledTarget = null;
         controlledDriver = null;
         chainRoot = null;

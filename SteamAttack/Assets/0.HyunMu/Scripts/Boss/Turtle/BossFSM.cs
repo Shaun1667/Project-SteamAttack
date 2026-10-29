@@ -222,14 +222,14 @@ public class BossFSM : MonoBehaviour
         
 
         //팀프로젝트 작업용
-       /* NGH.PlayerController controller =
+       NGH.PlayerController controller =
         player.GetComponentInParent<NGH.PlayerController>();
         if (controller != null)
         {
             controller.TakeHit(
                 Mathf.Max(1, Mathf.RoundToInt(damage)),
                 transform.position);
-        }*/
+        }
     }
 
     private void UpdateAttack()

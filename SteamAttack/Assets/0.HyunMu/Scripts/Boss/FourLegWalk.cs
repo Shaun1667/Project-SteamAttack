@@ -21,6 +21,13 @@ public class FourLegWalk : MonoBehaviour
     public float smoothness = 1;
     public float stepHeight = 0.1f;
 
+    [Header("지면 탐색")]
+    [Tooltip("발을 디딜 바닥 레이어만 선택하세요. 비어 있으면 Ground 레이어를 사용합니다.")]
+    public LayerMask groundMask;
+    [Tooltip("발판에서 제외할 자신의 최상위 오브젝트입니다. 비어 있으면 Transform Root를 사용합니다.")]
+    public Transform selfCollisionRoot;
+
+    private readonly RaycastHit[] groundHits = new RaycastHit[32];
     private float raycastRange = 1f;
     private Vector3[] defaultLegPositions;
     private Vector3[] lastLegPositions;
@@ -34,22 +41,44 @@ public class FourLegWalk : MonoBehaviour
 
     private float velocityMultiplier = 15f;
 
-    static Vector3[] MatchToSurfaceFromAbove(Vector3 point, float halfRange, Vector3 up)
+    bool TryMatchToSurfaceFromAbove(Vector3 point, float halfRange, Vector3 up, out Vector3 targetPoint)
     {
-        Vector3[] res = new Vector3[2];
-        RaycastHit hit;
+        targetPoint = point;
         Ray ray = new Ray(point + halfRange * up, -up);
+        int count = Physics.RaycastNonAlloc(ray, groundHits, 2f * halfRange,
+            groundMask, QueryTriggerInteraction.Ignore);
+        RaycastHit[] candidates = groundHits;
+        // A full buffer may omit the valid floor behind ignored colliders.
+        if (count == groundHits.Length)
+        {
+            candidates = Physics.RaycastAll(ray, 2f * halfRange, groundMask, QueryTriggerInteraction.Ignore);
+            count = candidates.Length;
+        }
 
-        if (Physics.Raycast(ray, out hit, 2f * halfRange))
+        float nearest = float.PositiveInfinity;
+        Transform ownRoot = selfCollisionRoot != null ? selfCollisionRoot : transform.root;
+        for (int i = 0; i < count; i++)
         {
-            res[0] = hit.point;
-            res[1] = hit.normal;
+            RaycastHit hit = candidates[i];
+            if (hit.collider == null || hit.transform.IsChildOf(ownRoot) ||
+                IsPlayerSurface(hit.collider) || hit.distance >= nearest) continue;
+            nearest = hit.distance;
+            targetPoint = hit.point;
         }
-        else
-        {
-            res[0] = point;
-        }
-        return res;
+        return nearest < float.PositiveInfinity;
+    }
+
+    static bool IsPlayerSurface(Collider collider)
+    {
+        if (collider.GetComponentInParent<CharacterController>() != null) return true;
+        for (Transform current = collider.transform; current != null; current = current.parent)
+            if (current.CompareTag("Player")) return true;
+        return false;
+    }
+
+    void Reset()
+    {
+        groundMask = LayerMask.GetMask("Ground");
     }
 
     void Start()
@@ -122,9 +151,12 @@ public class FourLegWalk : MonoBehaviour
             Vector3 targetPoint = desiredPositions[indexToMove] + Mathf.Clamp(velocity.magnitude * velocityMultiplier, 0.0f, maxStepDistance) *
                                   (desiredPositions[indexToMove] - legTargets[indexToMove].position).normalized;
 
-            Vector3[] positionAndNormal = MatchToSurfaceFromAbove(targetPoint, raycastRange, transform.up);
-            legMoving[0] = true;
-            StartCoroutine(PerformStep(indexToMove, positionAndNormal[0]));
+            Vector3 groundPoint;
+            if (TryMatchToSurfaceFromAbove(targetPoint, raycastRange, transform.up, out groundPoint))
+            {
+                legMoving[0] = true;
+                StartCoroutine(PerformStep(indexToMove, groundPoint));
+            }
         }
 
         lastBodyPos = transform.position;
@@ -143,6 +175,7 @@ public class FourLegWalk : MonoBehaviour
 
     void OnEnable()
     {
+        if (groundMask.value == 0) groundMask = LayerMask.GetMask("Ground");
         legTargets = new Transform[]
         {
             leftFrontTarget,
