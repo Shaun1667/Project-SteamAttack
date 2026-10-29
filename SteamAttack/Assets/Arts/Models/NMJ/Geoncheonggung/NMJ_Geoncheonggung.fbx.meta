@@ -47,6 +47,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: "M_GJJ_\uBC15\uC11D\uB9C8\uB2F9"
+    second: {fileID: 2100000, guid: 8b7e707843389ae45b731742be68eba5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: "M_GJJ_\uC218\uD0A4\uC640"
     second: {fileID: 2100000, guid: eb2d880f509a47d4a86fe27cd3ee5f38, type: 2}
   - first:
@@ -59,6 +64,16 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: "M_GJJ_\uC591\uC131"
     second: {fileID: 2100000, guid: d32db37345e3ecd4a865b895e3eb1dfa, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_\uC7A5\uB300\uC11D"
+    second: {fileID: 2100000, guid: 8766634c73f259a4bb3773c0f4196e3f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: "M_GJJ_\uC804\uB3CC\uBC14\uB2E5"
+    second: {fileID: 2100000, guid: eb2cd2527bf579b4f922940fc765cc84, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -108,9 +123,9 @@ ModelImporter:
     preBakeTriangleCollisionMesh: 0
     importPhysicalCameras: 1
     importVisibility: 1
-    importBlendShapes: 1
-    importCameras: 1
-    importLights: 1
+    importBlendShapes: 0
+    importCameras: 0
+    importLights: 0
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
@@ -124,7 +139,7 @@ ModelImporter:
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
     optimizeBones: 1
-    generateMeshLods: 0
+    generateMeshLods: 1
     meshLodGenerationFlags: 0
     maximumMeshLod: -1
     importUVs: -1
@@ -150,7 +165,7 @@ ModelImporter:
     normalSmoothingSource: 0
     calculateBlendshapeNormalsDeltaFromImportedNormals: 0
   referencedClips: []
-  importAnimation: 1
+  importAnimation: 0
   humanDescription:
     serializedVersion: 3
     human: []
