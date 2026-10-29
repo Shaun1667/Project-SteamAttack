@@ -7,6 +7,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: "M_GJJ_\uACC4\uB2E8V"
+    second: {fileID: 2100000, guid: 4222cfda824a5744fb921af5100b38e7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: "M_GJJ_\uACF5\uD3EC"
     second: {fileID: 2100000, guid: 1fab45793c00be24e809d8db6c0e3e97, type: 2}
   - first:
@@ -202,43 +207,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: "M_\uBB38_\uAF43\uC0B4"
-    second: {fileID: 2100000, guid: 95a4eb379e290e64e8f556c04046e23f, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: "M_\uBB38_\uC6B8\uAC70\uBBF8"
-    second: {fileID: 2100000, guid: 7adb1be80c785d74682023e1da44ef8b, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: "M_\uBB38_\uC7A5\uC11D"
-    second: {fileID: 2100000, guid: 66aff01ecaf02b9498cf0376e36dc0a1, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: "M_\uBB38_\uD14C"
-    second: {fileID: 2100000, guid: 2d8a70ab0071db44eb9a8ca466e9d827, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: "M_\uBB38_\uD310\uBCBD"
-    second: {fileID: 2100000, guid: a314b4f2def4103439881240f73c2b12, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
       name: "M_\uBB38_\uD314\uB808\uD2B8"
     second: {fileID: 2100000, guid: 206edb5b443b76b4db49a091bdf303b0, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: "M_\uBB38\uC9C0\uBC29"
-    second: {fileID: 2100000, guid: 792861f605881e04eb0dd9488957a40b, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: "M_\uBB38\uD2C0"
-    second: {fileID: 2100000, guid: 4eb288ceeea6b8c4b8446a67d5b5d85e, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -343,9 +313,9 @@ ModelImporter:
     preBakeTriangleCollisionMesh: 0
     importPhysicalCameras: 1
     importVisibility: 1
-    importBlendShapes: 1
-    importCameras: 1
-    importLights: 1
+    importBlendShapes: 0
+    importCameras: 0
+    importLights: 0
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
@@ -359,7 +329,7 @@ ModelImporter:
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
     optimizeBones: 1
-    generateMeshLods: 0
+    generateMeshLods: 1
     meshLodGenerationFlags: 0
     maximumMeshLod: -1
     importUVs: -1
@@ -385,7 +355,7 @@ ModelImporter:
     normalSmoothingSource: 0
     calculateBlendshapeNormalsDeltaFromImportedNormals: 0
   referencedClips: []
-  importAnimation: 1
+  importAnimation: 0
   humanDescription:
     serializedVersion: 3
     human: []
