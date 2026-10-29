@@ -249,6 +249,7 @@ namespace NGH
         float _comboEndAt = -999f;
         float _blendOverride = -1f;
         readonly HashSet<Damageable> _hitThisSwing = new HashSet<Damageable>();
+        int _lastReviewedWallSerial = -1;
         readonly HashSet<object> _externalInvincible = new HashSet<object>();   // 외부에서 켠 무적 (켠 쪽별로 관리)
 
         static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -693,9 +694,19 @@ namespace NGH
             foreach (var col in Physics.OverlapSphere(center, radius, ~0, QueryTriggerInteraction.Collide))
             {
                 var d = col.GetComponentInParent<Damageable>();
+                if (!d && !col.isTrigger && !col.transform.IsChildOf(transform) && _lastReviewedWallSerial != ActionSerial)
+                {
+                    string surface = col.name.ToLowerInvariant();
+                    if (surface.Contains("wall") || col.name.Contains("벽"))
+                    {
+                        _lastReviewedWallSerial = ActionSerial;
+                        ReviewedAudio.Play(Random.value < 0.5f ? "Revision/12_SwordWall_v01" : "Revision/12_SwordWall_v02", 0.7f);
+                    }
+                }
                 if (!d || !d.IsAlive || _hitThisSwing.Contains(d)) continue;
                 _hitThisSwing.Add(d);
                 d.TakeDamage(dmg, transform.position);
+                ReviewedAudio.Play(heavy ? "Revision/13_HeavyHit_v02" : "AdditionalReview/R11_FleshHit_v02", 0.7f);
                 OnHitLanded?.Invoke(d);
                 if (!_healedThisAction) { _healedThisAction = true; Heal(healOnHit); }   // 공격 1회당 한 번만 회복
             }

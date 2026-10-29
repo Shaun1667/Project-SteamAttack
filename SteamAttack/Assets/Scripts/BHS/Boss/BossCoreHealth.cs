@@ -117,6 +117,8 @@ public sealed class BossCoreHealth : MonoBehaviour
     public void TakeDamage(float amount, Vector3 hitFrom)
     {
         if (!CanTakeDamage || amount <= 0f || float.IsNaN(amount) || float.IsInfinity(amount)) return;
+        NGH.ReviewedAudio.Play("Initial/08_Boss/BossCoreHit_v01", 0.7f);
+        NGH.ReviewedAudio.Play("Revision/49_BossHurt_v01", 0.7f);
         CurrentHp = Mathf.Max(0f, CurrentHp - amount);
         if (CurrentHp > 0f) return;
 

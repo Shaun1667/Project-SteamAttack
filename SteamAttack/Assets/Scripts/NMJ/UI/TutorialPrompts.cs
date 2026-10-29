@@ -58,6 +58,7 @@ namespace NMJ
         {
             if (!parryPrompt || parryShown || PauseMenu.IsOpen) return;
             parryShown = true;
+            NGH.ReviewedAudio.PlayUi("Initial/11_UI/Tutorial_v03");
             NmjSubtitle.Key("CTRL", "받아치기", 2.5f);
             // 공격이 닿기 조금 전까지만 느리게 (실제 시간으로 환산)
             prevScale = Time.timeScale > 0f ? Time.timeScale : 1f;
@@ -70,6 +71,7 @@ namespace NMJ
         {
             if (!rewindHint || rewindShown || hp <= 0 || hp * 2 > max) return;
             rewindShown = true;
+            NGH.ReviewedAudio.PlayUi("Initial/11_UI/Tutorial_v03");
             NmjSubtitle.Key("Q", "시간 역행, 5초 전으로", 3f);
         }
 

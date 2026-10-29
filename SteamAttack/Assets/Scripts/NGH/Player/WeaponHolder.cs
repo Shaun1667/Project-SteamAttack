@@ -73,10 +73,12 @@ namespace NGH
             IsSwapping = true;
             float half = swapTime * 0.5f;
             var cur = Current;
+            if (_drawn && cur && !cur.isMelee) ReviewedAudio.Play("Initial/04_Steam/SFX_GunHolster_01");
             // 삭~ 사라지고
             if (_drawn && cur) yield return Scale(cur, 1f, 0f, half);
             currentIndex = next;
             Refresh();
+            if (_drawn && Current && !Current.isMelee) ReviewedAudio.Play("Initial/04_Steam/SFX_GunDraw_02");
             // 삭~ 나타남
             if (_drawn && Current) yield return Scale(Current, 0f, 1f, half);
             Debug.Log($"[CHG] 무기 교체 → {Current.weaponName}");

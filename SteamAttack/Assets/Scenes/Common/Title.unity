@@ -321,11 +321,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NMJ.TitleScreen
   logoImage: {fileID: 0}
-  backgroundImage: {fileID: 2800000, guid: 70a421887e070414c98f767271f77325, type: 3}
+  backgroundImage: {fileID: 2800000, guid: fc8ed625e0a58ec4fbb6e2d9230ef6b3, type: 3}
   backgroundDim: 0.35
   artIncludesLogo: 1
-  artMenuAnchor: {x: 0.07, y: 0.567}
-  artTextColor: {r: 0.13, g: 0.12, b: 0.12, a: 1}
+  artFillScreen: 1
+  artMenuAnchor: {x: 0.085, y: 0.51}
+  artTextColor: {r: 0.95, g: 0.95, b: 0.94, a: 1}
+  keyArtMode: 0
+  keyArtLogoArea:
+    serializedVersion: 2
+    x: 0.045
+    y: 0.5
+    width: 0.36
+    height: 0.42
+  keyArtMenuAnchor: {x: 0.085, y: 0.45}
+  keyArtQuote: "\uD750\uB974\uB294 \uAC83\uC740,\n\uC2DC\uAC04\uB9CC\uC774 \uC544\uB2C8\uB2E4."
+  keyArtZoom: 1.06
   music: {fileID: 0}
   musicVolume: 0.7
   gameScene: Main

@@ -82,6 +82,7 @@ namespace NMJ
         {
             if (started) return;
             started = true;
+            NGH.ReviewedAudio.Play("Initial/09_World/ThawEnding_v01");
             timer = 0f;
             fog0 = RenderSettings.fogColor;
             amb0 = RenderSettings.ambientLight;

@@ -67,6 +67,7 @@ namespace NMJ
         private void TryTeleport(Transform who)
         {
             if (target == null || Time.time < nextAllowedTime) return;
+            NGH.ReviewedAudio.Play("Initial/09_World/FogTeleport_v03");
 
             // 태그가 붙은 플레이어 본체를 옮긴다
             Transform body = who.CompareTag(playerTag) ? who : who.root;

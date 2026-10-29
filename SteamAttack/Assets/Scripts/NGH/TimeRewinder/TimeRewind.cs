@@ -237,6 +237,7 @@ namespace NGH
             }
             if (!HasEnoughSteam())
             {
+                ReviewedAudio.Play("Revision/27_RewindFail_v01");
                 if (logRewind) Debug.Log($"[NGH_TimeRewind] 증기가 부족합니다 (필요 {steamCost:0.#}, 현재 {(steamTank ? steamTank.CurrentPressure.ToString("0.#") : "-")}).", this);
                 return false;
             }
@@ -330,6 +331,8 @@ namespace NGH
 
             BeginRewindLocks();
             PlayRewindSound();
+            ReviewedAudio.Play("Revision/23_RewindVanish_v02");
+            ReviewedAudio.Play("Revision/24_RewindGear_v02");
             RewindStarted?.Invoke();
 
             // 1) 연출 (무적)
@@ -351,6 +354,7 @@ namespace NGH
             {
                 Debug.Log($"[NGH_TimeRewind] {rewoundSeconds:0.00}초 전으로 되돌림 → HP {player.Hp}, 증기 {(steamTank ? steamTank.CurrentPressure.ToString("0.#") : "-")}, {(player.IsDrawn ? "발도" : "납도")}", this);
             }
+            ReviewedAudio.Play("Revision/26_RewindAppear_v02");
             RewindFinished?.Invoke();
         }
 

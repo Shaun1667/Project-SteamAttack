@@ -374,6 +374,7 @@ namespace YPH
             }
             _isAware = aware;
             _animation?.SetCombat(aware);
+            if (aware) NGH.ReviewedAudio.Play("AdditionalReview/R35_GongAlert_v01", 0.7f);
             AwarenessChanged?.Invoke(aware);
         }
         private void TickWander()

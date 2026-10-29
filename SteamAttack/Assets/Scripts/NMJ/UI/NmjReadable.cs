@@ -113,6 +113,7 @@ namespace NMJ
 
         private void Open()
         {
+            NGH.ReviewedAudio.PlayUi("Initial/09_World/PageTurn_v02");
             reading = this;
             readOnce = true;
             ControlsOverlay.MenuOpen = true;

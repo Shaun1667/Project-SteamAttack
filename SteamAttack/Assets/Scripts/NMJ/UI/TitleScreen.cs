@@ -43,9 +43,21 @@ namespace NMJ
         [SerializeField, Range(0f, 1f)] private float backgroundDim = 0.35f;
         [Tooltip("배경 그림에 로고·문구가 이미 그려져 있다 (UI_TitleBG_SteamInk). 켜면 글자 로고·어둠·아래 글을 숨기고 메뉴를 그림 왼쪽에 둔다")]
         [SerializeField] private bool artIncludesLogo;
+        [Tooltip("그림 모드에서 여백 없이 화면을 채운다. 화면 비율이 다르면 배경 가장자리만 잘린다")]
+        [SerializeField] private bool artFillScreen;
         [Tooltip("그림 모드 메뉴 자리 (그림 안 비율 0~1, 첫 줄 왼쪽 위 기준). 그림이 화면 비율과 달라도 그림을 따라간다")]
         [SerializeField] private Vector2 artMenuAnchor = new Vector2(0.07f, 0.567f);
         [SerializeField] private Color artTextColor = new Color(0.13f, 0.12f, 0.12f, 1f);   // 먹
+        [Tooltip("키 아트 모드: 글자 없는 16:9 그림(UI_TitleBG_KeyArt)을 화면 가득 깔고, 로고(Logo Image)를 왼쪽 안개 위에 겹친다. 그림은 천천히 다가오고 로고는 먹처럼 번져 나온다")]
+        [SerializeField] private bool keyArtMode;
+        [Tooltip("키 아트 모드: 로고 자리 (화면 비율 0~1: x, y = 왼쪽 아래, width, height)")]
+        [SerializeField] private Rect keyArtLogoArea = new Rect(0.045f, 0.50f, 0.36f, 0.42f);
+        [Tooltip("키 아트 모드: 메뉴 첫 줄 왼쪽 위 (화면 비율 0~1)")]
+        [SerializeField] private Vector2 keyArtMenuAnchor = new Vector2(0.085f, 0.45f);
+        [Tooltip("키 아트 모드: 왼쪽 아래 짧은 글 (줄바꿈은 엔터)")]
+        [SerializeField, TextArea] private string keyArtQuote = "흐르는 것은,\n시간만이 아니다.";
+        [Tooltip("키 아트 모드: 그림이 천천히 다가오는 정도 (1 = 그대로)")]
+        [SerializeField, Range(1f, 1.2f)] private float keyArtZoom = 1.06f;
         [SerializeField] private AudioClip music;
         [SerializeField, Range(0f, 1f)] private float musicVolume = 0.7f;
 
@@ -89,6 +101,8 @@ namespace NMJ
         private CanvasGroup group, fade;
         private readonly List<MenuButton> buttons = new List<MenuButton>();
         private MenuButton startButton, settingsButton;
+        private RectTransform keyArt;      // 키 아트 모드: 천천히 다가오는 그림
+        private CanvasGroup keyLogo, keyMenu, keyFooter;
         private RectTransform artRect;   // 그림 모드: 화면 안에 다 보이게 맞춘 그림 자리 (메뉴가 여기에 붙는다)
         private readonly List<Texture2D> owned = new List<Texture2D>();
 
@@ -127,6 +141,8 @@ namespace NMJ
             LinkColumn(buttons);
             Select(startButton.enabled ? startButton : buttons.Find(b => b.enabled));
 
+            var reviewedTitle = Resources.Load<AudioClip>("NGH/VARCO_Reviewed/LatestReview/DFT_Title_v02");
+            if (reviewedTitle != null) music = reviewedTitle;
             if (music != null)
             {
                 var src = gameObject.AddComponent<AudioSource>();
@@ -160,6 +176,7 @@ namespace NMJ
 
             UpdateButtons(buttons, style);
             UpdateSnow(dt);
+            UpdateKeyArt();
 
             // 게임 시작: 어두워진 뒤 씬을 불러온다
             if (leaveTimer >= 0f && !leavingByInk)
@@ -224,14 +241,19 @@ namespace NMJ
             if (font == null) font = FindDefaultFont();
             if (glyphFont == null) glyphFont = FindGlyphFont();
 #endif
-            style = artIncludesLogo && backgroundImage != null
+            bool lightArt = (artIncludesLogo || keyArtMode) && backgroundImage != null;
+            style = lightArt
                 // 밝은 수묵 그림 위: 먹색 글자, 고르면 붉은 글자와 붉은 붓줄
                 ? new Style { font = font, textColor = artTextColor, selectedColor = sealColor, underlineColor = sealColor, buttonHeight = 54f, fontSize = 28f }
                 : new Style { font = font, textColor = textColor, selectedColor = brassColor, underlineColor = sealColor, buttonHeight = 64f, fontSize = 34f };
 
             Canvas canvas = NewCanvas("NMJ_TitleCanvas", transform, 10, out group);
             BuildBackground(canvas.transform);
-            if (artIncludesLogo && backgroundImage != null)
+            if (keyArtMode && backgroundImage != null)
+            {
+                BuildKeyArt(canvas.transform);
+            }
+            else if (artIncludesLogo && backgroundImage != null)
             {
                 BuildArtMenu(canvas.transform);   // 로고·문구는 그림에 있다
             }
@@ -251,8 +273,46 @@ namespace NMJ
         private void BuildBackground(Transform parent)
         {
             RectTransform bg = NewRect("Background", parent);
+            if (backgroundImage != null && keyArtMode)
+            {
+                // 글자 없는 16:9 그림을 꽉 채운다 (화면 비율이 다르면 넘치는 쪽만 조금 잘림)
+                RawImage art = NewRawImage("KeyArt", bg, backgroundImage);
+                var fit = art.gameObject.AddComponent<AspectRatioFitter>();
+                fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+                fit.aspectRatio = (float)backgroundImage.width / backgroundImage.height;
+                keyArt = art.rectTransform;
+                keyArt.pivot = new Vector2(0.62f, 0.55f);   // 인물·현무 쪽으로 다가간다
+                // 왼쪽 안개: 로고·메뉴가 또렷하게 (왼쪽 흰 안개 → 가운데 투명)
+                Texture2D mist = new Texture2D(64, 1, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.DontSave };
+                for (int x = 0; x < 64; x++) mist.SetPixel(x, 0, new Color(0.93f, 0.93f, 0.92f, 0.78f * (1f - Mathf.SmoothStep(0f, 1f, x / 63f))));
+                mist.Apply();
+                owned.Add(mist);
+                RawImage m = NewRawImage("LeftMist", bg, mist);
+                m.rectTransform.anchorMax = new Vector2(0.55f, 1f);
+                // 아래 가장자리 먹빛 (화면이 붕 뜨지 않게). 왼쪽 아래 글자 자리는 밝게 두려고 왼쪽으로 갈수록 옅게
+                Texture2D vig = new Texture2D(32, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.DontSave };
+                for (int y = 0; y < 64; y++)
+                    for (int x = 0; x < 32; x++)
+                        vig.SetPixel(x, y, new Color(0.05f, 0.05f, 0.06f, 0.45f * (1f - Mathf.SmoothStep(0f, 1f, y / 63f)) * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.25f, 0.6f, x / 31f))));
+                vig.Apply();
+                owned.Add(vig);
+                RawImage v = NewRawImage("BottomInk", bg, vig);
+                v.rectTransform.anchorMax = new Vector2(1f, 0.16f);
+                BuildFlakes(bg, Mathf.Min(snowCount, 90), Color.white);
+                return;
+            }
             if (backgroundImage != null && artIncludesLogo)
             {
+                if (artFillScreen)
+                {
+                    UnityEngine.UI.RawImage fullArt = NewRawImage("Image", bg, backgroundImage);
+                    var fullFit = fullArt.gameObject.AddComponent<UnityEngine.UI.AspectRatioFitter>();
+                    fullFit.aspectMode = UnityEngine.UI.AspectRatioFitter.AspectMode.EnvelopeParent;
+                    fullFit.aspectRatio = (float)backgroundImage.width / backgroundImage.height;
+                    // 메뉴는 화면 안에 고정해, 다른 화면 비율에서도 클릭 영역이 잘리지 않게 한다.
+                    artRect = bg;
+                    return;
+                }
                 // 로고가 그림에 있으니 잘리면 안 된다: 그림 전체를 화면 안에 맞추고(FitInParent),
                 // 남는 위아래·양옆은 같은 그림을 꽉 채워 깔고 안개색으로 덮어 이어진 것처럼 보이게
                 RawImage under = NewRawImage("Fill", bg, backgroundImage);
@@ -284,12 +344,17 @@ namespace NMJ
             owned.Add(grad);
             NewRawImage("Gradient", bg, grad);
 
+            BuildFlakes(bg, snowCount, snowColor);
+        }
+
+        private void BuildFlakes(RectTransform bg, int count, Color color)
+        {
             // 공중에 멈춘 눈송이
             var rng = new System.Random(1887);
-            for (int i = 0; i < snowCount; i++)
+            for (int i = 0; i < count; i++)
             {
                 float size = 2f + (float)rng.NextDouble() * (rng.NextDouble() < 0.15 ? 7f : 3f);
-                Image img = NewImage("Flake", bg, snowColor, Vector2.zero, Vector2.zero);
+                Image img = NewImage("Flake", bg, color, Vector2.zero, Vector2.zero);
                 RectTransform rt = img.rectTransform;
                 // 화면 비율이 달라도 고르게 흩어지도록 위치는 앵커(0~1)로 둔다
                 rt.anchorMin = rt.anchorMax = new Vector2((float)rng.NextDouble(), (float)rng.NextDouble());
@@ -384,6 +449,70 @@ namespace NMJ
                 b.underline.anchoredPosition = new Vector2(20f, -style.fontSize * 0.68f);
                 b.soonTag.GetComponent<TMP_Text>().alignment = TextAlignmentOptions.Right;
             }
+        }
+
+        /// <summary>키 아트 모드: 왼쪽 안개 위에 붓글씨 로고 → 그 아래 메뉴 → 아래 짧은 글</summary>
+        private void BuildKeyArt(Transform parent)
+        {
+            RectTransform logo = NewRect("Logo", parent);
+            logo.anchorMin = keyArtLogoArea.min;
+            logo.anchorMax = keyArtLogoArea.max;
+            logo.offsetMin = logo.offsetMax = Vector2.zero;
+            keyLogo = logo.gameObject.AddComponent<CanvasGroup>();
+            if (logoImage != null)
+            {
+                RawImage img = NewRawImage("Image", logo, logoImage);
+                var fit = img.gameObject.AddComponent<AspectRatioFitter>();
+                fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+                fit.aspectRatio = (float)logoImage.width / logoImage.height;
+            }
+            else
+            {
+                TMP_Text t = NewText("Title", logo, font, logoText, 150f, artTextColor);
+                t.characterSpacing = 14f;
+            }
+
+            // 메뉴: 화면 전체를 기준으로 한 그림 모드 메뉴를 그대로 쓴다
+            artRect = NewRect("MenuArea", parent);
+            artMenuAnchor = keyArtMenuAnchor;
+            BuildArtMenu(parent);
+            keyMenu = buttons[0].button.transform.parent.gameObject.AddComponent<CanvasGroup>();
+
+            RectTransform foot = NewRect("Footer", parent);
+            keyFooter = foot.gameObject.AddComponent<CanvasGroup>();
+            TMP_Text q = NewText("Quote", foot, font, keyArtQuote.Replace("\\n", "\n"), 24f, artTextColor);
+            q.rectTransform.anchorMin = q.rectTransform.anchorMax = new Vector2(0f, 0f);
+            q.rectTransform.pivot = new Vector2(0f, 0f);
+            q.rectTransform.sizeDelta = new Vector2(600f, 80f);
+            q.rectTransform.anchoredPosition = new Vector2(64f, 70f);
+            q.alignment = TextAlignmentOptions.BottomLeft;
+            q.lineSpacing = 18f;
+            q.alpha = 0.85f;
+            // 시연판·안내: 오른쪽 아래는 눈밭이라 안 읽혀서 왼쪽 아래 안개 위에 먹색으로
+            TMP_Text v = NewText("Version", foot, font, version + "  ·  " + notice, 15f, artTextColor);
+            v.rectTransform.anchorMin = v.rectTransform.anchorMax = new Vector2(0f, 0f);
+            v.rectTransform.pivot = new Vector2(0f, 0f);
+            v.rectTransform.sizeDelta = new Vector2(900f, 26f);
+            v.rectTransform.anchoredPosition = new Vector2(64f, 26f);
+            v.alignment = TextAlignmentOptions.Left;
+            v.alpha = 0.55f;
+            keyLogo.alpha = keyMenu.alpha = keyFooter.alpha = 0f;
+        }
+
+        private void UpdateKeyArt()
+        {
+            if (keyArt == null) return;
+            // 그림: 80초에 한 번 천천히 다가갔다가 돌아온다 (멈췄던 시간이 다시 흐르는 느낌)
+            float k = 0.5f - 0.5f * Mathf.Cos(Time.unscaledTime * Mathf.PI * 2f / 80f);
+            float sc = Mathf.Lerp(1.015f, keyArtZoom, k);
+            keyArt.localScale = new Vector3(sc, sc, 1f);
+            // 로고 → 메뉴 → 아래 글 순서로 먹처럼 번져 나온다
+            float Ease(float t0, float dur) { float x = Mathf.Clamp01((introTimer - t0) / dur); return x * x * (3f - 2f * x); }
+            float l = Ease(0.6f, 1.6f);
+            keyLogo.alpha = l;
+            keyLogo.transform.localScale = Vector3.one * Mathf.Lerp(1.06f, 1f, l);
+            keyMenu.alpha = Ease(1.8f, 0.8f);
+            keyFooter.alpha = Ease(2.4f, 1.2f);
         }
 
         private void BuildFooter(Transform parent)

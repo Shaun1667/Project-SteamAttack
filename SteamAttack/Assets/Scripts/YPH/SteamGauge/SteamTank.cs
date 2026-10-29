@@ -63,7 +63,11 @@ namespace YPH
         /// 수류탄 한 개처럼 비용 전체를 감당해야 하는 요청을 처리하고 성공 여부를 반환합니다.
         /// 잔량이 부족하면 일부만 쓰지 않고 그대로 유지합니다. 0 요청은 이벤트 없이 성공합니다.
         /// </summary>
-        public bool TryConsume(float amount)
+        public bool TryConsume(float amount) => TryConsume(amount, false);
+
+        // The gun's existing shot already includes a steam hiss; callers can
+        // suppress only the additional reviewed vent sound, not tank events.
+        public bool TryConsume(float amount, bool suppressReviewedVent)
         {
             // 입력 오류는 소비 실패 연출과 구분합니다. 잘못된 요청에는 오류 로그만 남깁니다.
             if (!IsValidAmount(amount))
@@ -82,7 +86,7 @@ namespace YPH
                 return false;
             }
             // 성공 경로는 낱개 소비와 같은 내부 메서드를 사용해 값 변경·이벤트 순서를 일치시킵니다.
-            Consume(amount);
+            Consume(amount, suppressReviewedVent);
             return true;
         }
 
@@ -129,7 +133,18 @@ namespace YPH
                 return;
             }
             // 회복 전용 이벤트를 만들지 않고 공통 값 변경 경로로 보내 뷰만 갱신합니다.
+            float before = _currentPressure;
             SetPressure(Mathf.Min(_maxPressure, _currentPressure + amount));
+            if (_currentPressure > before)
+            {
+                if (before < _maxPressure && _currentPressure >= _maxPressure)
+                    NGH.ReviewedAudio.Play("Revision/21_SteamFull_v01");
+                else if (Time.time >= _nextReviewedCharge)
+                {
+                    _nextReviewedCharge = Time.time + 1f;
+                    NGH.ReviewedAudio.Play("Initial/04_Steam/SFX_SteamCharge_02", 0.7f);
+                }
+            }
         }
 
         /// <summary>
@@ -146,7 +161,9 @@ namespace YPH
             SetPressure(Mathf.Clamp(pressure, 0f, _maxPressure));
         }
 
-        private void Consume(float amount)
+        private float _nextReviewedCharge;
+
+        private void Consume(float amount, bool suppressReviewedVent = false)
         {
             // 오차 허용으로 요청량이 잔량보다 아주 조금 커질 수 있어 0 아래로 내려가지 않게 합니다.
             // 배출구에는 요청량 대신 변경 전후 차이를 전달해야 실제 소비량에 맞게 분출합니다.
@@ -157,6 +174,7 @@ namespace YPH
             SetPressure(next);
             if (consumed > 0f)
             {
+                if (!suppressReviewedVent) NGH.ReviewedAudio.Play("Initial/04_Steam/SFX_SteamVent_03", 0.5f);
                 OnConsumed?.Invoke(consumed);
             }
         }

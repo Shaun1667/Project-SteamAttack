@@ -89,6 +89,7 @@ namespace NMJ
         {
             if (IsOpen) return;
             IsOpen = true;
+            NGH.ReviewedAudio.Play("Initial/09_World/IceGateBreak_v01");
             block.enabled = false;
             breakTimer = 0f;
             if (visual != null) visual.SetActive(false);
