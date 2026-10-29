@@ -157,6 +157,14 @@ namespace NGH
         public AttackData hitSmallAction = new AttackData { playSpeed = 1f, endAt = 1f, hitWindows = new Vector2[0] };
         [Tooltip("기준 데미지 이상: 피격(대, 넉백)")]
         public AttackData hitLargeAction = new AttackData { playSpeed = 1f, endAt = 1f, hitWindows = new Vector2[0] };
+        [Tooltip("피격(대)로 넘어지며 뒤로 밀리는 거리(m). x = 클립 진행도 0~1 (넘어지는 클립에서 잰 값)")]
+        public AnimationCurve hitLargePushBack = new AnimationCurve(
+            new Keyframe(0f, 0f), new Keyframe(0.43f, 0f), new Keyframe(0.5f, 0.08f), new Keyframe(0.571f, 0.232f), new Keyframe(0.643f, 0.373f),
+            new Keyframe(0.714f, 0.539f), new Keyframe(0.786f, 0.714f), new Keyframe(0.857f, 0.885f), new Keyframe(0.929f, 1.004f), new Keyframe(1f, 1.076f));
+        [Tooltip("피격(대) 뒤 일어나는 동작 상태 이름 (비우면 넘어진 뒤 바로 대기로)")]
+        public string getUpState = "GetUp";
+        [Tooltip("피격(대) 뒤 일어나는 동작. 동작 중 입력 무시·무적")]
+        public AttackData getUpAction = new AttackData { clipLength = 2.7f, playSpeed = 1f, endAt = 1f, hitWindows = new Vector2[0], blendIn = 0.25f };
         [Tooltip("테스트용: 숫자 1 = 데미지 1(피격 소), 숫자 2 = 기준 데미지(피격 대)을 자신에게 줌")]
         public bool debugHitKeys = true;
 
@@ -232,6 +240,7 @@ namespace NGH
         Vector3 _rollDir;
         ActionState _buffered;
         bool _chainBlend;   // 다음 StartAction 이 앞 타의 후딜레이에서 바로 이어지는 것인지
+        float _pushBackDone;   // 피격(대)로 이번 동작에서 이미 뒤로 민 거리
         ActionState _comboLast;          // 이어지지 않고 끝난 마지막 약공격 타 (유예 시간 동안 다음 타로 이어 붙임)
         float _comboEndAt = -999f;
         float _blendOverride = -1f;
@@ -528,6 +537,7 @@ namespace NGH
             _hitThisSwing.Clear();
             _hitWindowIndex = -1;
             _healedThisAction = false;
+            _pushBackDone = 0f;
             _attack = null;
 
             string state = locomotionState;
@@ -584,6 +594,7 @@ namespace NGH
                 // 클립 기준 진행도 (0~1)
                 float clipT = _actionTime * _actionPlaySpeed / Mathf.Max(0.01f, _attack.clipLength);
                 if (IsLightChain(action) || action == ActionState.HeavyAttack) Lunge(clipT);
+                if (action == ActionState.HitLarge) PushBack(clipT);
                 // 약·강공격: 칼 궤적 이펙트가 있으면 판정도 궤적 면으로 (보이는 궤적과 판정 일치). 없으면 아래 구 판정
                 if (IsMeleeAttack(action) && _fx && _fx.UsesTrailHitbox(action)) TrailHit(action == ActionState.HeavyAttack);
                 else for (int i = 0; i < _attack.hitWindows.Length; i++)
@@ -620,6 +631,7 @@ namespace NGH
                 _attack = null;
                 if (animator) animator.speed = 1f;
                 if (next != ActionState.None) { _chainBlend = chaining; StartAction(next); }
+                else if (finished == ActionState.HitLarge && StartGetUp()) return;   // 넘어진 뒤 일어나기
                 else
                 {
                     if (IsLightChain(finished)) { _comboLast = finished; _comboEndAt = Time.time; }
@@ -629,6 +641,34 @@ namespace NGH
                 }
                 _locoState = locomotionState;
             }
+        }
+
+        // 피격(대): 넘어지는 클립은 제자리(뒤로 밀리는 이동을 포즈에서 뺌)라, 그 거리만큼 캐릭터를 실제로 뒤로 민다 (벽에 막히면 멈춤)
+        void PushBack(float clipT)
+        {
+            if (hitLargePushBack == null || hitLargePushBack.length == 0) return;
+            float d = hitLargePushBack.Evaluate(Mathf.Clamp01(clipT));
+            _cc.Move(-transform.forward * (d - _pushBackDone));
+            _pushBackDone = d;
+        }
+
+        // 피격(대)으로 넘어진 뒤 일어나는 동작. 일어나는 동안 입력 무시·무적 (부활과 같은 StandUp 상태)
+        bool StartGetUp()
+        {
+            if (string.IsNullOrEmpty(getUpState) || getUpAction == null || getUpAction.clipLength <= 0f) return false;
+            action = ActionState.StandUp;
+            ActionSerial++;
+            _attack = getUpAction;
+            _actionTime = 0f;
+            _actionPlaySpeed = getUpAction.playSpeed;
+            _actionDuration = getUpAction.ActionTime;
+            _spawnInvincibleUntil = Mathf.Max(_spawnInvincibleUntil, Time.time + _actionDuration);
+            if (animator)
+            {
+                animator.speed = _actionPlaySpeed;
+                animator.CrossFadeInFixedTime(getUpState, getUpAction.blendIn * _actionPlaySpeed);
+            }
+            return true;
         }
 
         // 휘두르는 순간(판정 구간 + 조금 앞)에만 앞으로 쭉 나감. 처음에 빠르고 끝에 감속

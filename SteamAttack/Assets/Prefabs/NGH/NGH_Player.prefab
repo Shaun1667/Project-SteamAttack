@@ -9569,8 +9569,8 @@ MonoBehaviour:
   heavyHitThreshold: 25
   hitSmallAction:
     damage: 0
-    clipLength: 1.6333334
-    playSpeed: 1
+    clipLength: 1.2
+    playSpeed: 1.3
     endAt: 1
     hitWindows: []
     hitOncePerAction: 0
@@ -9579,13 +9579,309 @@ MonoBehaviour:
     chainAt: 1
   hitLargeAction:
     damage: 0
-    clipLength: 1.7333333
+    clipLength: 0.96666664
     playSpeed: 1
     endAt: 1
     hitWindows: []
     hitOncePerAction: 0
     lungeDistance: -1
     blendIn: 0.08
+    chainAt: 1
+  hitLargePushBack:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.033333335
+      value: 0
+      inSlope: -0
+      outSlope: 3.3775492
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.06666667
+      value: 0.11258498
+      inSlope: 3.3775492
+      outSlope: 7.181903
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.1
+      value: 0.35198173
+      inSlope: 7.181903
+      outSlope: 6.8185954
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.13333334
+      value: 0.5792683
+      inSlope: 6.8185954
+      outSlope: 6.4552855
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.16666667
+      value: 0.79444444
+      inSlope: 6.4552855
+      outSlope: 6.0919785
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.2
+      value: 0.9975104
+      inSlope: 6.0919785
+      outSlope: 5.7286677
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.23333333
+      value: 1.188466
+      inSlope: 5.7286677
+      outSlope: 5.3653603
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.26666668
+      value: 1.3673114
+      inSlope: 5.3653603
+      outSlope: 5.0020485
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.3
+      value: 1.5340463
+      inSlope: 5.0020485
+      outSlope: 4.6387415
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.33333334
+      value: 1.688671
+      inSlope: 4.6387415
+      outSlope: 4.2754345
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.36666667
+      value: 1.8311855
+      inSlope: 4.2754345
+      outSlope: 3.9121237
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.4
+      value: 1.9615896
+      inSlope: 3.9121237
+      outSlope: 3.5488203
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.43333334
+      value: 2.0798836
+      inSlope: 3.5488203
+      outSlope: 3.185499
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.46666667
+      value: 2.1860669
+      inSlope: 3.185499
+      outSlope: 2.822199
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.5
+      value: 2.2801402
+      inSlope: 2.822199
+      outSlope: 2.4588897
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.53333336
+      value: 2.3621032
+      inSlope: 2.4588897
+      outSlope: 2.0955868
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.56666666
+      value: 2.431956
+      inSlope: 2.0955868
+      outSlope: 1.7322621
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.6
+      value: 2.4896982
+      inSlope: 1.7322621
+      outSlope: 1.368965
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.6333333
+      value: 2.5353303
+      inSlope: 1.368965
+      outSlope: 1.0056559
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.6666667
+      value: 2.5688522
+      inSlope: 1.0056559
+      outSlope: 0.64234316
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.7
+      value: 2.5902636
+      inSlope: 0.64234316
+      outSlope: 0.27903533
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.73333335
+      value: 2.5995648
+      inSlope: 0.27903533
+      outSlope: 2.1775124
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.76666665
+      value: 2.6721485
+      inSlope: 2.1775124
+      outSlope: 2.6094296
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.8
+      value: 2.7591295
+      inSlope: 2.6094296
+      outSlope: 2.2079823
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.8333333
+      value: 2.8327289
+      inSlope: 2.2079823
+      outSlope: 1.806527
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.8666667
+      value: 2.8929465
+      inSlope: 1.806527
+      outSlope: 1.4050783
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.9
+      value: 2.9397824
+      inSlope: 1.4050783
+      outSlope: 1.0036246
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.93333334
+      value: 2.9732366
+      inSlope: 1.0036246
+      outSlope: 0.6021744
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.96666664
+      value: 2.993309
+      inSlope: 0.6021744
+      outSlope: 0.2007292
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 3
+      inSlope: 0.2007292
+      outSlope: 0
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  getUpState: GetUp
+  getUpAction:
+    damage: 0
+    clipLength: 2.7
+    playSpeed: 1
+    endAt: 0.65
+    hitWindows: []
+    hitOncePerAction: 0
+    lungeDistance: -1
+    blendIn: 0.25
     chainAt: 1
   debugHitKeys: 1
   attackForwardRatio: 0.5
@@ -16441,7 +16737,7 @@ MonoBehaviour:
   titleScene: NMJ_Title
   titleTransition: 2
   settings: {fileID: 8913662214249980563}
-  title: "\u7384\u6B66"
+  gameTitle: "\uCCA0\uACFC \uBB35"
   subtitle: "\uC7A0\uC2DC \uBA48\uCDA4"
   panelSize: {x: 520, y: 640}
   buttonHeight: 66
@@ -16565,8 +16861,8 @@ MonoBehaviour:
   coda: 1
   codaPlace: "\uD5A5\uC6D0\uC815"
   codaPause: 1.1
-  logo: "\u7384\u6B66"
-  subtitle: "\uC5ED\uB958\uC758 \uC5B4\uBA85"
+  gameTitle: "\uCCA0\uACFC \uBB35"
+  gameSubtitle: STEAM & INK
   creditsTitle: "\uB9CC\uB4E0 \uC0AC\uB78C\uB4E4"
   notice: "\uC774 \uC791\uD488\uC740 \uC2E4\uC874 \uC778\uBB3C\xB7\uC0AC\uAC74\uACFC \uBB34\uAD00\uD55C \uCC3D\uC791\uC785\uB2C8\uB2E4"
   thanks: "\uAC10\uC0AC\uD569\uB2C8\uB2E4"
@@ -17528,6 +17824,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NGH.SleeveActionGuard
   player: {fileID: 5444686568199331752}
+  rewind: {fileID: 0}
   sleeves:
   - {fileID: 625043607466365835}
   fadeToAnimation: 0.04
