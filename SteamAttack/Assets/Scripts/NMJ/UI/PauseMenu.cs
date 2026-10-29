@@ -13,7 +13,7 @@ namespace NMJ
     /// <summary>
     /// 인게임 ESC 메뉴 (회의 1.6, 기획안 v4 3-5)
     ///
-    ///            玄武
+    ///           철과 묵
     ///          잠시 멈춤
     ///   ─────────────────────
     ///          계속하기
@@ -56,7 +56,7 @@ namespace NMJ
         [SerializeField] private SettingsMenu settings;
 
         [Header("글자")]
-        [SerializeField] private string title = "玄武";
+        [SerializeField] private string gameTitle = "철과 묵";   // 게임 이름 확정 (2026-10-26). 칸 이름을 바꿔 프리팹의 옛 값(玄武)을 쓰지 않게
         [SerializeField] private string subtitle = "잠시 멈춤";
 
         [Header("배치 (화면 1920×1080 기준)")]
@@ -341,7 +341,7 @@ namespace NMJ
             head.pivot = new Vector2(0.5f, 1f);
             head.sizeDelta = new Vector2(0f, 150f);
             head.anchoredPosition = new Vector2(0f, -28f);
-            TMP_Text t = NewText("Title", head, HanjaFont, title, 64f, brassColor);
+            TMP_Text t = NewText("Title", head, font, gameTitle, 64f, brassColor);
             t.rectTransform.offsetMin = new Vector2(0f, 46f);
             TMP_Text s = NewText("Subtitle", head, font, subtitle, 22f, textColor);
             s.rectTransform.offsetMax = new Vector2(0f, -100f);

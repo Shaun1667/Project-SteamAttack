@@ -15,7 +15,7 @@ namespace NMJ
     /// 엔딩 크레딧 (회의 1.7, 기획안 v4 4:40~5:00 — 시연의 끝)
     ///
     ///   보스 처치 문구가 끝나면 → 화면이 먹빛으로 어두워지고, 멈췄던 눈이 다시 내린다 (해빙)
-    ///        玄武 · 역류의 어명
+    ///        철과 묵 · STEAM & INK
     ///          만든 사람들
     ///     기획 · UI · 세계관   나민재      ← 위로 천천히 올라간다
     ///            ...
@@ -68,8 +68,9 @@ namespace NMJ
         [SerializeField, Min(0f)] private float codaPause = 1.1f;
 
         [Header("글자")]
-        [SerializeField] private string logo = "玄武";
-        [SerializeField] private string subtitle = "역류의 어명";
+        // 게임 이름 '철과 묵'으로 확정 (2026-10-26). 칸 이름을 바꿔 프리팹에 저장된 옛 이름(玄武 · 역류의 어명)을 쓰지 않게 했다
+        [SerializeField] private string gameTitle = "철과 묵";
+        [SerializeField] private string gameSubtitle = "STEAM & INK";
         [SerializeField] private string creditsTitle = "만든 사람들";
         [SerializeField] private string notice = "이 작품은 실존 인물·사건과 무관한 창작입니다";
         [SerializeField] private string thanks = "감사합니다";
@@ -466,8 +467,8 @@ namespace NMJ
             rollGroup = roll.gameObject.AddComponent<CanvasGroup>();
 
             float y = 0f;   // 맨 위에서 아래로 내려가며 쌓는다 (음수)
-            Line(roll, HanjaFont, logo, 150f, textColor, ref y, 170f);
-            Line(roll, font, subtitle, 42f, brassColor, ref y, 140f).characterSpacing = 30f;
+            Line(roll, font, gameTitle, 150f, textColor, ref y, 170f);
+            Line(roll, font, gameSubtitle, 42f, brassColor, ref y, 140f).characterSpacing = 30f;
             Line(roll, font, creditsTitle, 30f, brassColor, ref y, 90f).alpha = 0.8f;
 
             foreach (Credit c in credits)
