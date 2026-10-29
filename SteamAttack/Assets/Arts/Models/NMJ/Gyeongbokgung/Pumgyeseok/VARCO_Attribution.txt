@@ -1,0 +1,20 @@
+품계석 — NMJ / VARCO 3D
+
+생성일: 2026-10-29
+제작: NMJ의 요청에 따라 VARCO 3D에서 생성, Unity 배치·재질·한자 표기 조정은 Codex로 수행.
+원본 flow: https://3d.varco.ai/flow/029d3581-77ac-485b-a84f-95ff1fbd11b2
+3D task: 8d374d5a-1983-4575-88aa-b48e05221b3b
+3D node: 9007df59-0fa3-477e-9cf6-6414ee9a3724
+생성 시 지정된 라이선스: CC BY 4.0
+라이선스: https://creativecommons.org/licenses/by/4.0/
+
+변경 내용: 높이 약 0.9m로 조정, URP Lit에 색상·노멀 맵 연결,
+Unity TextMeshPro로 품계 한자 추가, 충돌·길찾기 장애물 추가, 24개 배치.
+Textures/orm.png는 원본 보관용이며 현재 재질에는 연결하지 않음.
+모델 공통 삼각형 8,712개. 생성 옵션의 polygonCount 3,000과 실제 삼각형 수는 다름.
+
+형태·배치 참고:
+https://encykorea.aks.ac.kr/Article/E0060328
+https://www.kipo.go.kr/club/file.do?attachmentId=11289
+사진을 텍스처로 사용하지 않았음. 돌 표면은 VARCO 생성 결과임.
+한자 폰트: 프로젝트에 포함된 NotoSerifKR-Regular.otf에서 필요한 12자만 정적 아틀라스로 구성.
