@@ -3,6 +3,27 @@ using UnityEngine.Rendering.Universal;
 
 public class BossAreaAttack : BossAttack
 {
+    [Header("현무 Animator - Bool 이름은 IsStamping")]
+    public Animator animator;
+
+    [Header("점프슬램 착지음")]
+    public AudioSource slamImpactAudio;
+    [Range(0f, 1f)] public float slamImpactVolume = .9f;
+    [Tooltip("착지 판정보다 소리를 몇 초 먼저 재생할지 지정합니다.")]
+    [Min(0f)] public float slamImpactLeadTime = .2f;
+    private bool slamImpactPlayed, slamImpactLanded;
+    private bool slamImpactAudioPaused;
+    private Vector3 slamImpactAudioPosition;
+
+    private bool controlsAnimation;
+    private float animationWaitTime;
+    private static readonly int StampStateHash = Animator.StringToHash("Base Layer.BHS_StampBe");
+    private static readonly int StandStateHash = Animator.StringToHash("Base Layer.BHS_StampAf");
+    private bool standAnimationComplete;
+    private BossFSM controllingFSM;
+    public override bool IsActionComplete => !IsRunning || standAnimationComplete;
+    private static readonly int IsStampingHash = Animator.StringToHash("IsStamping");
+
     [Header("근거리 360도 공격 - 월드 거리")]
     [Min(0.01f)] public float radius = 3f;
     [Min(0.01f)] public float hitboxHeight = 2f;
@@ -31,6 +52,42 @@ public class BossAreaAttack : BossAttack
     public Color waveColor = new Color(1f, 0.55f, 0.05f, 0.65f);
     public bool showWaveGizmos = true;
 
+    [Header("지면 충격파 VFX")]
+    public GameObject waveShockwavePrefab;
+    [Tooltip("충격파 앞쪽 테두리의 월드 두께입니다. 피해 범위는 Wave Width를 따릅니다.")]
+    [Range(.04f, .4f)] public float shockwaveRimWidth = .14f;
+    public Color shockwaveColor = new Color(.78f, .91f, 1f, .9f);
+    [Tooltip("미리 준비할 파동 수입니다. 동시에 더 필요하면 늘리고, 종료된 파동은 재사용합니다.")]
+    [Min(1)] public int prewarmWaveCount = 2;
+
+    // A slot owns one launched wave; no attack/FSM state is shared between waves.
+    private sealed class WaveInstance
+    {
+        public bool active, hasHit;
+        public GameObject sourcePrefab, root;
+        public HyunMuEffects.ReusableGroundShockwave effect;
+        public Material sourceMaterial, material;
+        public Texture2D texture;
+        public DecalProjector decal;
+        public Transform target;
+        public Collider[] colliders;
+        public System.Action<float> reportHit;
+        public Vector3 position;
+        public Vector2 radii;
+        public float launchedAt, elapsed, delay, duration, maxRadius, width, speed, height, damage, rim;
+        public Color color, shockColor;
+    }
+
+    private readonly System.Collections.Generic.List<WaveInstance> wavePool =
+        new System.Collections.Generic.List<WaveInstance>();
+    private GameObject wavePoolRoot;
+    private WaveInstance currentWave;
+    public int WavePoolCount => wavePool.Count;
+    public int ActiveWaveCount
+    {
+        get { int count = 0; foreach (WaveInstance wave in wavePool) if (wave.active) count++; return count; }
+    }
+
     private const int Sides = 48;
     private const int TextureSize = 256;
     private Collider[] playerColliders;
@@ -45,14 +102,13 @@ public class BossAreaAttack : BossAttack
     private Color previousColor;
     private bool textureReady;
 
-    // Attack Time은 본체 판정 시간. 전체 공격은 파동의 뒤쪽 경계가 빠져나갈 때 끝난다.
-    protected override float ActiveDuration => lockedDuration;
+    // The FSM releases this action when StampAf finishes. Pooled waves run separately.
+    protected override float ActiveDuration => float.PositiveInfinity;
     protected override bool ContinueWithoutTarget => true;
     private float elapsed;
     private float stompDuration;
     private float waveStartTime;
     private float waveDuration;
-    private float lockedDuration;
     private float lockedWaveMaxRadius;
     private float lockedWaveWidth;
     private float lockedWaveSpeed;
@@ -60,19 +116,13 @@ public class BossAreaAttack : BossAttack
     private float lockedWaveDamage;
     private Color lockedWaveColor;
     private bool waveEnabled;
-    private bool waveStarted;
     private Vector3 wavePosition;
-    private Vector2 visibleWaveRadii;
 
     private GameObject waveQueryObject;
     private MeshCollider waveQueryCollider;
     private Mesh waveQueryMesh;
     private readonly Vector3[] waveVertices = new Vector3[8];
     private readonly Quaternion[] waveRotations = new Quaternion[Sides];
-    private GameObject waveVisualObject;
-    private DecalProjector waveProjector;
-    private Material waveMaterial;
-    private Texture2D waveTexture;
     private Color32[] wavePixels;
     private float[] polygonDistances;
 
@@ -116,6 +166,37 @@ public class BossAreaAttack : BossAttack
     protected override bool PrepareAttack()
     {
         if (Target == null || !Target.CompareTag("Player")) return false;
+        slamImpactPlayed = slamImpactLanded = false;
+        standAnimationComplete = false;
+        controllingFSM = Owner != null ? Owner.GetComponent<BossFSM>() : null;
+
+        // 새 Inspector 연결이 비어 있어도 기존 거북이 Animator를 자동으로 사용한다.
+        if (animator == null && Owner != null)
+        {
+            foreach (Animator candidate in Owner.GetComponentsInChildren<Animator>(true))
+            {
+                if (!candidate.isActiveAndEnabled || candidate.runtimeAnimatorController == null ||
+                    !candidate.HasState(0, StampStateHash)) continue;
+                animator = candidate;
+                break;
+            }
+        }
+        if (animator == null || !animator.isActiveAndEnabled ||
+            animator.runtimeAnimatorController == null || !animator.HasState(0, StampStateHash))
+        {
+            Debug.LogWarning("Area 공격에 BHS_StampBe 상태가 있는 활성 Animator를 연결해 주세요.", this);
+            return false;
+        }
+        bool hasStampParameter = false;
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+            if (parameter.nameHash == IsStampingHash && parameter.type == AnimatorControllerParameterType.Bool)
+                hasStampParameter = true;
+        if (!hasStampParameter)
+        {
+            Debug.LogWarning("Animator에 Bool 파라미터 IsStamping이 필요합니다.", this);
+            return false;
+        }
+        animationWaitTime = 0f;
 
         // FSM이 찾은 플레이어와 자식의 콜라이더를 자동으로 가져온다.
         playerColliders = Target.GetComponentsInChildren<Collider>(true);
@@ -137,10 +218,7 @@ public class BossAreaAttack : BossAttack
         lockedWaveDamage = Mathf.Max(0f, waveDamage);
         lockedWaveColor = waveColor;
         waveDuration = (lockedWaveMaxRadius + lockedWaveWidth) / lockedWaveSpeed;
-        lockedDuration = waveEnabled ? waveStartTime + waveDuration : stompDuration;
         elapsed = 0f;
-        waveStarted = false;
-        visibleWaveRadii = Vector2.zero;
         if (waveEnabled && !CreateWaveResources()) return false;
 
         CreateHitbox();
@@ -155,15 +233,41 @@ public class BossAreaAttack : BossAttack
         projector.renderingLayerMask = warningRenderingLayers;
         warningObject.SetActive(true);
         wavePosition = floor + Vector3.up * waveBottomOffset;
-        if (waveEnabled)
+        return true;
+    }
+
+    // Ready Time 이후 준비 동작이 실제로 완료되어야 Attack Time을 시작한다.
+    protected override bool WaitBeforeActive(float deltaTime)
+    {
+        if (animator == null || !animator.isActiveAndEnabled || animator.runtimeAnimatorController == null)
         {
-            waveQueryObject.transform.SetPositionAndRotation(wavePosition, Quaternion.identity);
-            waveQueryObject.SetActive(true);
-            waveVisualObject.transform.SetPositionAndRotation(floor, Quaternion.Euler(90f, 0f, 0f));
-            waveProjector.size = new Vector3(lockedWaveMaxRadius * 2f,
-                lockedWaveMaxRadius * 2f, Mathf.Max(0.1f, projectionDepth));
-            waveProjector.renderingLayerMask = warningRenderingLayers;
-            waveVisualObject.SetActive(false);
+            CancelAttack();
+            return true;
+        }
+        if (!controlsAnimation)
+        {
+            controlsAnimation = true;
+            animationWaitTime = 0f;
+            animator.SetBool(IsStampingHash, true);
+            return true;
+        }
+        animationWaitTime += deltaTime;
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+        if (!animator.IsInTransition(0) && state.fullPathHash == StampStateHash)
+        {
+            float remaining = Mathf.Max(0f, 1f - state.normalizedTime) * state.length /
+                Mathf.Max(.001f, Mathf.Abs(animator.speed));
+            if (Time.timeScale > 0f && animator.speed != 0f &&
+                remaining <= Mathf.Max(0f, slamImpactLeadTime))
+                PlaySlamImpactAudio();
+            return state.normalizedTime < 1f;
+        }
+
+        // 잘못된 전이 연결로 보스가 준비 상태에 영구히 멈추는 것을 방지한다.
+        if (animationWaitTime >= 5f)
+        {
+            Debug.LogWarning("IsStamping으로 BHS_StampBe에 진입하지 못했습니다. Animator 전이를 확인하세요.", this);
+            CancelAttack();
         }
         return true;
     }
@@ -172,6 +276,9 @@ public class BossAreaAttack : BossAttack
     {
         warningObject.SetActive(false);
         hitboxObject.SetActive(true);
+        slamImpactLanded = true;
+        if (waveEnabled) StartPooledWave();
+        PlaySlamImpactAudio();
     }
 
     protected override void TickActive(float deltaTime)
@@ -181,31 +288,41 @@ public class BossAreaAttack : BossAttack
         if (previousTime < stompDuration)
         {
             TickStomp();
-            // 피격 이벤트가 보스 또는 공격을 중단했을 수 있다.
             if (!IsRunning) return;
         }
-        if (elapsed >= stompDuration && hitboxObject != null) hitboxObject.SetActive(false);
-        if (!waveEnabled || elapsed < waveStartTime) return;
-
-        if (!waveStarted)
+        if (elapsed >= stompDuration)
         {
-            waveStarted = true;
-            // 본체 판정이 끝난 뒤 딱 한 번 초기화하므로 본체 1회 + 파동 1회가 가능하다.
-            BeginNextHitPhase();
+            StopStampAnimation();
+            if (hitboxObject != null) hitboxObject.SetActive(false);
+            CheckStandAnimationComplete();
         }
-        float previousAge = Mathf.Clamp(previousTime - waveStartTime, 0f, waveDuration);
-        float age = Mathf.Clamp(elapsed - waveStartTime, 0f, waveDuration);
-        float previousFront = previousAge * lockedWaveSpeed;
-        float front = age * lockedWaveSpeed;
-        visibleWaveRadii = new Vector2(Mathf.Max(0f, front - lockedWaveWidth),
-            Mathf.Min(front, lockedWaveMaxRadius));
-        UpdateWaveVisual();
+    }
 
-        // 이번 프레임에 파동이 지나간 구간까지 검사하여 빠른 파동의 누락을 줄인다.
-        float sweptInner = Mathf.Max(0f, previousFront - lockedWaveWidth);
-        float sweptOuter = Mathf.Min(front, lockedWaveMaxRadius);
-        if (CanHitCollider && sweptOuter > sweptInner && sweptOuter >= 0.01f)
-            CheckWaveHit(sweptInner, sweptOuter);
+    private void CheckStandAnimationComplete()
+    {
+        if (standAnimationComplete) return;
+        if (animator == null || !animator.isActiveAndEnabled ||
+            animator.runtimeAnimatorController == null)
+        {
+            CancelAttack();
+            return;
+        }
+
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+        if (animator.IsInTransition(0)) return;
+        if (state.fullPathHash == StandStateHash)
+            standAnimationComplete = state.normalizedTime >= 1f;
+        else if (state.fullPathHash != StampStateHash)
+            // A zero-duration exit transition can skip the final Af sample.
+            standAnimationComplete = true;
+    }
+
+    public override void ReleaseControl()
+    {
+        // Normal completion detaches this cast. IsRunning becomes false immediately,
+        // so the same area attack can be selected while older waves are still alive.
+        if (standAnimationComplete) currentWave = null;
+        CancelAttack();
     }
 
     private void TickStomp()
@@ -229,13 +346,27 @@ public class BossAreaAttack : BossAttack
         }
     }
 
+    private void StopStampAnimation()
+    {
+        if (!controlsAnimation) return;
+        controlsAnimation = false;
+        if (animator != null) animator.SetBool(IsStampingHash, false);
+    }
+
     protected override void EndAttack()
     {
+        if (currentWave != null) ReturnWave(currentWave);
+        currentWave = null;
+        // If the wind-up was cancelled after the early cue, stop that cue too.
+        if (!slamImpactLanded && slamImpactPlayed && slamImpactAudio != null)
+        {
+            slamImpactAudio.Stop();
+            slamImpactAudioPaused = false;
+        }
+        StopStampAnimation();
         if (warningObject != null) warningObject.SetActive(false);
         if (hitboxObject != null) hitboxObject.SetActive(false);
-        if (waveVisualObject != null) waveVisualObject.SetActive(false);
-        if (waveQueryObject != null) waveQueryObject.SetActive(false);
-        waveStarted = false;
+
     }
 
     private void CreateHitbox()
@@ -365,93 +496,215 @@ public class BossAreaAttack : BossAttack
 
     private bool CreateWaveResources()
     {
-        if (waveProjector != null && waveQueryCollider != null && waveQueryMesh != null) return true;
-        DestroyWaveResources();
-        string map = warningMaterial != null ? FindBaseMap(warningMaterial) : null;
-        if (string.IsNullOrEmpty(map))
+        if (waveShockwavePrefab != null)
         {
-            Debug.LogError("파동에도 Warning Material의 Decal 머티리얼을 사용합니다. Base Map을 확인하세요.", this);
-            return false;
-        }
-
-        // 조회 전용 모양 하나를 가상 위치에서 반복 사용한다. 평소에는 비활성 상태다.
-        waveQueryObject = new GameObject(name + "_WaveQuery");
-        waveQueryCollider = waveQueryObject.AddComponent<MeshCollider>();
-        waveQueryCollider.enabled = false;
-        waveQueryCollider.convex = true;
-        waveQueryCollider.isTrigger = true;
-        waveQueryMesh = new Mesh { name = "WavePrism" };
-        for (int i = 0; i < Sides; i++)
-            waveRotations[i] = Quaternion.Euler(0f, i * 360f / Sides, 0f);
-
-        waveVisualObject = new GameObject(name + "_WaveDecal");
-        waveVisualObject.SetActive(false);
-        waveMaterial = new Material(warningMaterial);
-        waveTexture = new Texture2D(TextureSize, TextureSize, TextureFormat.RGBA32, false);
-        waveTexture.name = "WaveRingTexture";
-        waveTexture.wrapMode = TextureWrapMode.Clamp;
-        waveTexture.filterMode = FilterMode.Bilinear;
-        waveMaterial.SetTexture(map, waveTexture);
-        waveMaterial.SetTextureScale(map, Vector2.one);
-        waveMaterial.SetTextureOffset(map, Vector2.zero);
-        if (waveMaterial.HasProperty("_BaseColor")) waveMaterial.SetColor("_BaseColor", Color.white);
-        waveProjector = waveVisualObject.AddComponent<DecalProjector>();
-        waveProjector.material = waveMaterial;
-        waveProjector.pivot = Vector3.zero;
-        waveProjector.uvScale = Vector2.one;
-        waveProjector.uvBias = Vector2.zero;
-        waveProjector.fadeFactor = 1f;
-        waveProjector.drawDistance = 100f;
-        if (!waveProjector.IsValid())
-        {
-            Debug.LogError("파동에 사용할 URP Decal 머티리얼을 확인하세요.", this);
-            DestroyWaveResources();
-            return false;
-        }
-
-        wavePixels = new Color32[TextureSize * TextureSize];
-        polygonDistances = new float[wavePixels.Length];
-        float step = Mathf.PI * 2f / Sides;
-        float apothem = Mathf.Cos(step * 0.5f);
-        for (int y = 0; y < TextureSize; y++)
-        {
-            for (int x = 0; x < TextureSize; x++)
+            if (waveShockwavePrefab.GetComponent<HyunMuEffects.ReusableGroundShockwave>() == null)
             {
-                Vector2 p = new Vector2((x + 0.5f) / TextureSize * 2f - 1f,
-                    (y + 0.5f) / TextureSize * 2f - 1f);
-                float offset = Mathf.Repeat(Mathf.Atan2(p.x, p.y), step) - step * 0.5f;
-                float edge = apothem / Mathf.Cos(offset);
-                // 같은 48각형 기준의 거리표를 한 번만 만든다. 매 프레임 삼각함수를 계산하지 않는다.
-                polygonDistances[y * TextureSize + x] = p.magnitude / edge;
+                Debug.LogError("파동 프리팹에 ReusableGroundShockwave가 필요합니다.", this);
+                return false;
             }
+        }
+        else if (warningMaterial == null || string.IsNullOrEmpty(FindBaseMap(warningMaterial)))
+        {
+            Debug.LogError("파동 프리팹 또는 유효한 Decal 머티리얼이 필요합니다.", this);
+            return false;
+        }
+
+        if (wavePoolRoot == null)
+        {
+            wavePoolRoot = new GameObject(name + "_WavePool");
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(wavePoolRoot, gameObject.scene);
+        }
+        if (waveQueryCollider == null)
+        {
+            waveQueryObject = new GameObject(name + "_WaveQuery");
+            waveQueryObject.transform.SetParent(wavePoolRoot.transform, false);
+            waveQueryCollider = waveQueryObject.AddComponent<MeshCollider>();
+            waveQueryCollider.enabled = false;
+            waveQueryCollider.convex = true;
+            waveQueryCollider.isTrigger = true;
+            waveQueryMesh = new Mesh { name = "WavePrism" };
+            for (int i = 0; i < Sides; i++)
+                waveRotations[i] = Quaternion.Euler(0f, i * 360f / Sides, 0f);
+        }
+        if (waveShockwavePrefab == null && wavePixels == null)
+        {
+            wavePixels = new Color32[TextureSize * TextureSize];
+            polygonDistances = new float[wavePixels.Length];
+            float step = Mathf.PI * 2f / Sides;
+            float apothem = Mathf.Cos(step * .5f);
+            for (int y = 0; y < TextureSize; y++)
+                for (int x = 0; x < TextureSize; x++)
+                {
+                    Vector2 p = new Vector2((x + .5f) / TextureSize * 2f - 1f,
+                        (y + .5f) / TextureSize * 2f - 1f);
+                    float offset = Mathf.Repeat(Mathf.Atan2(p.x, p.y), step) - step * .5f;
+                    polygonDistances[y * TextureSize + x] = p.magnitude / (apothem / Mathf.Cos(offset));
+                }
+        }
+        int matching = 0;
+        foreach (WaveInstance wave in wavePool) if (MatchesWaveSource(wave)) matching++;
+        while (matching < Mathf.Max(1, prewarmWaveCount))
+        {
+            if (CreateWaveSlot() == null) return false;
+            matching++;
         }
         return true;
     }
 
-    private void UpdateWaveVisual()
+    private bool MatchesWaveSource(WaveInstance wave)
     {
-        float inner = visibleWaveRadii.x;
-        float outer = visibleWaveRadii.y;
-        if (outer <= inner)
+        return wave.root != null && wave.sourcePrefab == waveShockwavePrefab &&
+            (waveShockwavePrefab != null || wave.sourceMaterial == warningMaterial);
+    }
+
+    private WaveInstance CreateWaveSlot()
+    {
+        WaveInstance wave = new WaveInstance();
+        wave.sourcePrefab = waveShockwavePrefab;
+        wave.sourceMaterial = warningMaterial;
+        if (waveShockwavePrefab != null)
         {
-            waveVisualObject.SetActive(false);
+            wave.root = Instantiate(waveShockwavePrefab, wavePoolRoot.transform);
+            wave.root.SetActive(false);
+            wave.root.name = name + "_GroundShockwave_" + wavePool.Count;
+            wave.effect = wave.root.GetComponent<HyunMuEffects.ReusableGroundShockwave>();
+            wave.effect.IgnoreRoot = transform.root;
+        }
+        else
+        {
+            wave.root = new GameObject(name + "_WaveDecal_" + wavePool.Count);
+            wave.root.transform.SetParent(wavePoolRoot.transform, false);
+            wave.root.SetActive(false);
+            wave.material = new Material(warningMaterial);
+            wave.texture = new Texture2D(TextureSize, TextureSize, TextureFormat.RGBA32, false);
+            wave.texture.name = "PooledWaveRingTexture";
+            wave.texture.wrapMode = TextureWrapMode.Clamp;
+            wave.texture.filterMode = FilterMode.Bilinear;
+            string map = FindBaseMap(warningMaterial);
+            wave.material.SetTexture(map, wave.texture);
+            wave.material.SetTextureScale(map, Vector2.one);
+            wave.material.SetTextureOffset(map, Vector2.zero);
+            if (wave.material.HasProperty("_BaseColor"))
+                wave.material.SetColor("_BaseColor", Color.white);
+            wave.decal = wave.root.AddComponent<DecalProjector>();
+            wave.decal.material = wave.material;
+            wave.decal.pivot = Vector3.zero;
+            wave.decal.uvScale = Vector2.one;
+            wave.decal.uvBias = Vector2.zero;
+            wave.decal.fadeFactor = 1f;
+            wave.decal.drawDistance = 100f;
+            if (!wave.decal.IsValid())
+            {
+                Debug.LogError("파동에 사용할 URP Decal 머티리얼을 확인하세요.", this);
+                Destroy(wave.root);
+                Destroy(wave.material);
+                Destroy(wave.texture);
+                return null;
+            }
+        }
+        wavePool.Add(wave);
+        return wave;
+    }
+
+    private void StartPooledWave()
+    {
+        WaveInstance wave = null;
+        foreach (WaveInstance candidate in wavePool)
+            if (!candidate.active && MatchesWaveSource(candidate)) { wave = candidate; break; }
+        if (wave == null) wave = CreateWaveSlot();
+        if (wave == null) return;
+
+        currentWave = wave;
+        wave.active = true;
+        wave.hasHit = false;
+        wave.target = Target;
+        wave.colliders = playerColliders;
+        wave.reportHit = DamageReporter;
+        wave.position = wavePosition;
+        wave.radii = Vector2.zero;
+        wave.launchedAt = Time.time;
+        wave.elapsed = 0f;
+        wave.delay = waveStartTime;
+        wave.duration = waveDuration;
+        wave.maxRadius = lockedWaveMaxRadius;
+        wave.width = lockedWaveWidth;
+        wave.speed = lockedWaveSpeed;
+        wave.height = lockedWaveHeight;
+        wave.damage = lockedWaveDamage;
+        wave.color = lockedWaveColor;
+        wave.shockColor = shockwaveColor;
+        wave.rim = shockwaveRimWidth;
+        wave.root.transform.localScale = Vector3.one;
+        wave.root.transform.SetPositionAndRotation(wave.position,
+            wave.effect != null ? Quaternion.identity : Quaternion.Euler(90f, 0f, 0f));
+        if (wave.decal != null)
+        {
+            wave.decal.size = new Vector3(wave.maxRadius * 2f, wave.maxRadius * 2f,
+                Mathf.Max(.1f, projectionDepth));
+            wave.decal.renderingLayerMask = warningRenderingLayers;
+        }
+    }
+
+    private void TickPooledWaves()
+    {
+        if (controllingFSM != null && !controllingFSM.isActiveAndEnabled)
+        {
+            StopAllWaves();
             return;
         }
-        Color32 inside = lockedWaveColor;
+        for (int i = 0; i < wavePool.Count; i++)
+        {
+            WaveInstance wave = wavePool[i];
+            if (!wave.active) continue;
+            float previousTime = wave.elapsed;
+            wave.elapsed = Mathf.Max(0f, Time.time - wave.launchedAt);
+            if (wave.elapsed < wave.delay) continue;
+            float previousAge = Mathf.Clamp(previousTime - wave.delay, 0f, wave.duration);
+            float age = Mathf.Clamp(wave.elapsed - wave.delay, 0f, wave.duration);
+            float front = age * wave.speed;
+            wave.radii = new Vector2(Mathf.Max(0f, front - wave.width), Mathf.Min(front, wave.maxRadius));
+            UpdateWaveVisual(wave);
+
+            float sweptInner = Mathf.Max(0f, previousAge * wave.speed - wave.width);
+            float sweptOuter = Mathf.Min(front, wave.maxRadius);
+            if (!wave.hasHit && wave.target != null && wave.target.gameObject.activeInHierarchy &&
+                sweptOuter > sweptInner && sweptOuter >= .01f)
+                CheckWaveHit(wave, sweptInner, sweptOuter);
+            // A hit callback may disable/destroy the boss and return the pool.
+            if (wave.active && wave.elapsed >= wave.delay + wave.duration) ReturnWave(wave);
+        }
+    }
+
+    private void UpdateWaveVisual(WaveInstance wave)
+    {
+        float inner = wave.radii.x, outer = wave.radii.y;
+        if (wave.root == null) return;
+        if (outer <= inner)
+        {
+            if (wave.root.activeSelf) wave.root.SetActive(false);
+            return;
+        }
+        if (!wave.root.activeSelf) wave.root.SetActive(true);
+        if (wave.effect != null)
+        {
+            wave.effect.RenderWave(inner, outer, wave.maxRadius, wave.width, wave.shockColor, wave.rim);
+            return;
+        }
+        Color32 inside = wave.color;
         Color32 outside = new Color32(inside.r, inside.g, inside.b, 0);
-        float normalizedInner = inner / lockedWaveMaxRadius;
-        float normalizedOuter = outer / lockedWaveMaxRadius;
+        float normalizedInner = inner / wave.maxRadius;
+        float normalizedOuter = outer / wave.maxRadius;
         for (int i = 0; i < wavePixels.Length; i++)
         {
             float distance = polygonDistances[i];
             wavePixels[i] = distance >= normalizedInner && distance <= normalizedOuter ? inside : outside;
         }
-        waveTexture.SetPixels32(wavePixels);
-        waveTexture.Apply(false, false);
-        waveVisualObject.SetActive(true);
+        wave.texture.SetPixels32(wavePixels);
+        wave.texture.Apply(false, false);
     }
 
-    private void CheckWaveHit(float inner, float outer)
+    private void CheckWaveHit(WaveInstance wave, float inner, float outer)
     {
         float step = Mathf.PI * 2f / Sides;
         Vector3 start = Vector3.forward;
@@ -461,7 +714,7 @@ public class BossAreaAttack : BossAttack
         waveVertices[2] = end * outer;
         waveVertices[3] = end * inner;
         for (int i = 0; i < 4; i++)
-            waveVertices[i + 4] = waveVertices[i] + Vector3.up * lockedWaveHeight;
+            waveVertices[i + 4] = waveVertices[i] + Vector3.up * wave.height;
 
         waveQueryCollider.sharedMesh = null;
         waveQueryMesh.Clear();
@@ -474,14 +727,15 @@ public class BossAreaAttack : BossAttack
         try
         {
             Physics.SyncTransforms();
-            foreach (Collider targetCollider in playerColliders)
+            foreach (Collider targetCollider in wave.colliders)
             {
                 if (targetCollider == null || !targetCollider.enabled ||
-                    !targetCollider.gameObject.activeInHierarchy || Target == null ||
-                    (targetCollider.transform != Target && !targetCollider.transform.IsChildOf(Target))) continue;
+                    !targetCollider.gameObject.activeInHierarchy || wave.target == null ||
+                    (targetCollider.transform != wave.target && !targetCollider.transform.IsChildOf(wave.target))) continue;
                 for (int i = 0; i < Sides; i++)
                 {
-                    if (!Physics.ComputePenetration(waveQueryCollider, wavePosition, waveRotations[i],
+                    if (!Physics.ComputePenetration(
+                        waveQueryCollider, wave.position, waveRotations[i],
                         targetCollider, targetCollider.transform.position, targetCollider.transform.rotation,
                         out _, out _)) continue;
                     hit = true;
@@ -492,36 +746,91 @@ public class BossAreaAttack : BossAttack
         }
         finally
         {
-            // 물리 시뮬레이션과 피격 콜백 전에 끈다. 별도의 OnTrigger 피해를 만들지 않는다.
             if (waveQueryCollider != null) waveQueryCollider.enabled = false;
         }
-        if (hit) HitOnce(lockedWaveDamage, checkTargetHeight: false);
+        if (hit && wave.active && !wave.hasHit)
+        {
+            wave.hasHit = true;
+            wave.reportHit?.Invoke(Mathf.Max(0f, wave.damage));
+        }
+    }
+
+    private void ReturnWave(WaveInstance wave)
+    {
+        wave.active = false;
+        if (wave.root != null) wave.root.SetActive(false);
+        wave.target = null;
+        wave.colliders = null;
+        wave.reportHit = null;
+        wave.radii = Vector2.zero;
+        if (currentWave == wave) currentWave = null;
+    }
+
+    private void StopAllWaves()
+    {
+        foreach (WaveInstance wave in wavePool) ReturnWave(wave);
+        if (waveQueryCollider != null) waveQueryCollider.enabled = false;
     }
 
     private void DestroyWaveResources()
     {
-        if (waveQueryObject != null)
+        StopAllWaves();
+        foreach (WaveInstance wave in wavePool)
         {
-            waveQueryObject.SetActive(false);
-            Destroy(waveQueryObject);
+            if (wave.material != null) Destroy(wave.material);
+            if (wave.texture != null) Destroy(wave.texture);
         }
-        if (waveVisualObject != null)
-        {
-            waveVisualObject.SetActive(false);
-            Destroy(waveVisualObject);
-        }
+        wavePool.Clear();
+        if (wavePoolRoot != null) Destroy(wavePoolRoot);
         if (waveQueryMesh != null) Destroy(waveQueryMesh);
-        if (waveMaterial != null) Destroy(waveMaterial);
-        if (waveTexture != null) Destroy(waveTexture);
+        wavePoolRoot = null;
         waveQueryObject = null;
         waveQueryCollider = null;
         waveQueryMesh = null;
-        waveVisualObject = null;
-        waveProjector = null;
-        waveMaterial = null;
-        waveTexture = null;
         wavePixels = null;
         polygonDistances = null;
+    }
+
+    private void PlaySlamImpactAudio()
+    {
+        if (slamImpactPlayed || slamImpactAudio == null || slamImpactAudio.clip == null) return;
+        slamImpactPlayed = true;
+        slamImpactAudioPosition = new Vector3(Origin.x, groundY + .15f, Origin.z);
+        slamImpactAudio.transform.position = slamImpactAudioPosition;
+        slamImpactAudio.Stop();
+        slamImpactAudioPaused = false;
+        slamImpactAudio.volume = slamImpactVolume;
+        slamImpactAudio.Play();
+    }
+
+    // Audio follows the existing impact timing; it never drives the attack or Animator.
+    private void LateUpdate()
+    {
+        TickPooledWaves();
+        if (slamImpactAudio == null) return;
+        if (slamImpactAudio.isPlaying || slamImpactAudioPaused)
+            slamImpactAudio.transform.position = slamImpactAudioPosition;
+        if (Time.timeScale <= 0f)
+        {
+            if (slamImpactAudio.isPlaying)
+            {
+                slamImpactAudio.Pause();
+                slamImpactAudioPaused = true;
+            }
+        }
+        else if (slamImpactAudioPaused)
+        {
+            slamImpactAudio.UnPause();
+            slamImpactAudioPaused = false;
+        }
+    }
+
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+        StopAllWaves();
+        if (slamImpactAudio != null) slamImpactAudio.Stop();
+        slamImpactAudioPaused = false;
     }
 
     private void OnDestroy()
@@ -553,20 +862,23 @@ public class BossAreaAttack : BossAttack
             Gizmos.DrawLine(p + Vector3.up * height, q + Vector3.up * height);
             if (i % 12 == 0) Gizmos.DrawLine(p, p + Vector3.up * height);
         }
-        bool drawWave = IsRunning ? waveEnabled : enableWave;
-        if (showWaveGizmos && drawWave)
+        if (showWaveGizmos)
         {
-            Vector3 waveCenter = IsRunning ? wavePosition :
-                new Vector3(transform.position.x, groundY + waveBottomOffset, transform.position.z);
-            float maxRadius = IsRunning ? lockedWaveMaxRadius : Mathf.Max(0.1f, waveMaxRadius);
-            float waveH = IsRunning ? lockedWaveHeight : Mathf.Max(0.01f, waveHeight);
-            Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.65f);
-            DrawWaveOutline(waveCenter, maxRadius, waveH);
-            if (IsRunning && waveStarted && visibleWaveRadii.y > visibleWaveRadii.x)
+            if (enableWave && !Application.isPlaying)
             {
-                Gizmos.color = new Color(1f, 0.55f, 0.05f);
-                DrawWaveOutline(waveCenter, visibleWaveRadii.y, waveH);
-                if (visibleWaveRadii.x > 0f) DrawWaveOutline(waveCenter, visibleWaveRadii.x, waveH);
+                Gizmos.color = new Color(.2f, .8f, 1f, .65f);
+                DrawWaveOutline(new Vector3(transform.position.x, groundY + waveBottomOffset, transform.position.z),
+                    Mathf.Max(.1f, waveMaxRadius), Mathf.Max(.01f, waveHeight));
+            }
+            foreach (WaveInstance wave in wavePool)
+            {
+                if (!wave.active) continue;
+                Gizmos.color = new Color(.2f, .8f, 1f, .65f);
+                DrawWaveOutline(wave.position, wave.maxRadius, wave.height);
+                if (wave.radii.y <= wave.radii.x) continue;
+                Gizmos.color = new Color(1f, .55f, .05f);
+                DrawWaveOutline(wave.position, wave.radii.y, wave.height);
+                if (wave.radii.x > 0f) DrawWaveOutline(wave.position, wave.radii.x, wave.height);
             }
         }
         Gizmos.color = oldColor;

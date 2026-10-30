@@ -7,6 +7,20 @@ using UnityEngine.Rendering.Universal;
 [DisallowMultipleComponent]
 public class BossArtilleryAttack : BossAttack
 {
+    [Header("현무 Animator - Bool 이름은 IsShooting")]
+    public Animator animator;
+
+    [Header("포탄 발사음")]
+    public AudioSource launchAudio;
+    [Range(0f, 1f)] public float launchVolume = 0.8f;
+    private bool controlsAnimation;
+    private bool waitingForShoot;
+    private bool waitingForIdle;
+    private float shootEntryWait;
+    private static readonly int ShootStateHash = Animator.StringToHash("Base Layer.BHS_ShootBe");
+    private static readonly int IdleStateHash = Animator.StringToHash("Base Layer.idle");
+    private static readonly int IsShootingHash = Animator.StringToHash("IsShooting");
+
     [Header("포격 발동 조건")]
     [Tooltip("거북이 BossFSM. 비우면 자신/부모에서 찾습니다.")]
     public BossFSM bodyFSM;
@@ -18,7 +32,7 @@ public class BossArtilleryAttack : BossAttack
     [Min(1)] public int shellCount = 5;
     [Tooltip("각 포탄의 데칼을 표시하고 발사한 뒤, 그 포탄이 착탄하기까지의 시간입니다.")]
     [Min(0.05f)] public float warningToImpactTime = 1.2f;
-    [Tooltip("앞 포탄과 다음 포탄의 간격. 모든 포탄의 비행 시간이 같아 데칼/발사/착탄 간격이 같습니다. 0이면 동시 발사.")]
+    [Tooltip("발사 후 다음 발의 준비 애니메이션을 시작하기까지의 최소 간격. 후속 동작과 idle 복귀도 기다립니다. 0이어도 애니메이션마다 한 발씩 발사합니다.")]
     [Min(0f)] public float shellInterval = 0.4f;
 
     [Header("데칼 크기 / 착탄 판정 - 월드 크기")]
@@ -90,6 +104,13 @@ public class BossArtilleryAttack : BossAttack
     private Mesh explosionMesh;
     private MeshCollider explosionQuery;
     private readonly List<Shell> shells = new List<Shell>();
+    private readonly List<Shell> shellPool = new List<Shell>();
+    private GameObject pooledVisual;
+    private ParticleSystem pooledImpact;
+    private Material pooledWarning;
+    private Color pooledColor;
+    private Vector2 pooledShape;
+    public int PooledShellCount => shellPool.Count;
 
     private class Shell
     {
@@ -101,6 +122,12 @@ public class BossArtilleryAttack : BossAttack
         public GameObject root;
         public Transform visual;
         public DecalProjector projector;
+        public ParticleSystem impact; 
+        public AudioSource eruptionAudio;
+        public float eruptionDelay;
+        public bool eruptionPlayed, eruptionAudioPaused;
+        public ParticleSystem[] particles;
+        public Vector3 baseScale;
     }
 
     // 마지막 착탄과 표시 정리가 끝날 때 직접 종료한다.
@@ -120,6 +147,7 @@ public class BossArtilleryAttack : BossAttack
 
     private void LateUpdate()
     {
+        UpdateEruptionAudioPause();
         if (bodyFSM == null) bodyFSM = GetComponentInParent<BossFSM>();
         Transform candidate = bodyFSM != null ? bodyFSM.Player : null;
         if (IsRunning || bodyFSM == null || !bodyFSM.isActiveAndEnabled ||
@@ -175,6 +203,33 @@ public class BossArtilleryAttack : BossAttack
     protected override bool PrepareAttack()
     {
         if (Target == null || !Target.CompareTag("Player")) return false;
+        // 새 Inspector 연결이 비어 있어도 기존 거북이 Animator를 자동으로 사용한다.
+        if (animator == null && Owner != null)
+        {
+            foreach (Animator candidate in Owner.GetComponentsInChildren<Animator>(true))
+            {
+                if (!candidate.isActiveAndEnabled || candidate.runtimeAnimatorController == null ||
+                    !candidate.HasState(0, ShootStateHash)) continue;
+                animator = candidate;
+                break;
+            }
+        }
+        if (animator == null || !animator.isActiveAndEnabled ||
+            animator.runtimeAnimatorController == null ||
+            !animator.HasState(0, ShootStateHash) || !animator.HasState(0, IdleStateHash))
+        {
+            Debug.LogWarning("포격에 BHS_ShootBe와 idle 상태가 있는 활성 Animator를 연결해 주세요.", this);
+            return false;
+        }
+        bool hasShooting = false;
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+            if (parameter.nameHash == IsShootingHash && parameter.type == AnimatorControllerParameterType.Bool)
+                hasShooting = true;
+        if (!hasShooting)
+        {
+            Debug.LogWarning("Animator에 Bool 파라미터 IsShooting을 추가해 주세요.", this);
+            return false;
+        }
         bool hasCollider = false;
         foreach (Collider collider in Target.GetComponentsInChildren<Collider>(true))
             if (collider.enabled && collider.gameObject.activeInHierarchy) { hasCollider = true; break; }
@@ -209,9 +264,22 @@ public class BossArtilleryAttack : BossAttack
         ResetStayTimer();
 
         // 부모 없음 / Scale 1. 보스의 크기나 이후 이동이 데칼과 착탄 좌표를 바꾸지 않는다.
-        runtimeRoot = new GameObject(name + "_ArtilleryRuntime");
-        if (!CreateDecalResources()) return false;
-        CreateExplosionQuery();
+        if (runtimeRoot != null && (pooledVisual != lockedVisualPrefab || pooledImpact != lockedImpactPrefab ||
+            pooledWarning != warningMaterial || pooledColor != warningColor || pooledShape != new Vector2(lockedRadius,lockedHeight)))
+            DisposePool();
+        if (runtimeRoot == null)
+        {
+            runtimeRoot = new GameObject(name + "_ArtilleryPool");
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(runtimeRoot, gameObject.scene);
+            if (!CreateDecalResources()) { DisposePool(); return false; }
+            CreateExplosionQuery();
+            pooledVisual=lockedVisualPrefab; pooledImpact=lockedImpactPrefab;
+            pooledWarning=warningMaterial; pooledColor=warningColor; pooledShape=new Vector2(lockedRadius,lockedHeight);
+        }
+        while (shellPool.Count < lockedCount) shellPool.Add(CreatePooledShell());
+        runtimeRoot.SetActive(true);
+        waitingForShoot = false;
+        waitingForIdle = false;
         return true;
     }
 
@@ -238,86 +306,102 @@ public class BossArtilleryAttack : BossAttack
                     if (!IsRunning) return;
                 }
             }
+            if (shell.landed && !shell.eruptionPlayed &&
+                elapsed - shell.impactTime >= shell.eruptionDelay)
+            {
+                shell.eruptionPlayed = true;
+                if (shell.eruptionAudio != null && shell.eruptionAudio.clip != null)
+                    shell.eruptionAudio.Play();
+            }
             if (shell.landed && elapsed - shell.impactTime >= lockedDisplayTime && shell.root != null)
             {
                 shell.root.SetActive(false);
-                Destroy(shell.root);
-                shell.root = null;
             }
         }
         LaunchDueShells();
         if (!IsRunning) return;
 
-        if (launchedShells < lockedCount) return;
+        if (launchedShells < lockedCount || waitingForIdle) return;
         foreach (Shell shell in shells)
-            if (!shell.landed || shell.root != null) return;
+            if (!shell.landed || (shell.root != null && shell.root.activeSelf)) return;
         CancelAttack();
     }
 
+    // 한 번의 준비 동작 완료당 정확히 한 발만 발사한다.
     private void LaunchDueShells()
     {
-        if (launchedShells >= lockedCount || elapsed < nextLaunchTime) return;
-        if (Target == null || !Target.gameObject.activeInHierarchy)
+        if (animator == null || !animator.isActiveAndEnabled || animator.runtimeAnimatorController == null)
         {
-            // 이미 예고한 포탄은 마저 떨어지고, 남은 조준은 중단한다.
-            lockedCount = launchedShells;
+            CancelAttack();
             return;
         }
-
-        do
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+        if (waitingForIdle)
         {
-            LaunchShell();
-            if (!IsRunning) return;
-            launchedShells++;
-            nextLaunchTime = elapsed + lockedInterval;
-            // 0 간격만 동시 발사. 프레임 지연으로 밀린 발을 한꺼번에 몰아 쏘지 않는다.
-        } while (lockedInterval == 0f && launchedShells < lockedCount);
+            if (animator.IsInTransition(0) || state.fullPathHash != IdleStateHash) return;
+            waitingForIdle = false;
+        }
+        if (launchedShells >= lockedCount) return;
+        if (Target == null || !Target.gameObject.activeInHierarchy)
+        {
+            lockedCount = launchedShells;
+            waitingForShoot = false;
+            StopShootingAnimation();
+            return;
+        }
+        if (!waitingForShoot)
+        {
+            if (elapsed < nextLaunchTime) return;
+            controlsAnimation = true;
+            waitingForShoot = true;
+            shootEntryWait = 0f;
+            animator.SetBool(IsShootingHash, true);
+            return;
+        }
+        if (animator.IsInTransition(0) || state.fullPathHash != ShootStateHash)
+        {
+            shootEntryWait += Time.deltaTime;
+            if (shootEntryWait >= 5f)
+            {
+                Debug.LogWarning("IsShooting으로 BHS_ShootBe에 진입하지 못했습니다. Animator 전이를 확인하세요.", this);
+                CancelAttack();
+            }
+            return;
+        }
+        if (state.normalizedTime < 1f) return;
+
+        LaunchShell();
+        if (!IsRunning) return;
+        launchedShells++;
+        waitingForShoot = false;
+        waitingForIdle = true;
+        nextLaunchTime = elapsed + lockedInterval;
+        StopShootingAnimation();
     }
 
-    private void LaunchShell()
+private void LaunchShell()
     {
-        NGH.ReviewedAudio.Play("Initial/08_Boss/BossCannonShot_v02");
-        NGH.ReviewedAudio.Play("Initial/08_Boss/BossShellFall_v03", 0.7f);
-        Vector3 destination = Target.position;
-        destination.y = lockedGroundY;
-        Vector3 start = Owner.position + Vector3.up * lockedFallbackHeight;
-        if (lockedFirePoints.Length > 0)
-        {
-            Transform firePoint = lockedFirePoints[launchedShells % lockedFirePoints.Length];
-            if (firePoint != null) start = firePoint.position;
-        }
-        Shell shell = new Shell
-        {
-            start = start,
-            destination = destination,
-            launchTime = elapsed,
-            root = new GameObject("Shell_" + (launchedShells + 1))
-        };
-        shell.root.transform.SetParent(runtimeRoot.transform, false);
-        shells.Add(shell);
-
-        GameObject warning = new GameObject("LandingWarning");
-        warning.transform.SetParent(shell.root.transform, false);
-        warning.transform.SetPositionAndRotation(destination, Quaternion.Euler(90f, 0f, 0f));
-        shell.projector = warning.AddComponent<DecalProjector>();
+        Vector3 destination=Target.position; destination.y=lockedGroundY;
+        Vector3 start=Owner.position+Vector3.up*lockedFallbackHeight;
+        if(lockedFirePoints.Length>0) {var point=lockedFirePoints[launchedShells%lockedFirePoints.Length];if(point!=null)start=point.position;}
+        Shell shell=shellPool[launchedShells];
+        shell.start=start; shell.destination=destination; shell.launchTime=elapsed; shell.impactTime=0; shell.landed=false;
+        if (shell.eruptionAudio != null) shell.eruptionAudio.Stop();
+        shell.eruptionPlayed = shell.eruptionAudioPaused = false;
+        foreach(var ps in shell.particles) if(ps!=null) ps.Stop(false,ParticleSystemStopBehavior.StopEmittingAndClear);
+        if(shell.impact!=null) shell.impact.gameObject.SetActive(false);
+        shell.projector.transform.SetPositionAndRotation(destination,Quaternion.Euler(90,0,0));
         ConfigureProjector(shell.projector);
-
-        GameObject visual = lockedVisualPrefab != null
-            ? Instantiate(lockedVisualPrefab, shell.root.transform)
-            : GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        visual.name = "ShellVisual";
-        visual.transform.SetParent(shell.root.transform, false);
-        visual.transform.localScale *= lockedShellScale;
-        // 외형 프리팹의 물리 컴포넌트는 판정에 쓰지 않는다.
-        foreach (Collider collider in visual.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
-        foreach (Rigidbody body in visual.GetComponentsInChildren<Rigidbody>(true))
+        shell.visual.localScale=shell.baseScale*lockedShellScale;
+        MoveShell(shell,0);
+        shell.visual.gameObject.SetActive(true); shell.root.SetActive(true);
+        foreach(var ps in shell.visual.GetComponentsInChildren<ParticleSystem>(true)) ps.Play(false);
+        shells.Add(shell);
+        if (launchAudio != null && launchAudio.clip != null)
         {
-            body.isKinematic = true;
-            body.detectCollisions = false;
+            launchAudio.transform.position = start;
+            launchAudio.PlayOneShot(launchAudio.clip, launchVolume);
         }
-        visual.SetActive(true);
-        shell.visual = visual.transform;
-        MoveShell(shell, 0f);
     }
 
     private void MoveShell(Shell shell, float t)
@@ -337,18 +421,16 @@ public class BossArtilleryAttack : BossAttack
 
     private void Impact(Shell shell)
     {
-        NGH.ReviewedAudio.Play("Initial/08_Boss/BossShellBurst_v03");
         shell.landed = true;
         shell.impactTime = elapsed;
         landedShells++;
         if (shell.visual != null) shell.visual.gameObject.SetActive(false);
         // 남아 있는 데칼은 착탄 잔상이다. 지속 피해는 없다.
         if (shell.projector != null) shell.projector.fadeFactor = 0.3f;
-        if (lockedImpactPrefab != null)
+        if (shell.impact != null)
         {
-            ParticleSystem effect = Instantiate(lockedImpactPrefab, shell.destination,
-                Quaternion.identity, shell.root.transform);
-            effect.Play(true);
+            shell.impact.transform.SetPositionAndRotation(shell.destination,Quaternion.identity);
+            shell.impact.gameObject.SetActive(true); shell.impact.Play(true);
         }
 
         // 각 포탄은 순간 판정 한 번으로 완결된다. 동시 착탄도 포탄별 최대 1회다.
@@ -490,26 +572,30 @@ public class BossArtilleryAttack : BossAttack
         return fallback;
     }
 
-    protected override void EndAttack()
+    private void StopShootingAnimation()
     {
-        ResetStayTimer();
-        if (runtimeRoot != null)
+        if (!controlsAnimation) return;
+        controlsAnimation = false;
+        if (animator != null) animator.SetBool(IsShootingHash, false);
+    }
+
+protected override void EndAttack()
+    {
+        StopShootingAnimation();waitingForShoot=false;waitingForIdle=false;ResetStayTimer();
+        foreach(var shell in shellPool)
         {
-            runtimeRoot.SetActive(false);
-            Destroy(runtimeRoot);
+            if (shell.eruptionAudio != null) shell.eruptionAudio.Stop();
+            shell.eruptionPlayed = shell.eruptionAudioPaused = false;
+            if(shell.root==null)continue;
+            foreach(var ps in shell.particles)if(ps!=null)ps.Stop(false,ParticleSystemStopBehavior.StopEmittingAndClear);
+            shell.root.SetActive(false);
         }
-        if (explosionMesh != null) Destroy(explosionMesh);
-        if (runtimeWarningMaterial != null) Destroy(runtimeWarningMaterial);
-        if (warningTexture != null) Destroy(warningTexture);
-        runtimeRoot = null;
-        explosionQuery = null;
-        explosionMesh = null;
-        runtimeWarningMaterial = null;
-        warningTexture = null;
+        if(explosionQuery!=null)explosionQuery.enabled=false;
+        if(runtimeRoot!=null)runtimeRoot.SetActive(false);
         shells.Clear();
     }
 
-    private void OnDestroy() => EndAttack();
+private void OnDestroy() { EndAttack(); DisposePool(); }
 
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
@@ -561,4 +647,64 @@ public class BossArtilleryAttack : BossAttack
         }
     }
 #endif
+
+
+    private void UpdateEruptionAudioPause()
+    {
+        foreach (var shell in shellPool)
+        {
+            if (shell.eruptionAudio == null) continue;
+            if (Time.timeScale <= 0f)
+            {
+                if (shell.eruptionAudio.isPlaying)
+                {
+                    shell.eruptionAudio.Pause();
+                    shell.eruptionAudioPaused = true;
+                }
+            }
+            else if (shell.eruptionAudioPaused)
+            {
+                shell.eruptionAudio.UnPause();
+                shell.eruptionAudioPaused = false;
+            }
+        }
+    }
+
+private void DisposePool()
+    {
+        if(runtimeRoot!=null)Destroy(runtimeRoot);
+        if(explosionMesh!=null)Destroy(explosionMesh);
+        if(runtimeWarningMaterial!=null)Destroy(runtimeWarningMaterial);
+        if(warningTexture!=null)Destroy(warningTexture);
+        runtimeRoot=null;explosionQuery=null;explosionMesh=null;runtimeWarningMaterial=null;warningTexture=null;
+        shellPool.Clear();shells.Clear();
+    }
+
+
+private Shell CreatePooledShell()
+    {
+        var shell=new Shell();
+        shell.root=new GameObject("PooledShell_"+shellPool.Count);
+        shell.root.transform.SetParent(runtimeRoot.transform,false);shell.root.SetActive(false);
+        var warning=new GameObject("LandingWarning");warning.transform.SetParent(shell.root.transform,false);
+        shell.projector=warning.AddComponent<DecalProjector>();ConfigureProjector(shell.projector);
+        var visual=lockedVisualPrefab!=null ? Instantiate(lockedVisualPrefab,shell.root.transform) : GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        visual.transform.SetParent(shell.root.transform,false);visual.name="ShellVisual";
+        shell.visual=visual.transform;shell.baseScale=visual.transform.localScale;
+        foreach(var c in visual.GetComponentsInChildren<Collider>(true))c.enabled=false;
+        foreach(var rb in visual.GetComponentsInChildren<Rigidbody>(true)){rb.isKinematic=true;rb.detectCollisions=false;}
+        foreach(var ps in visual.GetComponentsInChildren<ParticleSystem>(true)){var main=ps.main;main.scalingMode=ParticleSystemScalingMode.Hierarchy;main.stopAction=ParticleSystemStopAction.None;}
+        if(lockedImpactPrefab!=null){shell.impact=Instantiate(lockedImpactPrefab,shell.root.transform);shell.impact.gameObject.SetActive(false);foreach(var ps in shell.impact.GetComponentsInChildren<ParticleSystem>(true)){var main=ps.main;main.stopAction=ParticleSystemStopAction.None;}}
+        if (shell.impact != null)
+        {
+            shell.eruptionAudio = shell.impact.GetComponent<AudioSource>();
+            var column = shell.impact.transform.Find("UpwardPressureColumn");
+            var columnParticles = column != null ? column.GetComponent<ParticleSystem>() : null;
+            shell.eruptionDelay = columnParticles != null
+                ? columnParticles.main.startDelay.constant / Mathf.Max(.01f, columnParticles.main.simulationSpeed)
+                : 0f;
+        }
+        shell.particles=shell.root.GetComponentsInChildren<ParticleSystem>(true);
+        return shell;
+    }
 }

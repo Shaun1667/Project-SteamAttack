@@ -44,21 +44,27 @@ public class BossAttackCoordinator : MonoBehaviour
     }
 
     // 실제로 획득한 FSM만 반납할 수 있습니다. 시작 실패 시에만 applyGap=false.
-    public void Release(MonoBehaviour requester, bool applyGap = true)
+    public void Release(MonoBehaviour requester, bool applyGap = true, bool allowAftermath = false)
     {
         if (!hasReservation || currentOwner != requester) return;
-        ClearReservation(applyGap);
+        ClearReservation(applyGap, allowAftermath);
     }
 
-    private void ClearReservation(bool applyGap)
+    private void ClearReservation(bool applyGap, bool allowAftermath = false)
     {
         if (!hasReservation || releasing) return;
         releasing = true;
         try
         {
-            // 권한을 반납하면서 진행 중인 판정이 남지 않도록 합니다.
             if (currentAttack != null && currentAttack.IsRunning)
-                currentAttack.CancelAttack();
+            {
+                // Only normal animation completion can leave a launched wave running.
+                // Cancellation and invalid owners always clean up the whole attack.
+                if (allowAftermath && currentAttack.IsActionComplete)
+                    currentAttack.ReleaseControl();
+                else
+                    currentAttack.CancelAttack();
+            }
         }
         finally
         {

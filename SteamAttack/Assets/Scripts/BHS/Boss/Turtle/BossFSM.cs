@@ -19,6 +19,12 @@ public class BossFSM : MonoBehaviour
     [Min(0.1f)] public float detectRange = 8f;
     [Min(0.05f)] public float searchInterval = 0.25f;
     [Min(1f)] public float turnSpeed = 180f;
+    [Tooltip("플레이어를 향해 회전하는 동안 다가가는 초당 월드 거리입니다. 0이면 정지합니다.")]
+    [Min(0f)] public float approachSpeed = 0.1f;
+    [Tooltip("플레이어와 이 수평 거리 이내에서는 다가가지 않습니다.")]
+    [Min(0f)] public float approachStopDistance = 0.5f;
+    [Tooltip("공격 선택 전에 플레이어를 향해 회전하는 시간입니다. 시간이 지나면 정면이 덜 맞아도 현재 방향에서 공격을 준비합니다.")]
+    [Min(0f)] public float aimTime = 1f;
     [Min(0f)] public float heightTolerance = 2f;
 
     [Header("거북이 패턴 목록")]
@@ -29,6 +35,7 @@ public class BossFSM : MonoBehaviour
     [Tooltip("두 FSM에 같은 조율자를 연결하세요. 비우면 자신/부모에서 찾습니다. 없으면 공격을 시작하지 않습니다.")]
     public BossAttackCoordinator attackCoordinator;
 
+    private CharacterController movementController;
     private BossAttack activeAttack;
     private BossAttackCoordinator acquiredCoordinator;
     private bool ownsAttack;
@@ -38,6 +45,7 @@ public class BossFSM : MonoBehaviour
 
     private void OnEnable()
     {
+        movementController = GetComponent<CharacterController>();
         player = null;
         activeAttack = null;
         acquiredCoordinator = null;
@@ -101,6 +109,15 @@ public class BossFSM : MonoBehaviour
 
         Vector3 direction = player.position - transform.position;
         direction.y = 0f;
+        float distance = direction.magnitude;
+        if (approachSpeed > 0f && distance > Mathf.Max(0f, approachStopDistance) &&
+            movementController != null && movementController.enabled)
+        {
+            float step = Mathf.Min(approachSpeed * Time.deltaTime,
+                distance - Mathf.Max(0f, approachStopDistance));
+            // 돌진과 같은 CharacterController를 사용하여 벽과 플레이어 충돌을 유지한다.
+            movementController.Move(direction / distance * step);
+        }
         if (direction.sqrMagnitude < 0.0001f)
             direction = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
         if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
@@ -108,10 +125,10 @@ public class BossFSM : MonoBehaviour
         Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
-        if (Quaternion.Angle(transform.rotation, targetRotation) <= 1f)
+        // 정면 정렬 여부와 관계없이 지정 시간 동안만 추적한다.
+        // 목표 방향으로 강제 회전하지 않고 현재 방향에서 패턴을 준비한다.
+        if (stateTimer >= Mathf.Max(0f, aimTime))
         {
-            transform.rotation = targetRotation;
-            // 회전이 완료된 순간의 거리로 선택한다.
             ChangeState(State.SelectAttack);
             SelectAttack();
         }
@@ -161,7 +178,9 @@ public class BossFSM : MonoBehaviour
         ChangeState(State.Attack);
         try
         {
-            if (attack.BeginAttack(transform, player, heightTolerance, DamagePlayer)) return;
+            Transform damageTarget = player;
+            if (attack.BeginAttack(transform, damageTarget, heightTolerance,
+                amount => DamagePlayer(damageTarget, amount))) return;
             Debug.LogWarning("선택한 공격을 시작하지 못했습니다: " + attack.GetType().Name +
                 ". 공격 컴포넌트와 설정을 확인하세요.", this);
         }
@@ -192,22 +211,27 @@ public class BossFSM : MonoBehaviour
         acquiredCoordinator = attackCoordinator;
         return true;
     }
-
     // 공격이 명중하면 플레이어의 피격 함수를 직접 호출한다.
-    private void DamagePlayer(float damage)
+    private void DamagePlayer(Transform damageTarget, float damage)
     {
-        if (player == null) return;
-        /*테스트용*/
-        PlayerHitTeleport receiverA = player.GetComponentInParent<PlayerHitTeleport>();
+        if (damageTarget == null) return;
+       /* 테스트용 */
+       PlayerHitTeleport receiverA = damageTarget.GetComponentInParent<PlayerHitTeleport>();
         if (receiverA != null) receiverA.TakeDamage(damage);
-
-        PlayerHealth receiver = player.GetComponentInParent<PlayerHealth>();
+        PlayerHealth receiver = damageTarget.GetComponentInParent<PlayerHealth>();
 
         if (receiver != null) receiver.TakeDamage(damage);
+        
 
-        // 병합 연결 (NGH): 실제 플레이어는 PlayerController.TakeHit 으로 피격 (무적·피격 동작·HP 처리)
-        NGH.PlayerController ngh = player.GetComponentInParent<NGH.PlayerController>();
-        if (ngh != null) ngh.TakeHit(Mathf.Max(1, Mathf.RoundToInt(damage)), transform.position);
+        //팀프로젝트 작업용
+       NGH.PlayerController controller =
+        damageTarget.GetComponentInParent<NGH.PlayerController>();
+        if (controller != null)
+        {
+            controller.TakeHit(
+                Mathf.Max(1, Mathf.RoundToInt(damage)),
+                transform.position);
+        }
     }
 
     private void UpdateAttack()
@@ -217,20 +241,20 @@ public class BossFSM : MonoBehaviour
         {
             attack.TickAttack(Time.deltaTime);
             if (!isActiveAndEnabled || currentState != State.Attack || activeAttack != attack) return;
-            if (attack != null && attack.IsRunning) return;
+            if (attack != null && !attack.IsActionComplete) return;
         }
         recoveryDuration = attack != null ? Mathf.Max(0f, attack.recoveryTime) : 0f;
         ownsAttack = false;
         activeAttack = null;
-        ReleaseReservation();
+        ReleaseReservation(allowAftermath: true);
         ChangeState(State.Recovery);
     }
 
-    private void ReleaseReservation(bool applyGap = true)
+    private void ReleaseReservation(bool applyGap = true, bool allowAftermath = false)
     {
         BossAttackCoordinator coordinator = acquiredCoordinator;
         acquiredCoordinator = null;
-        if (coordinator != null) coordinator.Release(this, applyGap);
+        if (coordinator != null) coordinator.Release(this, applyGap, allowAftermath);
     }
 
     private void CancelOwnedAttack(bool applyGap = true)
@@ -266,6 +290,7 @@ public class BossFSM : MonoBehaviour
         detectRange = Mathf.Max(0.1f, detectRange);
         searchInterval = Mathf.Max(0.05f, searchInterval);
         turnSpeed = Mathf.Max(1f, turnSpeed);
+        aimTime = Mathf.Max(0f, aimTime);
         heightTolerance = Mathf.Max(0f, heightTolerance);
     }
 

@@ -7,6 +7,79 @@ public class BossBreathAttack : BossAttack
     [Tooltip("비워두면 부모의 SnakeFSM 중 이 브레스가 Patterns에 등록된 것을 찾습니다. 실제 공격 실행은 FSM의 Patterns 등록으로 정합니다.")]
     public SnakeFSM snakeFSM;
 
+    [Header("코드로 움직이는 브레스 머리")]
+    public SnakeSphereTarget headTarget;
+    [Tooltip("브레스 좌우 회전 속도(도/초). 60도 범위에서 40이면 약 1.5초입니다.")]
+    [Min(0.1f)] public float headSweepSpeed = 40f;
+    public bool sweepLeftToRight = true;
+    private SnakeSphereTarget controlledHead;
+
+    [Header("브레스 폭발 대기 / 폭발 지속은 Attack Time")]
+    [Tooltip("바닥을 끝까지 훑은 뒤 폭발까지 기다리는 시간입니다. 이 시간에는 피해 판정이 없습니다. 폭발 지속 시간은 위의 Attack Time에서 설정합니다.")]
+    [Min(0f)] public float explosionDelay = 1.25f;
+    private float lockedExplosionDelay, lockedExplosionDuration;
+    private float explosionWaitElapsed, explosionElapsed;
+    private bool explosionDelayStarted, explosionActive;
+    public bool IsWaitingForExplosion => IsRunning && explosionDelayStarted && !explosionActive;
+    public bool IsExplosionActive => IsRunning && explosionActive && explosionElapsed < lockedExplosionDuration;
+    public float ExplosionDuration => IsRunning ? lockedExplosionDuration : Mathf.Max(.01f, attackTime);
+    public float ExplosionElapsed => explosionElapsed;
+    protected override float ActiveDuration => lockedExplosionDuration;
+
+    [Header("게임 화면의 브레스 선 - 훑는 동안만 표시")]
+    public bool showBreathLine = true;
+    [Tooltip("선택 사항. 입 앞의 빈 오브젝트를 연결하면 여기서 선이 시작됩니다.")]
+    public Transform breathLineOrigin;
+    public Material breathLineMaterial;
+    public Color breathLineColor = new Color(1f, 0.25f, 0.05f, 1f);
+    [Min(0.001f)] public float breathLineWidth = 0.12f;
+    private LineRenderer breathLine;
+    private Material runtimeLineMaterial;
+
+    private void LateUpdate()
+    {
+        bool visible = showBreathLine && IsRunning && controlledHead != null &&
+            controlledHead.isActiveAndEnabled && controlledHead.IsBreathSweeping;
+        if (!visible)
+        {
+            if (breathLine != null) breathLine.enabled = false;
+            return;
+        }
+        if (breathLine == null)
+        {
+            Material material = breathLineMaterial;
+            if (material == null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+                if (shader == null) shader = Shader.Find("Sprites/Default");
+                if (shader == null) return;
+                runtimeLineMaterial = new Material(shader);
+                material = runtimeLineMaterial;
+            }
+            GameObject lineObject = new GameObject(name + "_BreathLine");
+            breathLine = lineObject.AddComponent<LineRenderer>();
+            breathLine.sharedMaterial = material;
+            breathLine.useWorldSpace = true;
+            breathLine.positionCount = 2;
+            breathLine.numCapVertices = 4;
+            breathLine.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            breathLine.receiveShadows = false;
+        }
+        if (runtimeLineMaterial != null)
+        {
+            if (runtimeLineMaterial.HasProperty("_BaseColor")) runtimeLineMaterial.SetColor("_BaseColor", breathLineColor);
+            if (runtimeLineMaterial.HasProperty("_Color")) runtimeLineMaterial.SetColor("_Color", breathLineColor);
+        }
+        Transform origin = breathLineOrigin != null ? breathLineOrigin : controlledHead.mouthHead;
+        if (origin == null) origin = controlledHead.ikTarget;
+        if (origin == null) { breathLine.enabled = false; return; }
+        breathLine.startWidth = breathLine.endWidth = Mathf.Max(0.001f, breathLineWidth);
+        breathLine.startColor = breathLine.endColor = breathLineColor;
+        breathLine.SetPosition(0, origin.position);
+        breathLine.SetPosition(1, controlledHead.BreathAimPoint + Vector3.up * 0.03f);
+        breathLine.enabled = true;
+    }
+
     [Header("브레스 판정 - 예고 시작 시 플레이어 거리 기준")]
     [Tooltip("플레이어 거리의 앞뒤 폭. 1이면 거리 6에서 5~7m에 판정이 생깁니다. 예고 시작 후에는 고정됩니다.")]
     [Min(0.01f)] public float halfWidth = 1f;
@@ -37,6 +110,9 @@ public class BossBreathAttack : BossAttack
     private MeshCollider[] hitboxes;
     private Mesh[] hitboxMeshes;
     private Vector3[][] footprints;
+    private Vector3[][] hitboxVertices;
+    private int activeHitboxCount;
+    private Vector3[] sweepPath;
     private Collider[] playerColliders;
     private Vector4 builtShape;
     private float builtHeight;
@@ -48,6 +124,7 @@ public class BossBreathAttack : BossAttack
     private Color previousColor;
     private bool warningInitialized;
     private const int TextureSize = 512;
+    private Color32[] warningPixels;
 
     // 아래/위 각 2개, 옆면 각 2개: 총 12개 삼각형으로 닫힌 기둥.
     private static readonly int[] PrismTriangles =
@@ -63,6 +140,10 @@ public class BossBreathAttack : BossAttack
     protected override bool PrepareAttack()
     {
         if (Target == null || !Target.CompareTag("Player")) return false;
+        lockedExplosionDelay = Mathf.Max(0f, explosionDelay);
+        lockedExplosionDuration = Mathf.Max(.01f, attackTime);
+        explosionWaitElapsed = explosionElapsed = 0f;
+        explosionDelayStarted = explosionActive = false;
 
         // Player 태그가 부모에 있고 Collider가 자식에 있는 경우도 포함.
         playerColliders = Target.GetComponentsInChildren<Collider>(true);
@@ -98,17 +179,65 @@ public class BossBreathAttack : BossAttack
         warningProjector.size = new Vector3(
             shape.y * 2f, shape.y * 2f, Mathf.Max(0.1f, projectionDepth));
         warningObject.SetActive(true);
+        if (headTarget == null) headTarget = GetComponentInParent<SnakeSphereTarget>();
+        if (snakeFSM == null) snakeFSM = GetComponentInParent<SnakeFSM>();
+        if (headTarget == null && snakeFSM != null)
+        {
+            if (snakeFSM.rangeOrigin != null)
+                headTarget = snakeFSM.rangeOrigin.GetComponentInParent<SnakeSphereTarget>();
+            if (headTarget == null) headTarget = snakeFSM.GetComponentInChildren<SnakeSphereTarget>();
+        }
+        // 각 사다리꼴의 가운데 폭을 연결한다: 3개라면 1 -> 2 -> 3 -> 4.
+        if (sweepPath == null || sweepPath.Length != activeHitboxCount + 1)
+            sweepPath = new Vector3[activeHitboxCount + 1];
+        sweepPath[0] = floor + Direction * ((footprints[0][0] + footprints[0][1]) * 0.5f);
+        for (int i = 0; i < activeHitboxCount; i++)
+            sweepPath[i + 1] = floor + Direction * ((footprints[i][2] + footprints[i][3]) * 0.5f);
+        if (!sweepLeftToRight) System.Array.Reverse(sweepPath);
+        float sweepDuration = shape.z / Mathf.Max(0.1f, headSweepSpeed);
+        if (headTarget == null || !headTarget.BeginBreathSweep(sweepPath, readyTime, sweepDuration))
+        {
+            Debug.LogWarning("브레스 Head Target에 활성 SnakeSphereTarget과 자식 IK Target을 연결해 주세요.", this);
+            return false;
+        }
+        controlledHead = headTarget;
         return true;
+    }
+
+    protected override bool WaitBeforeActive(float deltaTime)
+    {
+        if (controlledHead == null || !controlledHead.isActiveAndEnabled || controlledHead.ikTarget == null)
+        {
+            CancelAttack();
+            return true;
+        }
+        if (!controlledHead.IsBreathSweepComplete) return true;
+        if (!explosionDelayStarted)
+        {
+            explosionDelayStarted = true;
+            explosionWaitElapsed = 0f;
+            return lockedExplosionDelay > 0f;
+        }
+        explosionWaitElapsed += Mathf.Max(0f, deltaTime);
+        return explosionWaitElapsed < lockedExplosionDelay;
     }
 
     protected override void StartActive()
     {
+        explosionActive = true;
+        explosionElapsed = 0f;
         if (warningObject != null) warningObject.SetActive(false);
         if (hitboxRoot != null) hitboxRoot.SetActive(true);
     }
 
     protected override void TickActive(float deltaTime)
     {
+        explosionElapsed += Mathf.Max(0f, deltaTime);
+        if (explosionElapsed >= lockedExplosionDuration)
+        {
+            if (hitboxRoot != null) hitboxRoot.SetActive(false);
+            return;
+        }
         if (!CanHitCollider || hitboxRoot == null || !hitboxRoot.activeInHierarchy) return;
 
         foreach (Collider playerCollider in playerColliders)
@@ -118,8 +247,9 @@ public class BossBreathAttack : BossAttack
                 (playerCollider.transform != Target &&
                  !playerCollider.transform.IsChildOf(Target))) continue;
 
-            foreach (MeshCollider hitbox in hitboxes)
+            for (int i = 0; i < activeHitboxCount; i++)
             {
+                MeshCollider hitbox = hitboxes[i];
                 // 플레이어 기준점이 아닌 실제 Collider끼리의 겹침을 검사한다.
                 bool overlaps = Physics.ComputePenetration(
                     hitbox, hitbox.transform.position, hitbox.transform.rotation,
@@ -137,6 +267,11 @@ public class BossBreathAttack : BossAttack
 
     protected override void EndAttack()
     {
+        explosionActive = false;
+        explosionDelayStarted = false;
+        if (breathLine != null) breathLine.enabled = false;
+        if (controlledHead != null) controlledHead.EndBreathSweep();
+        controlledHead = null;
         if (warningObject != null) warningObject.SetActive(false);
         if (hitboxRoot != null) hitboxRoot.SetActive(false);
     }
@@ -171,53 +306,100 @@ public class BossBreathAttack : BossAttack
 
     private static Vector3[] GetPrismVertices(Vector4 shape, int index, float height)
     {
+        // Scene-view preview only; runtime hitboxes reuse their own vertex buffers.
+        var vertices = new Vector3[8];
+        FillPrismVertices(shape, index, height, vertices);
+        return vertices;
+    }
+
+    private static void FillPrismVertices(Vector4 shape, int index, float height, Vector3[] vertices)
+    {
         float start = -shape.z * 0.5f + index * shape.w;
         float end = Mathf.Min(start + shape.w, shape.z * 0.5f);
 
         // 안쪽 변이 반지름 inner인 원에 접하도록 보정해 안전지대를 침범하지 않는다.
         float innerCorner = shape.x / Mathf.Cos((end - start) * 0.5f * Mathf.Deg2Rad);
-        Vector3[] vertices = new Vector3[8];
         vertices[0] = PointOnRay(start, innerCorner);
         vertices[1] = PointOnRay(start, shape.y);
         vertices[2] = PointOnRay(end, shape.y);
         vertices[3] = PointOnRay(end, innerCorner);
         for (int i = 0; i < 4; i++) vertices[i + 4] = vertices[i] + Vector3.up * height;
-        return vertices;
     }
 
     private void EnsureHitboxes(Vector4 shape, float height)
     {
-        if (hitboxRoot != null && builtShape == shape && builtHeight == height) return;
-        DestroyHitboxes();
+        int count = Mathf.Max(1, Mathf.CeilToInt(shape.z / shape.w));
+        if (hitboxRoot != null && builtShape == shape && builtHeight == height &&
+            activeHitboxCount == count) return;
 
-        // 부모 없음 / Scale 1로 만들어 보스의 크기 변경에 영향을 받지 않는다.
-        hitboxRoot = new GameObject(name + "_BreathHitboxes");
-        hitboxRoot.SetActive(false);
-        int count = Mathf.CeilToInt(shape.z / shape.w);
-        hitboxes = new MeshCollider[count];
-        hitboxMeshes = new Mesh[count];
-        footprints = new Vector3[count][];
-
-        for (int i = 0; i < count; i++)
+        // 부모 없음 / Scale 1. 모양이 바뀌어도 이 루트와 이미 만든 조각은 유지한다.
+        if (hitboxRoot == null)
         {
-            Vector3[] vertices = GetPrismVertices(shape, i, height);
-            footprints[i] = new Vector3[] { vertices[0], vertices[1], vertices[2], vertices[3] };
+            hitboxRoot = new GameObject(name + "_BreathHitboxes");
+            if (gameObject.scene.IsValid() && gameObject.scene.isLoaded)
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(hitboxRoot, gameObject.scene);
+        }
+        hitboxRoot.SetActive(false);
+        if (hitboxes != null)
+            foreach (MeshCollider cached in hitboxes)
+                if (cached != null) cached.enabled = false;
+        // Connect meshes on active GameObjects; colliders stay disabled while rebuilding.
+        hitboxRoot.SetActive(true);
 
-            Mesh mesh = new Mesh { name = "BreathPrism_" + (i + 1) };
+        // 필요한 최대 개수까지만 확장하고, 작아진 범위의 남는 조각은 비활성화한다.
+        if (hitboxes == null || hitboxes.Length < count)
+        {
+            System.Array.Resize(ref hitboxes, count);
+            System.Array.Resize(ref hitboxMeshes, count);
+            System.Array.Resize(ref hitboxVertices, count);
+            System.Array.Resize(ref footprints, count);
+        }
+
+        for (int i = 0; i < hitboxes.Length; i++)
+        {
+            if (i >= count)
+            {
+                if (hitboxes[i] != null) hitboxes[i].gameObject.SetActive(false);
+                continue;
+            }
+
+            if (hitboxes[i] == null)
+            {
+                var piece = new GameObject("Piece_" + (i + 1));
+                piece.transform.SetParent(hitboxRoot.transform, false);
+                hitboxes[i] = piece.AddComponent<MeshCollider>();
+                hitboxes[i].convex = true;
+                hitboxes[i].isTrigger = true;
+            }
+
+            MeshCollider collider = hitboxes[i];
+            collider.enabled = false;
+            collider.gameObject.SetActive(true);
+            bool newMesh = hitboxMeshes[i] == null;
+            if (newMesh)
+            {
+                hitboxMeshes[i] = new Mesh { name = "BreathPrism_" + (i + 1) };
+            }
+            if (hitboxVertices[i] == null) hitboxVertices[i] = new Vector3[8];
+            if (footprints[i] == null) footprints[i] = new Vector3[4];
+
+            // 기존과 같은 거리/각도 계산으로 메시 내용만 갱신한다.
+            Vector3[] vertices = hitboxVertices[i];
+            FillPrismVertices(shape, i, height, vertices);
+            for (int j = 0; j < 4; j++) footprints[i][j] = vertices[j];
+            Mesh mesh = hitboxMeshes[i];
             mesh.vertices = vertices;
-            mesh.triangles = PrismTriangles;
+            if (newMesh) mesh.triangles = PrismTriangles;
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
-            hitboxMeshes[i] = mesh;
-
-            GameObject piece = new GameObject("Piece_" + (i + 1));
-            piece.transform.SetParent(hitboxRoot.transform, false);
-            MeshCollider collider = piece.AddComponent<MeshCollider>();
-            collider.convex = true;
-            collider.isTrigger = true; // 밀어내는 벽이 되지 않게 한다.
+            // 변경된 형상을 물리 판정에도 반영한다.
             collider.sharedMesh = mesh;
-            hitboxes[i] = collider;
         }
+
+        // Keep the prepared attack hidden until the explosion phase starts.
+        hitboxRoot.SetActive(false);
+        for (int i = 0; i < count; i++) hitboxes[i].enabled = true;
+        activeHitboxCount = count;
         builtShape = shape;
         builtHeight = height;
         warningInitialized = false;
@@ -225,8 +407,9 @@ public class BossBreathAttack : BossAttack
 
     private bool IsInsideFootprints(Vector2 point)
     {
-        foreach (Vector3[] polygon in footprints)
+        for (int p = 0; p < activeHitboxCount; p++)
         {
+            Vector3[] polygon = footprints[p];
             bool inside = true;
             for (int i = 0; i < 4; i++)
             {
@@ -243,8 +426,14 @@ public class BossBreathAttack : BossAttack
 
     private void BuildWarningTexture()
     {
+        int pixelCount = TextureSize * TextureSize;
+        if (warningPixels == null || warningPixels.Length != pixelCount)
+        {
+            warningPixels = new Color32[pixelCount];
+            warningInitialized = false;
+        }
         if (warningInitialized && warningColor == previousColor) return;
-        Color32[] pixels = new Color32[TextureSize * TextureSize];
+        Color32[] pixels = warningPixels;
         Color32 inside = warningColor;
         Color32 outside = new Color32(inside.r, inside.g, inside.b, 0);
         float diameter = builtShape.y * 2f;
@@ -347,6 +536,7 @@ public class BossBreathAttack : BossAttack
         warningProjector = null;
         runtimeWarningMaterial = null;
         warningTexture = null;
+        warningPixels = null;
         warningInitialized = false;
     }
 
@@ -363,13 +553,19 @@ public class BossBreathAttack : BossAttack
         hitboxRoot = null;
         hitboxes = null;
         hitboxMeshes = null;
+        hitboxVertices = null;
         footprints = null;
+        sweepPath = null;
+        activeHitboxCount = 0;
     }
 
     private void OnDestroy()
     {
+        EndAttack();
         DestroyHitboxes();
         DestroyWarningResources();
+        if (breathLine != null) Destroy(breathLine.gameObject);
+        if (runtimeLineMaterial != null) Destroy(runtimeLineMaterial);
     }
 
     // 실행 중인 공격은 실제 hitboxRoot를 그린다.
@@ -419,8 +615,8 @@ public class BossBreathAttack : BossAttack
         if (IsRunning && hitboxRoot != null && hitboxMeshes != null)
         {
             Gizmos.matrix = hitboxRoot.transform.localToWorldMatrix;
-            foreach (Mesh mesh in hitboxMeshes)
-                if (mesh != null) Gizmos.DrawWireMesh(mesh);
+            for (int i = 0; i < activeHitboxCount; i++)
+                if (hitboxMeshes[i] != null) Gizmos.DrawWireMesh(hitboxMeshes[i]);
         }
         else
         {

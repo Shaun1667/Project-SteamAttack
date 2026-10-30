@@ -22,8 +22,16 @@ public abstract class BossAttack : MonoBehaviour
     [SerializeField] private Phase currentPhase;
 
     public bool IsRunning => currentPhase != Phase.Finished;
+    // The body can finish its action while an already launched effect continues.
+    public virtual bool IsActionComplete => !IsRunning;
+    protected virtual bool ControlsOwnerRotation => true;
+
+    // Only a normal action completion may detach its remaining effect.
+    // Cancellation, disabling and destruction still use CancelAttack.
+    public virtual void ReleaseControl() => CancelAttack();
     protected Transform Owner { get; private set; }
     protected Transform Target { get; private set; }
+    protected Action<float> DamageReporter => reportHit;
     protected Vector3 Origin { get; private set; }
     protected Quaternion Direction { get; set; }
 
@@ -83,7 +91,7 @@ public abstract class BossAttack : MonoBehaviour
         return false;
     }
 
-    // 공격 컴포넌트에는 Update가 없다. 전체 흐름은 BossFSM이 진행시킨다.
+    // FSM advances the owned action; a detached effect may advance its own remaining lifetime.
     public void TickAttack(float deltaTime)
     {
         if (!IsRunning) return;
@@ -95,13 +103,15 @@ public abstract class BossAttack : MonoBehaviour
             return;
         }
 
-        Owner.rotation = Direction;
+        if (ControlsOwnerRotation) Owner.rotation = Direction;
         deltaTime = Mathf.Max(0f, deltaTime);
 
         if (currentPhase == Phase.Ready)
         {
             timer += deltaTime;
             if (timer < readyTime) return;
+            // 패턴에 따라 예고 이후 애니메이션이 끝날 때까지 판정 시작을 미룬다.
+            if (WaitBeforeActive(deltaTime) || !IsRunning) return;
 
             timer = 0f;
             currentPhase = Phase.Active;
@@ -154,6 +164,7 @@ public abstract class BossAttack : MonoBehaviour
 
     protected abstract bool PrepareAttack();
     protected abstract void TickActive(float deltaTime);
+    protected virtual bool WaitBeforeActive(float deltaTime) => false;
     protected virtual void StartActive() { }
     protected virtual void EndAttack() { }
     protected virtual void OnDisable() => CancelAttack();
