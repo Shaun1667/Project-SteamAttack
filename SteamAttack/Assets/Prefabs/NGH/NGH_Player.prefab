@@ -40413,6 +40413,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: YPH_SteamBackpack
       objectReference: {fileID: 0}
+    - target: {fileID: 8299038887259130098, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
+      propertyPath: InitialModule.startSizeY.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8299038887259130098, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
+      propertyPath: InitialModule.startSizeZ.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8299038887259130098, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
+      propertyPath: InitialModule.startRotationX.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8299038887259130098, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
+      propertyPath: InitialModule.startRotationY.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

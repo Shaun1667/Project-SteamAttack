@@ -113,6 +113,13 @@
 
 이전 상태 복구 자료는 로컬 `Docs/Archive/2026-10-27_FinalPlayer3교체/Backups/`의 `NGH_Player.before.prefab`과 `YPH_MainPlayerTest.before.unity`다. 복구 전 이후에 사용자가 추가한 변경이 있는지 먼저 비교한다. 새 모델 자산을 먼저 삭제하면 현재 프리팹의 참조가 끊긴다.
 
+
+### 8-1. 배래 보조 본 실험 적용 보류 (2026-10-27)
+
+사용자 요청에 따라 SteamAttack의 배래 보조 본 변경은 적용 전 MeshCloth 상태로 복구했다. NGH_Player와 FinalPlayer3 프리팹, AttachedSleeveSkinContact 코드를 함께 복구했으며, 실험 자산은 프로젝트 Assets 밖의 로컬 기록으로 옮겼다. 배래 본 실험은 Unity6.6_ClothTest에서만 유지한다. 기존 FinalPlayer3 모델 교체와 치마·조끼 설정은 유지한다.
+
+복구 전후 자료는 로컬 Docs/Archive/2026-10-27_배래보조본/에 있다. 실행 중 관통과 팔 회전 경계가 남아 있으므로 BoneCloth 실험본을 게임용 완료본으로 전달하지 않는다.
+
 ## 9. 협업 가이드
 
 플레이어 프리팹 소유자는 NGH이고, 이번 수정은 사용자의 해당 프리팹 모델 교체 요청에 따라 수행했다. 모델과 보정 코드는 YPH 경로에 둔다. 본 이름·객체 ID·게임 컴포넌트 필드·무기 소켓을 임의로 바꾸지 않는다. 커밋·push는 수행하지 않았다.
@@ -158,3 +165,4 @@ GUID는 Unity 자산의 고유 번호이고, 객체 ID는 프리팹 내부 연�
 |---|---|---|---|
 | 2026-10-23 | YPH(Claude) | 기존 FinalPlayer FBX 전달 문서 작성, 이후 Git LFS 안내 추가 | 기존 기록 참고 |
 | 2026-10-27 | YPH(Codex) | FinalPlayer3 적용 경로·본 보존·의상·Play 검증·복구 절차로 갱신 | 미커밋 |
+| 2026-10-27 | YPH(Codex) | 사용자 요청으로 배래 보조 본 적용 철회, 이전 MeshCloth 복구. 본 실험은 ClothTest에 한정 | 미커밋 |
