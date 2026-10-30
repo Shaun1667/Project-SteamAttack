@@ -67,10 +67,10 @@ Material:
     - _OutlineWidth: 1.4
     - _Realism: 1
     - _ReflectionStrength: 1
-    - _RimIntensity: 1.6
+    - _RimIntensity: 0.4
     - _RimSoftness: 0.4
-    - _RimWidth: 0.45
-    - _ScatterWidth: 0.55
+    - _RimWidth: 0.25
+    - _ScatterWidth: 0.2
     - _ShadeOffset: 0
     - _ShadeSoftness: 0.35
     - _SheenIntensity: 0.45
@@ -82,7 +82,7 @@ Material:
     - _SpecularStrength: 0.7
     - _TransmissionDistortion: 0.35
     - _TransmissionPower: 4
-    - _TransmissionStrength: 0.35
+    - _TransmissionStrength: 0.1
     - _UseMaskMap: 0
     m_Colors:
     - _BackFaceColor: {r: 0.55, g: 0.1, b: 0.1, a: 0}
@@ -94,6 +94,6 @@ Material:
     - _RimDirection: {r: 0.6, g: 0.5, b: -0.6, a: 0}
     - _ShadowTint: {r: 0.54999995, g: 0.63, b: 0.8, a: 1}
     - _SheenColor: {r: 0.72, g: 0.8399999, b: 1, a: 1}
-    - _SubsurfaceColor: {r: 0.85, g: 0.21999997, b: 0.11999995, a: 1}
+    - _SubsurfaceColor: {r: 0.72, g: 0.5, b: 0.44, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

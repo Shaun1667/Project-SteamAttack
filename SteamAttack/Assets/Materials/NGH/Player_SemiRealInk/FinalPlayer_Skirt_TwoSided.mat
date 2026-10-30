@@ -67,13 +67,13 @@ Material:
     - _OutlineWidth: 1.6
     - _Realism: 0.5
     - _ReflectionStrength: 1
-    - _RimIntensity: 1.2
+    - _RimIntensity: 0.35
     - _RimSoftness: 0.3
-    - _RimWidth: 0.35
+    - _RimWidth: 0.25
     - _ScatterWidth: 0.55
     - _ShadeOffset: 0
     - _ShadeSoftness: 0.35
-    - _SheenIntensity: 0.6
+    - _SheenIntensity: 0.4
     - _SheenPower: 4
     - _SilverDetect: 1
     - _SilverSatMax: 0.12

@@ -67,9 +67,9 @@ Material:
     - _OutlineWidth: 1.6
     - _Realism: 0.5
     - _ReflectionStrength: 1
-    - _RimIntensity: 0.8
+    - _RimIntensity: 0.35
     - _RimSoftness: 0.3
-    - _RimWidth: 0.35
+    - _RimWidth: 0.25
     - _ScatterWidth: 0.55
     - _ShadeOffset: 0
     - _ShadeSoftness: 0.35

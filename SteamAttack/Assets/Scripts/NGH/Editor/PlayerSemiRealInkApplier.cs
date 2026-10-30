@@ -41,6 +41,9 @@ namespace NGH
                 for (int i = 0; i < mats.Length; i++)
                 {
                     var src = mats[i];
+                    // 이미 바꿔 둔 칸은 원본 머티리얼을 찾아 다시 만든다 (프리셋 값을 고친 뒤 다시 실행하면 갱신됨)
+                    if (src != null && src.shader != null && src.shader.name == ShaderName)
+                        src = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(src.GetTag("NGH_SourceMaterial", false)));
                     if (!IsConvertible(src)) continue;
                     if (!made.TryGetValue(src, out var dst)) made[src] = dst = CreateOrUpdate(src, shader);
                     mats[i] = dst; changed = true; slots++;
@@ -119,6 +122,9 @@ namespace NGH
             m.SetFloat("_MetalBoost", 1.2f);
             m.SetFloat("_SilverDetect", 1f);
             m.SetFloat("_GemDetect", 1f);
+            // 테두리 역광: 예제(0.8~1.6)는 밝은 눈밭 기준이라 우리 먹빛 밤 장면에서는 윤곽이 하얗게 떠 보임 → 낮춤
+            m.SetFloat("_RimIntensity", 0.35f);
+            m.SetFloat("_RimWidth", 0.25f);
 
             if (name.Contains("Skin"))
             {
@@ -133,9 +139,13 @@ namespace NGH
                 m.SetFloat("_Realism", 1f);
                 m.SetFloat("_AmbientStrength", 0.8f);
                 m.SetFloat("_FillIntensity", 0.45f);
-                m.SetFloat("_RimIntensity", 1.6f);
-                m.SetFloat("_RimWidth", 0.45f);
+                m.SetFloat("_RimIntensity", 0.4f);
+                m.SetFloat("_RimWidth", 0.25f);
                 m.SetFloat("_RimSoftness", 0.4f);
+                // 혈색(SSS)을 예제보다 옅게: 붉은 기가 덜 돌게 산란 색은 살구빛으로, 퍼짐·투과는 줄임
+                m.SetColor("_SubsurfaceColor", new Color(0.72f, 0.5f, 0.44f, 1f));
+                m.SetFloat("_ScatterWidth", 0.2f);
+                m.SetFloat("_TransmissionStrength", 0.1f);
                 m.SetFloat("_OutlineWidth", 1.4f);
                 m.SetFloat("_OutlineOpacity", 0.85f);
                 m.SetFloat("_OutlineBaseBlend", 0f);
@@ -150,8 +160,8 @@ namespace NGH
                 m.SetFloat("_MetalSmoothness", 0.75f);
                 m.SetFloat("_MetalBoost", 1.8f);
                 m.SetFloat("_MetalSaturation", 1.5f);
-                m.SetFloat("_SheenIntensity", 0.6f);
-                m.SetFloat("_RimIntensity", 1.2f);
+                m.SetFloat("_SheenIntensity", 0.4f);
+                m.SetFloat("_RimIntensity", 0.35f);
                 if (name.Contains("RedInside"))
                     m.SetColor("_BackFaceColor", new Color(0.55f, 0.1f, 0.1f, 0.85f));
             }
