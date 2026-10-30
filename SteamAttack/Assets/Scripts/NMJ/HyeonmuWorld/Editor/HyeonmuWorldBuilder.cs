@@ -753,7 +753,8 @@ namespace NMJ
 
         private static void BuildYukjo(Transform t)
         {
-            string[] names = { "의정부", "이조", "호조", "예조", "병조", "형조", "공조", "한성부" };
+            // 고증: 문관 관청(동, x+)은 서쪽을, 무관 관청(서, x-)은 동쪽을 바라봄. [서, 동] 짝으로 북 → 남
+            string[] names = { "예조", "의정부", "병조", "이조", "형조", "한성부", "공조", "호조" };
             for (int i = 0; i < 4; i++)
             {
                 float z = -60f - i * 17f;
