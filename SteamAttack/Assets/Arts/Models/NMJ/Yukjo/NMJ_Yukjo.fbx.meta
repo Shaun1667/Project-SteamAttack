@@ -67,6 +67,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: M_YJ_onggi
+    second: {fileID: 2100000, guid: be7e5dcc731fac645ba03e1847d7d30e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: M_YJ_yjdoor
     second: {fileID: 2100000, guid: 027f513c744ad394f8825c071614fb26, type: 2}
   materials:
