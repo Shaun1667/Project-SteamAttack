@@ -11159,6 +11159,10 @@ PrefabInstance:
       value: VARCO_PR_FogGatePillar_02
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 32ee646cf86fd044c9af1749a54e2688, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 32ee646cf86fd044c9af1749a54e2688, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 22
       objectReference: {fileID: 0}
@@ -189754,6 +189758,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: a3c22adb70a96f240a05bd35b725d78a, type: 3}
       propertyPath: m_Name
       value: VARCO_PR_FogGatePillar
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: a3c22adb70a96f240a05bd35b725d78a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: a3c22adb70a96f240a05bd35b725d78a, type: 3}
       propertyPath: m_StaticEditorFlags
