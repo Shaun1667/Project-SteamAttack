@@ -1,0 +1,698 @@
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
+using LaserScorchEffects;
+
+// Effect observer only: never starts attacks, rotates the boss, or deals damage.
+[DisallowMultipleComponent]
+[DefaultExecutionOrder(250)]
+public sealed class HyunMuBreathVfxBridge : MonoBehaviour
+{
+    [Header("Existing breath components (read only)")]
+    [SerializeField] private BossBreathAttack breath;
+    [SerializeField] private SnakeSphereTarget head;
+    [SerializeField] private Transform mouthOrigin;
+    [SerializeField] private Vector3 mouthLocalOffset = new Vector3(0f, 0f, .15f);
+
+    [Header("Breath sound")]
+    [SerializeField] private AudioSource breathAudio;
+    [SerializeField, Range(0f, 1f)] private float breathVolume = .85f;
+    [SerializeField, Min(.01f)] private float breathAudioFadeOut = .08f;
+    private bool breathAudioStarted, breathAudioPaused;
+
+    [Header("Ice shatter sound")]
+    [SerializeField] private AudioSource iceShatterAudio;
+    [SerializeField, Range(0f, 1f)] private float iceShatterVolume = .9f;
+    private bool iceShatterAudioPaused;
+    private Vector3 iceShatterAudioPosition;
+
+    [Header("Existing reusable effect assets")]
+    [SerializeField] private Material coreMaterial;
+    [SerializeField] private Material spiralMaterial;
+    [SerializeField] private Material scorchMaterial;
+    [SerializeField] private ParticleSystem contactPrefab;
+    [SerializeField] private ParticleSystem smokePrefab;
+    [Tooltip("기존 ScorchGroundExplosion 프리팹. 폭발 대기/지속 시간은 연결된 브레스의 Explosion Delay / Attack Time을 사용합니다.")]
+    [SerializeField] private GameObject explosionPrefab;
+
+    [Header("Blue beam")]
+    [SerializeField, Min(.01f)] private float coreWidth = .22f;
+    [SerializeField, Min(.001f)] private float spiralWidth = .065f;
+    [SerializeField, Min(0f)] private float spiralRadius = .13f;
+    [SerializeField, Range(1f, 12f)] private float spiralTurns = 5f;
+    [SerializeField] private float rotationsPerSecond = .65f;
+
+    [Header("Ground trace")]
+    [SerializeField] private LayerMask groundMask = 1 << 6;
+    [SerializeField, Min(.1f)] private float traceWidth = 1.15f;
+    [SerializeField, Min(.03f)] private float sampleSpacing = .12f;
+    [Tooltip("폭발이 끝난 뒤 그을음만 남겨 두는 시간입니다. 피해 판정 시간과 별개입니다.")]
+    [SerializeField, Min(0f)] private float traceHoldSeconds = .8f;
+    [SerializeField, Min(.1f)] private float traceFadeSeconds = 2.4f;
+    [SerializeField, Min(.1f)] private float groundProbeHeight = 3f;
+    [SerializeField, Min(.1f)] private float groundProbeDepth = 6f;
+
+    [Header("Pressure steam (optional replacement for laser)")]
+    [SerializeField] private ParticleSystem pressureJetPrefab;
+    [SerializeField, Min(.1f)] private float pressureJetSize = 1f;
+    [SerializeField] private bool showInnerHeat = true;
+    [SerializeField] private Color innerHeatColor = new Color(1f,.10f,.025f,.9f);
+    [SerializeField, Range(.1f,1f)] private float innerHeatWidth = .45f;
+    
+    [Header("Frozen breath eruption")]
+    [SerializeField] private bool iceBreath;
+    [SerializeField] private ParticleSystem iceSpikesPrefab;
+    [SerializeField] private ParticleSystem iceFragmentsPrefab;
+    [SerializeField, Range(.1f,.5f)] private float iceShatterFraction = .22f;
+    [SerializeField, Min(.1f)] private float iceHeight = 1.6f;
+    private ParticleSystem iceSpikes, iceFragments;
+    private float iceClock, coldCharge;
+    private bool iceShattered;
+    private bool UseIce => iceBreath && iceSpikes != null && iceFragments != null;
+    public bool AreIceSpikesVisible => iceSpikes != null && iceSpikes.particleCount > 0;
+    public bool HasIceShattered => iceShattered;
+
+    private ParticleSystem pressureJet;
+    private ParticleSystem jetGlints;
+    [SerializeField, Min(1f)] private float pressureParticlesPerSecond = 800f;
+    private float pressureBudget;
+    public bool IsShowingSteam => pressureJet != null && sweeping;
+    private const int Capacity = 81, HelixSamples = 97;
+    private readonly Vector3[] points = new Vector3[Capacity];
+    private readonly Vector3[] normals = new Vector3[Capacity];
+    private readonly bool[] valid = new bool[Capacity];
+    private readonly Vector3[] helixPoints = new Vector3[HelixSamples];
+    private readonly ScorchTrailGeometry geometry = new ScorchTrailGeometry();
+    private System.Func<Vector3, Vector3> snapGround;
+    private GameObject cacheRoot;
+    private LineRenderer core, spiral;
+    private Mesh traceMesh;
+    private MeshRenderer traceRenderer;
+    private ParticleSystem contact, smoke;
+    private MaterialPropertyBlock traceBlock;
+    private int count;
+    private bool sweeping, contactPlaying, explosionArmed, exploded;
+    private ScorchBurstLifetime burstPool;
+    private ParticleSystem[] burstParticles;
+    private float burstNativeDuration;
+    private float spacing, aftermath, phase, smokeTimer;
+
+    private static readonly int RevealId = Shader.PropertyToID("_Reveal");
+    private static readonly int HeatId = Shader.PropertyToID("_Heat");
+    private static readonly int FadeId = Shader.PropertyToID("_Fade");
+    private static readonly int BlastId = Shader.PropertyToID("_BlastProgress");
+
+    public bool IsShowingBeam => core != null && core.enabled;
+    public int RecordedPointCount => count;
+    public int SweepCount { get; private set; }
+    public int ExplosionCount { get; private set; }
+    public bool IsExplosionVisible => burstPool != null && burstPool.gameObject.activeInHierarchy;
+    public UnityEngine.EntityId BurstPoolInstanceId => burstPool != null ? burstPool.GetEntityId() : default;
+    public UnityEngine.EntityId TraceMeshInstanceId => traceMesh != null ? traceMesh.GetEntityId() : default;
+    public Vector3 BeamStart => core != null ? core.GetPosition(0) : Vector3.zero;
+    public Vector3 BeamEnd => core != null ? core.GetPosition(1) : Vector3.zero;
+    public Vector3 LastTracePoint => count > 0 ? points[count - 1] : Vector3.zero;
+    public bool IsTraceVisible => traceRenderer != null && traceRenderer.enabled;
+    public bool TryGetTracePoint(int index, out Vector3 point)
+    {
+        point = Vector3.zero;
+        if (index < 0 || index >= count || !valid[index]) return false;
+        point = points[index];
+        return true;
+    }
+
+    private void Awake()
+    {
+        if (breath == null) breath = GetComponentInParent<BossBreathAttack>();
+        if (head == null && breath != null) head = breath.headTarget;
+        if (head == null && breath != null)
+            head = breath.GetComponentInChildren<SnakeSphereTarget>(true);
+        if (breath == null || head == null || coreMaterial == null ||
+            spiralMaterial == null || scorchMaterial == null || explosionPrefab == null)
+        {
+            Debug.LogWarning("HyunMu breath VFX needs the breath, head, three effect materials and explosion prefab.", this);
+            enabled = false;
+            return;
+        }
+        CreateCache();
+        ClearVisuals();
+    }
+
+    // Allocate once. Every attack reuses these objects, mesh, arrays and particle systems.
+    private void CreateCache()
+    {
+        traceBlock = new MaterialPropertyBlock();
+        snapGround = SnapGround;
+        cacheRoot = new GameObject("HyunMu_BreathVFX_Cache_" + GetEntityId());
+        SceneManager.MoveGameObjectToScene(cacheRoot, gameObject.scene);
+        if (pressureJetPrefab != null)
+        {
+            pressureJet = Instantiate(pressureJetPrefab, cacheRoot.transform);
+            pressureJet.name = "HyunMuPressureSteamJet";
+            var glints = pressureJet.transform.Find("FrostMotes");
+            if (glints != null) jetGlints = glints.GetComponent<ParticleSystem>();
+            pressureJet.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+        if (iceSpikesPrefab != null)
+        {
+            iceSpikes = Instantiate(iceSpikesPrefab, cacheRoot.transform);
+            iceSpikes.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+        if (iceFragmentsPrefab != null)
+        {
+            iceFragments = Instantiate(iceFragmentsPrefab, cacheRoot.transform);
+            iceFragments.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+        core = CreateLine("BlueLaserCore", coreMaterial, coreWidth, 2);
+        spiral = CreateLine("BlueLaserHelix", spiralMaterial, spiralWidth, HelixSamples);
+        var ground = new GameObject("BreathGroundTrace");
+        ground.transform.SetParent(cacheRoot.transform, false);
+        traceMesh = new Mesh { name = "HyunMuReusableBreathTrace" };
+        traceMesh.MarkDynamic();
+        ground.AddComponent<MeshFilter>().sharedMesh = traceMesh;
+        traceRenderer = ground.AddComponent<MeshRenderer>();
+        traceRenderer.sharedMaterial = scorchMaterial;
+        traceRenderer.shadowCastingMode = ShadowCastingMode.Off;
+        traceRenderer.receiveShadows = false;
+        if (contactPrefab != null)
+        {
+            contact = Instantiate(contactPrefab, cacheRoot.transform);
+            contact.name = "BreathContactSparks";
+            var main = contact.main;
+            main.playOnAwake = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+        }
+        if (smokePrefab != null)
+        {
+            smoke = Instantiate(smokePrefab, cacheRoot.transform);
+            smoke.name = "BreathResidualSmoke";
+            var main = smoke.main;
+            main.playOnAwake = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            var emission = smoke.emission;
+            emission.enabled = false;
+        }
+        var burstObject = Instantiate(explosionPrefab, cacheRoot.transform);
+        burstObject.name = "HyunMuReusableGroundExplosion";
+        burstPool = burstObject.GetComponent<ScorchBurstLifetime>();
+        if (burstPool != null)
+        {
+            burstPool.PreparePool();
+            // The breath owns the duration. The reusable emitter supplies only its burst pattern.
+            burstPool.enabled = false;
+            burstParticles = burstObject.GetComponentsInChildren<ParticleSystem>(true);
+            burstNativeDuration = .01f;
+            foreach (var system in burstParticles)
+                burstNativeDuration = Mathf.Max(burstNativeDuration, system.main.startLifetime.constantMax);
+        }
+        else
+        {
+            burstObject.SetActive(false);
+            Debug.LogWarning("Explosion prefab must contain ScorchBurstLifetime.", this);
+        }
+    }
+
+    private LineRenderer CreateLine(string label, Material material, float width, int samples)
+    {
+        var go = new GameObject(label);
+        go.transform.SetParent(cacheRoot.transform, false);
+        var line = go.AddComponent<LineRenderer>();
+        line.sharedMaterial = material;
+        line.useWorldSpace = true;
+        line.positionCount = samples;
+        line.startWidth = line.endWidth = width;
+        line.startColor = line.endColor = Color.white;
+        line.numCapVertices = 4;
+        line.shadowCastingMode = ShadowCastingMode.Off;
+        line.receiveShadows = false;
+        line.enabled = false;
+        return line;
+    }
+
+    private void LateUpdate()
+    {
+        if (cacheRoot == null) return;
+        bool firing = breath != null && breath.isActiveAndEnabled && breath.IsRunning &&
+            head != null && head.isActiveAndEnabled && head.IsBreathSweeping;
+        float dt = Time.deltaTime;
+        UpdateBreathAudio(firing, dt);
+        UpdateIceShatterAudio(dt);
+        if (firing)
+        {
+            if (!sweeping) BeginVisualSweep();
+            Vector3 target, normal;
+            bool onGround = TryGround(head.BreathAimPoint, out target, out normal);
+            RecordPoint(target, normal, onGround, false);
+            DrawBeam(target + Vector3.up * .035f, dt);
+            if (contact != null)
+            {
+                contact.transform.position = target + normal * .045f;
+                if (onGround && !contactPlaying) { contact.Play(true); contactPlaying = true; }
+                if (!onGround && contactPlaying) StopContact();
+            }
+            ApplyTrace(1f, 1f);
+            EmitSmoke(dt, .14f);
+            return;
+        }
+        if (sweeping)
+        {
+            // Capture the final end point even when the head finishes between two frames.
+            if (head != null && head.IsBreathSweepComplete)
+            {
+                Vector3 target, normal;
+                bool onGround = TryGround(head.BreathAimPoint, out target, out normal);
+                RecordPoint(target, normal, onGround, true);
+            }
+            sweeping = false;
+            explosionArmed = head != null && head.IsBreathSweepComplete;
+            aftermath = 0f;
+            core.enabled = spiral.enabled = false;
+            StopContact();
+        }
+        if (count == 0) return;
+        if (explosionArmed && !exploded && breath != null && breath.IsExplosionActive)
+            PlayGroundExplosion();
+        if (exploded && breath != null && breath.IsExplosionActive)
+        {
+            UpdateIceExplosion(dt);
+            ApplyTrace(0f, 1f);
+            return;
+        }
+        StopIceParticles();
+        if (IsExplosionVisible)
+        {
+            burstPool.StopAndHide();
+            aftermath = 0f;
+        }
+        if (explosionArmed && breath != null && breath.IsRunning)
+        {
+            // Cold pressure builds only after the sweep has finished.
+            if (iceBreath) coldCharge = Mathf.Clamp01(coldCharge + dt / Mathf.Max(.01f, breath.explosionDelay));
+            ApplyTrace(1f, 1f);
+            EmitSmoke(dt, .2f);
+            return;
+        }
+        explosionArmed = false; // Cancellation never detonates the trace.
+        if (dt <= 0f) return;
+        aftermath += dt;
+        float fade = 1f - Mathf.SmoothStep(0f, 1f,
+            Mathf.Clamp01((aftermath - traceHoldSeconds) / Mathf.Max(.1f, traceFadeSeconds)));
+        ApplyTrace(exploded ? 0f : Mathf.Clamp01(1f - aftermath / 1.2f), fade);
+        if (!exploded && aftermath < traceHoldSeconds + traceFadeSeconds * .4f) EmitSmoke(dt, .28f);
+        if (fade <= 0f)
+        {
+            count = 0;
+            traceRenderer.enabled = false;
+            traceMesh.Clear(false);
+        }
+    }
+
+    private void PlayGroundExplosion()
+    {
+        exploded = true;
+        explosionArmed = false;
+        aftermath = 0f;
+        ExplosionCount++;
+        if (smoke != null) smoke.Stop(false, ParticleSystemStopBehavior.StopEmitting);
+        if (burstPool == null) return;
+        float speed = burstNativeDuration / Mathf.Max(.01f, breath.ExplosionDuration);
+        foreach (var system in burstParticles)
+        {
+            var main = system.main;
+            main.simulationSpeed = speed;
+        }
+        burstPool.Begin();
+        if (UseIce)
+        {
+            BeginIceEruption();
+            return;
+        }
+        // All recorded ground points erupt together, using the same three pooled systems.
+        for (int i = 0; i < count; i++)
+            if (valid[i]) burstPool.EmitAt(points[i], normals[i], ExplosionCount * 1013 + i * 47);
+    }
+
+    private void BeginVisualSweep()
+    {
+        sweeping = true;
+        StopIceParticles();
+        coldCharge = iceClock = 0f;
+        iceShattered = false;
+        explosionArmed = exploded = false;
+        if (burstPool != null) burstPool.StopAndHide();
+        count = 0;
+        spacing = Mathf.Max(.03f, sampleSpacing);
+        aftermath = 0f;
+        smokeTimer = 0f;
+        traceMesh.Clear(false);
+        traceRenderer.enabled = false;
+        SweepCount++;
+        // Existing smoke can finish naturally; no extra objects are spawned.
+    }
+
+    private void DrawBeam(Vector3 target, float dt)
+    {
+        Transform origin = mouthOrigin != null ? mouthOrigin :
+            (breath.breathLineOrigin != null ? breath.breathLineOrigin :
+            (head.mouthHead != null ? head.mouthHead : head.ikTarget));
+        if (origin == null) { core.enabled = spiral.enabled = false; return; }
+        Vector3 start = origin.TransformPoint(mouthLocalOffset);
+        if (pressureJet != null)
+        {
+            core.SetPosition(0, start); core.SetPosition(1, target);
+            core.enabled = spiral.enabled = false;
+            if (dt <= 0f) return;
+            if (!pressureJet.isPlaying) pressureJet.Play(false);
+            Vector3 jetDirection = (target - start).normalized;
+            if (jetGlints != null && !jetGlints.isPlaying) jetGlints.Play(false);
+            pressureBudget = Mathf.Min(160f, pressureBudget + dt * pressureParticlesPerSecond);
+            int amount = (int)pressureBudget; pressureBudget -= amount;
+            for (int i = 0; i < amount; i++)
+            {
+                float t = Random.Range(0f, .995f);
+                var e = new ParticleSystem.EmitParams();
+                e.position = Vector3.Lerp(start, target, t) + Vector3.ProjectOnPlane(Random.insideUnitSphere, jetDirection) * Mathf.Lerp(.015f, .14f, t) * pressureJetSize;
+                float remaining = Vector3.Distance(start,target) * (1f-t);
+                e.velocity = jetDirection * Mathf.Min(Random.Range(13f,19f), remaining / .12f);
+                e.startSize = Mathf.Lerp(.055f, .22f, t) * Random.Range(.8f, 1.2f) * pressureJetSize;
+                e.startLifetime = .12f;
+                e.startColor = new Color(.70f,.94f,1f,Mathf.Lerp(.50f,.90f,t));
+                e.rotation = 0f; e.applyShapeToPosition = false;
+                pressureJet.Emit(e, 1);
+                if (iceBreath && jetGlints != null && i % 6 == 0)
+                {
+                    var glint = e;
+                    glint.position = Vector3.Lerp(start, target, t) + Vector3.ProjectOnPlane(Random.insideUnitSphere, jetDirection) * Mathf.Lerp(.04f, .26f, t) * pressureJetSize;
+                    glint.velocity = jetDirection * Mathf.Min(Random.Range(11f, 18f), remaining / .16f);
+                    glint.startSize = Random.Range(.025f, .052f) * pressureJetSize;
+                    glint.startLifetime = .16f;
+                    glint.startColor = new Color(.72f, .94f, 1f, .9f);
+                    jetGlints.Emit(glint, 1);
+                }
+                if (showInnerHeat && (i & 1) == 0)
+                {
+                    e.position = Vector3.Lerp(start, target, t);
+                    e.startSize *= innerHeatWidth;
+                    e.startColor = innerHeatColor;
+                    pressureJet.Emit(e, 1);
+                }
+            }
+            return;
+        }
+        core.SetPosition(0, start);
+        core.SetPosition(1, target);
+        core.startWidth = core.endWidth = Mathf.Max(.01f, coreWidth);
+        core.enabled = true;
+        Vector3 delta = target - start;
+        if (delta.sqrMagnitude < .0001f) { spiral.enabled = false; return; }
+        phase = Mathf.Repeat(phase + dt * rotationsPerSecond * Mathf.PI * 2f, Mathf.PI * 2f);
+        Vector3 direction = delta.normalized;
+        Vector3 reference = Mathf.Abs(Vector3.Dot(direction, Vector3.up)) > .98f ? Vector3.right : Vector3.up;
+        Vector3 side = Vector3.Cross(direction, reference).normalized;
+        Vector3 up = Vector3.Cross(side, direction).normalized;
+        for (int i = 0; i < HelixSamples; i++)
+        {
+            float t = (float)i / (HelixSamples - 1);
+            float taper = Mathf.SmoothStep(0f, 1f, t / .06f) * Mathf.SmoothStep(0f, 1f, (1f - t) / .06f);
+            float angle = t * spiralTurns * Mathf.PI * 2f - phase;
+            helixPoints[i] = Vector3.Lerp(start, target, t) +
+                (side * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * spiralRadius * taper;
+        }
+        spiral.SetPositions(helixPoints);
+        spiral.startWidth = spiral.endWidth = Mathf.Max(.001f, spiralWidth);
+        spiral.enabled = true;
+    }
+
+    private void RecordPoint(Vector3 point, Vector3 normal, bool onGround, bool force)
+    {
+        if (count > 0)
+        {
+            float distanceSquared = (point - points[count - 1]).sqrMagnitude;
+            if (distanceSquared < .000001f || (!force && distanceSquared < spacing * spacing)) return;
+        }
+        if (count == Capacity)
+        {
+            // Keep both ends and halve density, so long sweeps remain bounded.
+            for (int i = 0; i <= Capacity / 2; i++)
+            {
+                points[i] = points[i * 2];
+                normals[i] = normals[i * 2];
+                valid[i] = valid[i * 2];
+            }
+            count = Capacity / 2 + 1;
+            spacing *= 2f;
+        }
+        points[count] = point;
+        normals[count] = normal;
+        valid[count] = onGround;
+        count++;
+        if (count >= 2)
+        {
+            geometry.UpdateMesh(traceMesh, points, normals, valid, count, traceWidth, snapGround);
+            traceRenderer.enabled = true;
+        }
+    }
+
+    private bool TryGround(Vector3 expected, out Vector3 point, out Vector3 normal)
+    {
+        RaycastHit hit;
+        if (Physics.Raycast(expected + Vector3.up * groundProbeHeight, Vector3.down,
+            out hit, groundProbeDepth, groundMask, QueryTriggerInteraction.Ignore) && hit.normal.y > .35f)
+        {
+            point = hit.point;
+            normal = hit.normal;
+            return true;
+        }
+        point = expected;
+        normal = Vector3.up;
+        return false;
+    }
+
+    private Vector3 SnapGround(Vector3 expected)
+    {
+        Vector3 point, normal;
+        return TryGround(expected, out point, out normal) ? point : expected;
+    }
+
+    private void ApplyTrace(float heat, float fade)
+    {
+        // Only points already visited exist in the mesh, so no guessed fan is revealed.
+        traceBlock.SetFloat(RevealId, 1.01f);
+        traceBlock.SetFloat(HeatId, heat);
+        traceBlock.SetFloat("_Charge", coldCharge);
+        traceBlock.SetFloat(FadeId, fade);
+        traceBlock.SetFloat(BlastId, exploded ? 1f : -1f);
+        traceRenderer.SetPropertyBlock(traceBlock);
+    }
+
+    private void EmitSmoke(float dt, float interval)
+    {
+        if (smoke == null || count == 0 || dt <= 0f) return;
+        smokeTimer -= dt;
+        if (smokeTimer > 0f) return;
+        smokeTimer = interval;
+        for (int i = 0; i < count; i += 5)
+        {
+            if (!valid[i]) continue;
+            var emission = new ParticleSystem.EmitParams();
+            emission.position = points[i] + normals[i] * .06f;
+            emission.velocity = iceBreath ? new Vector3(Mathf.Sin(i * 2.4f) * .16f, .025f, Mathf.Cos(i * 2.4f) * .16f) : normals[i] * .3f;
+            smoke.Emit(emission, 1);
+        }
+    }
+
+    private void BeginIceEruption()
+    {
+        StopIceParticles();
+        iceClock = 0f;
+        iceShattered = false;
+        iceSpikes.Play(false);
+        float life = Mathf.Max(.01f, breath.ExplosionDuration * iceShatterFraction);
+        Vector3 previous = Vector3.positiveInfinity;
+        for (int i = 0; i < count; i++)
+        {
+            if (!valid[i] || (points[i] - previous).sqrMagnitude < .28f) continue;
+            previous = points[i];
+            Vector3 side = Vector3.Cross(normals[i], Vector3.forward).normalized;
+            if (side.sqrMagnitude < .1f) side = Vector3.right;
+            var e = new ParticleSystem.EmitParams();
+            e.position = points[i] + normals[i] * .015f + side * Mathf.Sin(i * 2.3f) * traceWidth * .22f;
+            e.velocity = Vector3.zero;
+            float h = iceHeight * (.75f + .25f * Mathf.Sin(i * 3.71f));
+            e.startSize3D = new Vector3(.58f, h, .58f);
+            e.rotation3D = new Vector3(0f, i * 137.5f, 0f);
+            e.startLifetime = life;
+            e.startColor = Color.white;
+            iceSpikes.Emit(e, 1);
+        }
+    }
+
+    private void UpdateIceExplosion(float dt)
+    {
+        if (!UseIce || iceShattered) return;
+        iceClock += Mathf.Max(0f, dt);
+        if (iceClock < breath.ExplosionDuration * iceShatterFraction) return;
+        iceShattered = true;
+        PlayIceShatterAudio();
+        iceSpikes.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+        iceFragments.Play(false);
+        float remaining = Mathf.Max(.01f, breath.ExplosionDuration - iceClock);
+        foreach (var system in burstParticles)
+        {
+            var main = system.main;
+            main.simulationSpeed = burstNativeDuration / remaining;
+        }
+        Vector3 previous = Vector3.positiveInfinity;
+        for (int i = 0; i < count; i++)
+        {
+            if (!valid[i] || (points[i] - previous).sqrMagnitude < .28f) continue;
+            previous = points[i];
+            // Keep the frost flash present on every cast, independently of variation seed parity.
+            burstPool.EmitAt(points[i], normals[i], (ExplosionCount * 1013 + i * 47) | 1);
+            for (int j = 0; j < 6; j++)
+            {
+                var e = new ParticleSystem.EmitParams();
+                Vector3 lateral = Vector3.ProjectOnPlane(Random.insideUnitSphere, normals[i]);
+                e.position = points[i] + normals[i] * Random.Range(.25f, iceHeight * .7f);
+                e.velocity = lateral * Random.Range(2f, 4f) + normals[i] * Random.Range(1.5f, 4f);
+                e.startSize3D = new Vector3(Random.Range(.07f,.17f), Random.Range(.16f,.45f), Random.Range(.07f,.17f));
+                e.rotation3D = new Vector3(Random.value, Random.value, Random.value) * 360f;
+                e.startLifetime = Mathf.Min(.7f, remaining);
+                e.startColor = Color.white;
+                iceFragments.Emit(e, 1);
+            }
+        }
+    }
+
+    private void StopIceParticles()
+    {
+        if (iceSpikes != null) iceSpikes.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+        if (iceFragments != null) iceFragments.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+    }
+
+    private void PlayIceShatterAudio()
+    {
+        if (iceShatterAudio == null || iceShatterAudio.clip == null) return;
+        Vector3 center = Vector3.zero;
+        int groundPoints = 0;
+        for (int i = 0; i < count; i++)
+        {
+            if (!valid[i]) continue;
+            center += points[i];
+            groundPoints++;
+        }
+        if (groundPoints == 0) return;
+        iceShatterAudioPosition = center / groundPoints + Vector3.up * .15f;
+        iceShatterAudio.transform.position = iceShatterAudioPosition;
+        iceShatterAudio.Stop();
+        iceShatterAudioPaused = false;
+        iceShatterAudio.volume = iceShatterVolume;
+        iceShatterAudio.Play();
+    }
+
+    private void UpdateIceShatterAudio(float dt)
+    {
+        if (iceShatterAudio == null) return;
+        if (iceShatterAudio.isPlaying || iceShatterAudioPaused)
+            iceShatterAudio.transform.position = iceShatterAudioPosition;
+        if (dt <= 0f)
+        {
+            if (iceShatterAudio.isPlaying)
+            {
+                iceShatterAudio.Pause();
+                iceShatterAudioPaused = true;
+            }
+        }
+        else if (iceShatterAudioPaused)
+        {
+            iceShatterAudio.UnPause();
+            iceShatterAudioPaused = false;
+        }
+    }
+
+    private void UpdateBreathAudio(bool firing, float dt)
+    {
+        if (breathAudio == null || breathAudio.clip == null) return;
+        Transform origin = mouthOrigin != null ? mouthOrigin :
+            (breath != null && breath.breathLineOrigin != null ? breath.breathLineOrigin :
+            (head != null ? head.mouthHead : null));
+        if (origin != null) breathAudio.transform.position = origin.TransformPoint(mouthLocalOffset);
+        if (dt <= 0f)
+        {
+            if (breathAudio.isPlaying)
+            {
+                breathAudio.Pause();
+                breathAudioPaused = true;
+            }
+            return;
+        }
+        if (breathAudioPaused)
+        {
+            breathAudio.UnPause();
+            breathAudioPaused = false;
+        }
+        if (firing)
+        {
+            breathAudio.volume = breathVolume;
+            if (!breathAudioStarted)
+            {
+                breathAudio.Stop();
+                breathAudio.Play();
+                breathAudioStarted = true;
+            }
+            return;
+        }
+        breathAudioStarted = false;
+        if (breath == null || !breath.isActiveAndEnabled || !breath.IsRunning)
+        {
+            StopBreathAudio();
+            return;
+        }
+        if (!breathAudio.isPlaying) return;
+        breathAudio.volume = Mathf.MoveTowards(breathAudio.volume, 0f,
+            breathVolume * dt / Mathf.Max(.01f, breathAudioFadeOut));
+        if (breathAudio.volume <= 0f) StopBreathAudio();
+    }
+
+    private void StopBreathAudio()
+    {
+        if (breathAudio != null) breathAudio.Stop();
+        breathAudioStarted = breathAudioPaused = false;
+    }
+
+    private void StopContact()
+    {
+        if (contact != null) contact.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+        contactPlaying = false;
+    }
+
+    private void ClearVisuals()
+    {
+        StopBreathAudio();
+        if (iceShatterAudio != null) iceShatterAudio.Stop();
+        iceShatterAudioPaused = false;
+        sweeping = false;
+        explosionArmed = exploded = false;
+        if (burstPool != null) burstPool.StopAndHide();
+        count = 0;
+        contactPlaying = false;
+        if (core != null) core.enabled = false;
+        if (spiral != null) spiral.enabled = false;
+        if (traceRenderer != null) traceRenderer.enabled = false;
+        if (traceMesh != null) traceMesh.Clear(false);
+        if (contact != null) contact.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        if (smoke != null) smoke.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        if (pressureJet != null) pressureJet.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        pressureBudget = 0f;
+        StopIceParticles();
+        coldCharge = iceClock = 0f;
+        iceShattered = false;
+    }
+
+    private void OnDisable() => ClearVisuals();
+    private void OnDestroy()
+    {
+        if (cacheRoot != null) Destroy(cacheRoot);
+        if (traceMesh != null) Destroy(traceMesh);
+    }
+}
