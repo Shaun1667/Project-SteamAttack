@@ -94,7 +94,9 @@ namespace NGH
             if (pc == null) pc = FindAnyObjectByType<PlayerController>();
             PlayerCarryOver.Save(pc);
             if (logPortal) Debug.Log($"[NGH_ScenePortal] {targetScene} 씬으로 이동 (스폰: {(string.IsNullOrEmpty(targetSpawnId) ? "기본" : targetSpawnId)})", this);
-            SceneManager.LoadScene(targetScene);
+            // 먹물이 화면을 덮은 뒤 씬을 옮기고, 새 씬에서 먹이 걷힘
+            string scene = targetScene;
+            InkTransition.CoverThen(() => SceneManager.LoadScene(scene));
         }
 
         private void OnDrawGizmos()

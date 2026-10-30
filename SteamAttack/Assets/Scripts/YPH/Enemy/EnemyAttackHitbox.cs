@@ -203,8 +203,8 @@ namespace YPH
             }
 
             Vector3 from = Owner != null ? Owner.transform.position : transform.position;
-            // TODO(경직 단계): PlayerController.TakeHit이 경직 단계를 받게 되면 Stagger를 함께 넘긴다
-            return playerController.TakeHit(Damage, from);
+            // 경직 단계를 함께 넘김: 강(Heavy) 이상이면 플레이어가 넘어짐 (강공격·발차기)
+            return playerController.TakeHit(Damage, from, Stagger);
         }
 
 #if UNITY_EDITOR

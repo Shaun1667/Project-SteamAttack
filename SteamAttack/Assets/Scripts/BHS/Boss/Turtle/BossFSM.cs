@@ -180,7 +180,7 @@ public class BossFSM : MonoBehaviour
         {
             Transform damageTarget = player;
             if (attack.BeginAttack(transform, damageTarget, heightTolerance,
-                amount => DamagePlayer(damageTarget, amount))) return;
+                amount => DamagePlayer(damageTarget, amount, attack.IsDirectKnockdownHit))) return;
             Debug.LogWarning("선택한 공격을 시작하지 못했습니다: " + attack.GetType().Name +
                 ". 공격 컴포넌트와 설정을 확인하세요.", this);
         }
@@ -212,7 +212,7 @@ public class BossFSM : MonoBehaviour
         return true;
     }
     // 공격이 명중하면 플레이어의 피격 함수를 직접 호출한다.
-    private void DamagePlayer(Transform damageTarget, float damage)
+    private void DamagePlayer(Transform damageTarget, float damage, bool knockdown = false)
     {
         if (damageTarget == null) return;
        /* 테스트용 */
@@ -230,7 +230,8 @@ public class BossFSM : MonoBehaviour
         {
             controller.TakeHit(
                 Mathf.Max(1, Mathf.RoundToInt(damage)),
-                transform.position);
+                transform.position,
+                knockdown ? HitStagger.Heavy : HitStagger.Light);   // 돌진·내려찍기 직접 명중이면 넘어짐
         }
     }
 

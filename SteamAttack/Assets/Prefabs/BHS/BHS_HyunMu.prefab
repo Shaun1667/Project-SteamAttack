@@ -28954,6 +28954,7 @@ MonoBehaviour:
   recoveryTime: 1
   attackEffect: {fileID: 0}
   damage: 20
+  knockdownPlayer: 0
   currentPhase: 0
   targetController: {fileID: 5761287761894595882}
   chainIK: {fileID: 7996884896821466730}
@@ -28994,6 +28995,7 @@ MonoBehaviour:
   recoveryTime: 2
   attackEffect: {fileID: 0}
   damage: 20
+  knockdownPlayer: 0
   currentPhase: 0
   snakeFSM: {fileID: 5134090795839151385}
   headTarget: {fileID: 5761287761894595882}
@@ -29071,6 +29073,7 @@ MonoBehaviour:
   recoveryTime: 1
   attackEffect: {fileID: 0}
   damage: 20
+  knockdownPlayer: 1
   currentPhase: 0
   animator: {fileID: 2769353117312933624}
   slamImpactAudio: {fileID: 3603147331784748802}
@@ -29119,6 +29122,7 @@ MonoBehaviour:
   recoveryTime: 1.5
   attackEffect: {fileID: 3949730153454559827}
   damage: 20
+  knockdownPlayer: 1
   currentPhase: 0
   animator: {fileID: 2769353117312933624}
   rushAudio: {fileID: 6441926672027838545}
@@ -29146,6 +29150,7 @@ MonoBehaviour:
   recoveryTime: 1
   attackEffect: {fileID: 0}
   damage: 20
+  knockdownPlayer: 0
   currentPhase: 0
   animator: {fileID: 2769353117312933624}
   launchAudio: {fileID: 4136599761042505028}

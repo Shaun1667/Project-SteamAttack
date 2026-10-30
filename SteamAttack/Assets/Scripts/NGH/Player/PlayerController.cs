@@ -49,6 +49,8 @@ namespace NGH
         public float DeadTime { get; private set; }
         /// <summary>(현재 HP, 최대 HP) — HP가 바뀔 때마다 호출</summary>
         public event System.Action<int, int> HpChanged;
+        /// <summary>(데미지, 피격(대) 여부) — 살아 있는 채로 맞았을 때 한 번 알림 (화면 피격 연출용)</summary>
+        public event System.Action<int, bool> Damaged;
         /// <summary>살아 있던 대상을 근접 공격으로 실제로 맞힌 뒤 한 번 알립니다. (병합 — YPH 증기 회복 연결용)</summary>
         public event System.Action<Damageable> OnHitLanded;
         /// <summary>원거리 장비(isMelee = false) 사격 동작이 시작될 때 장착 무기와 함께 알립니다. 실제 발사·투척은 구독하는 쪽이 처리합니다. (병합 — YPH 총·수류탄 연결용)</summary>
@@ -397,7 +399,13 @@ namespace NGH
         /// 플레이어가 맞았을 때 호출. 무적 중이면 무시하고 false 반환.
         /// 데미지가 Heavy Hit Threshold(기본 25) 이상이면 피격(대, 넉백), 미만이면 피격(소). 피격 동작이 끝날 때까지 무적.
         /// </summary>
-        public bool TakeHit(int damage, Vector3 from)
+        public bool TakeHit(int damage, Vector3 from) => TakeHit(damage, from, HitStagger.Light);
+
+        /// <summary>
+        /// 경직 단계를 함께 받는 피격. 경직이 강(Heavy) 이상이면 데미지가 작아도 피격(대) — 넘어졌다 일어남.
+        /// (예: 일반 적 강공격·발차기는 데미지 15라도 Heavy 로 넘어오면 넘어짐)
+        /// </summary>
+        public bool TakeHit(int damage, Vector3 from, HitStagger stagger)
         {
             if (damage <= 0 || IsInvincible) return false;
             Vector3 to = Flat(from - transform.position);
@@ -405,8 +413,9 @@ namespace NGH
             _buffered = ActionState.None;
             SetHp(hp - damage);
             if (hp <= 0) { Die(); return true; }
-            bool heavyHit = damage >= heavyHitThreshold;
+            bool heavyHit = damage >= heavyHitThreshold || stagger >= HitStagger.Heavy;
             StartAction(heavyHit ? ActionState.HitLarge : ActionState.HitSmall);
+            Damaged?.Invoke(damage, heavyHit);
             Debug.Log($"[CHG] 플레이어 피격 데미지 {damage} → {(heavyHit ? "피격(대)" : "피격(소)")}, HP {hp}/{maxHp}, {_actionDuration:0.##}초 무적");
             return true;
         }

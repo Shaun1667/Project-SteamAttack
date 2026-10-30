@@ -19,9 +19,14 @@ public abstract class BossAttack : MonoBehaviour
     [Header("공격 효과 / 피해")]
     public ParticleSystem attackEffect;
     [Min(0f)] public float damage = 2f;
+    // 병합 연결 (NGH): 본체에 직접 맞으면 플레이어가 강공격 피격 모션으로 넘어짐 (돌진·내려찍기). 파동 등 HitOnce 밖의 피해에는 적용 안 됨
+    [Tooltip("켜면 이 공격에 직접 맞았을 때 플레이어가 넘어집니다 (강공격 피격 모션). 파동 피해에는 적용되지 않습니다.")]
+    public bool knockdownPlayer;
     [SerializeField] private Phase currentPhase;
 
     public bool IsRunning => currentPhase != Phase.Finished;
+    // HitOnce(본체 직접 명중)로 피해를 알리는 동안에만 true — FSM 이 플레이어 피격 강도를 정할 때 읽는다
+    public bool IsDirectKnockdownHit { get; private set; }
     // The body can finish its action while an already launched effect continues.
     public virtual bool IsActionComplete => !IsRunning;
     protected virtual bool ControlsOwnerRotation => true;
@@ -143,7 +148,9 @@ public abstract class BossAttack : MonoBehaviour
         if (checkTargetHeight ? !CanHit : !CanHitCollider) return;
         // 여러 콜라이더가 겹쳐도 같은 피해 단계에서는 한 번만 피해를 준다.
         hasHit = true;
-        reportHit?.Invoke(Mathf.Max(0f, amount));
+        IsDirectKnockdownHit = knockdownPlayer;
+        try { reportHit?.Invoke(Mathf.Max(0f, amount)); }
+        finally { IsDirectKnockdownHit = false; }
         if (this is BossDashAttack) NGH.ReviewedAudio.Play("Initial/08_Boss/BossChargeHit_v01");
     }
 

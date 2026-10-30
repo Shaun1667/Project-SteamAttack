@@ -238,7 +238,7 @@ public class SnakeFSM : MonoBehaviour
         try
         {
             if (attack.BeginAttack(attackPivot, victim, heightTolerance,
-                amount => DamagePlayer(victim, amount))) return;
+                amount => DamagePlayer(victim, amount, attack.IsDirectKnockdownHit))) return;
             Debug.LogWarning($"SnakeFSM: {attack.GetType().Name} 시작 실패. 바로 앞에 출력된 해당 공격의 경고를 확인하세요.", attack);
         }
         catch (System.Exception exception)
@@ -290,7 +290,7 @@ public class SnakeFSM : MonoBehaviour
         ChangeState(State.Recovery);
     }
 
-    private void DamagePlayer(Transform victim, float amount)
+    private void DamagePlayer(Transform victim, float amount, bool knockdown = false)
     {
         if (victim == null || !victim.gameObject.activeInHierarchy) return;
         bool handled = false;
@@ -315,7 +315,7 @@ public class SnakeFSM : MonoBehaviour
         NGH.PlayerController ngh = victim.GetComponentInParent<NGH.PlayerController>();
         if (ngh != null)
         {
-            ngh.TakeHit(Mathf.Max(1, Mathf.RoundToInt(amount)), transform.position);
+            ngh.TakeHit(Mathf.Max(1, Mathf.RoundToInt(amount)), transform.position, knockdown ? HitStagger.Heavy : HitStagger.Light);
             handled = true;
         }
 
