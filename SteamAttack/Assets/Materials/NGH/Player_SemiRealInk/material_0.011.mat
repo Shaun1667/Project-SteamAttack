@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: material_0.011
+  m_Shader: {fileID: 4800000, guid: 3da0801247184824c974b7f4e33724ac, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _MATERIALTYPE_STANDARD
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap:
+    NGH_SourceMaterial: ed49b2617f7a4060b2ae1f48066438c8
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 2f11ec0c2de64f9cae87abe95300ae41, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 2800000, guid: 21256e31ebc444ca8be4aab555d5098b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AmbientStrength: 1
+    - _BumpScale: 1
+    - _ClothSpecular: 0.3
+    - _Cull: 0
+    - _DiffuseNormalBlur: 0.5
+    - _FillIntensity: 0.35
+    - _GemDetect: 1
+    - _GemGlow: 0.6
+    - _GemHue: 0.42
+    - _GemHueWidth: 0.09
+    - _GemSatMin: 0.4
+    - _GemSmoothness: 0.95
+    - _MaterialType: 0
+    - _MetalBoost: 1.2
+    - _MetalDetect: 1
+    - _MetalHue: 0.115
+    - _MetalHueWidth: 0.055
+    - _MetalSatMin: 0.35
+    - _MetalSaturation: 0
+    - _MetalSmoothness: 0.78
+    - _MetalValMin: 0.42
+    - _OutlineBaseBlend: 0.35
+    - _OutlineNoiseAmount: 0.6
+    - _OutlineNoiseScale: 18
+    - _OutlineOpacity: 0.5
+    - _OutlineWidth: 1.6
+    - _Realism: 0.5
+    - _ReflectionStrength: 1
+    - _RimIntensity: 0.8
+    - _RimSoftness: 0.3
+    - _RimWidth: 0.35
+    - _ScatterWidth: 0.55
+    - _ShadeOffset: 0
+    - _ShadeSoftness: 0.35
+    - _SheenIntensity: 0.45
+    - _SheenPower: 4
+    - _SilverDetect: 1
+    - _SilverSatMax: 0.12
+    - _SilverValMin: 0.7
+    - _Smoothness: 0.4
+    - _SpecularStrength: 1
+    - _TransmissionDistortion: 0.35
+    - _TransmissionPower: 4
+    - _TransmissionStrength: 0.35
+    - _UseMaskMap: 0
+    m_Colors:
+    - _BackFaceColor: {r: 0.55, g: 0.1, b: 0.1, a: 0}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _FillColor: {r: 0.54999995, g: 0.7, b: 1, a: 1}
+    - _FillDirection: {r: -0.7, g: 0.2, b: 0.6, a: 0}
+    - _OutlineColor: {r: 0.059999965, g: 0.06999998, b: 0.09999997, a: 1}
+    - _RimColor: {r: 0.78, g: 0.9, b: 1, a: 1}
+    - _RimDirection: {r: 0.6, g: 0.5, b: -0.6, a: 0}
+    - _ShadowTint: {r: 0.54999995, g: 0.63, b: 0.8, a: 1}
+    - _SheenColor: {r: 0.72, g: 0.8399999, b: 1, a: 1}
+    - _SubsurfaceColor: {r: 0.85, g: 0.21999997, b: 0.11999995, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
