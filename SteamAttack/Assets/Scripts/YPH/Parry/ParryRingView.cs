@@ -29,7 +29,7 @@ namespace YPH
         private float _ringSize = 120f;
         [SerializeField, Range(0f, 1f), Tooltip("안쪽 원의 불투명도입니다. 1이면 진하고 0이면 보이지 않습니다.")]
         private float _innerAlpha = 0.88f;
-        [SerializeField, Min(0.01f), Tooltip("겹침 전 바깥 원이 줄어드는 시간(초)입니다. 높이면 천천히 줄어들며, 짧은 예고는 진행된 크기에서 시작합니다.")]
+        [SerializeField, Min(0.01f), Tooltip("겹침 전 바깥 원이 줄어드는 최대 시간(초)입니다. 높이면 천천히 줄어듭니다. 예고가 더 짧으면 그 시간 안에 시작 크기에서 안쪽 원까지 줄어듭니다.")]
         private float _shrinkTime = 0.8f;
         [SerializeField, Min(1f), Tooltip("바깥 원의 시작 크기 배율입니다. 2면 안쪽 원의 두 배이며, 1이면 크기가 줄어들지 않습니다.")]
         private float _outerStartScale = 2f;
@@ -57,6 +57,7 @@ namespace YPH
             public CanvasGroup Group;
             public IParryTarget Target;
             public float SuccessUntil;
+            public float ShrinkDuration;
             public bool OverlapPlayed;
         }
 
@@ -178,6 +179,8 @@ namespace YPH
             available.Target = target;
             available.SuccessUntil = 0f;
             available.OverlapPlayed = false;
+            // 짧은 예고도 큰 원에서 시작해야 남은 시간을 크기 변화로 읽을 수 있습니다.
+            available.ShrinkDuration = Mathf.Max(0.01f, Mathf.Min(_shrinkTime, secondsUntilOverlap));
             available.Root.localScale = Vector3.one;
             available.Root.sizeDelta = Vector2.one * _ringSize;
             available.Group.alpha = 0f;
@@ -225,7 +228,7 @@ namespace YPH
             }
 
             float untilOverlap = ring.Target.ParryOverlapTime - Time.time;
-            float progress = Mathf.Clamp01(1f - untilOverlap / Mathf.Max(0.01f, _shrinkTime));
+            float progress = Mathf.Clamp01(1f - untilOverlap / ring.ShrinkDuration);
             ring.Outer.rectTransform.localScale = Vector3.one * Mathf.Lerp(_outerStartScale, 1f, progress);
             ring.Outer.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -_outerRotation * Mathf.Pow(progress, _rotationEaseIn));
             bool canParry = ring.Target.IsParryWindowOpen && Mathf.Abs(untilOverlap) <= _parry.JudgeHalfWindow;

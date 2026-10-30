@@ -99,6 +99,13 @@ namespace NGH
         [Tooltip("칼끝이 붙은 뼈와 그 안의 칼끝 위치. 자동 계산")]
         public Transform tipBone;
         public Vector3 tipLocal;
+        [Header("공격 판정 — 궤적 기준")]
+        [Tooltip("켜면 약·강공격 판정을 캐릭터 앞의 구 대신 칼 궤적 면으로 함 (궤적 머리가 이번 프레임에 쓸고 지나간 부분). PlayerController 가 사용")]
+        public bool trailHitbox = true;
+        [Tooltip("궤적 판정 두께(m): 궤적 면에서 이만큼 떨어진 것까지 맞음")]
+        [Min(0.01f)] public float hitThickness = 0.2f;
+        [Tooltip("찌르기 판정: 칼끝을 이만큼(m) 더 앞까지 (찌르기 이펙트 길이에 맞춤)")]
+        [Min(0f)] public float thrustHitExtra = 0.35f;
         public List<Entry> entries = new List<Entry>();
 
         // 이펙트 프리팹 기준 단위: 베기 바깥 반지름 / 찌르기 길이 = 6 (Start Size 6 × 메시 1)
@@ -293,6 +300,95 @@ namespace NGH
                 case PlayerController.ActionState.HeavyAttack: return player.heavyState;
                 default: return null;
             }
+        }
+
+        // ================================================================ 궤적 판정
+
+        /// <summary>궤적 판정 결과 하나. window = 같은 동작 안에서 몇 번째 이펙트(베기)인지 (베기마다 새로 맞음)</summary>
+        public struct TrailHit { public Collider collider; public int window; }
+
+        int _sweepSerial = -1;
+        readonly Dictionary<Entry, float> _sweepPrev = new Dictionary<Entry, float>();
+        static readonly Collider[] _overlap = new Collider[64];
+        readonly List<(Vector3 a, Vector3 b)> _gizmoSegs = new List<(Vector3, Vector3)>();
+        float _gizmoUntil;
+
+        /// <summary>이 동작에 궤적 판정을 쓸 수 있는지 (궤적 메시가 계산된 베기 또는 찌르기 이펙트가 있음)</summary>
+        public bool UsesTrailHitbox(PlayerController.ActionState a)
+        {
+            if (!trailHitbox) return false;
+            foreach (var e in entries)
+                if (e != null && e.action == a && HasHitShape(e)) return true;
+            return false;
+        }
+
+        bool HasHitShape(Entry e) => e.kind == FxKind.Thrust ? tipBone
+            : e.pathOuter != null && e.pathOuter.Length >= 2 && e.pathInner != null && e.pathInner.Length == e.pathOuter.Length;
+
+        /// <summary>
+        /// 지금 동작의 궤적 머리가 지난 프레임부터 이번 프레임까지 쓸고 지나간 부분에 닿은 콜라이더를 모음.
+        /// 궤적 메시와 같은 경로·같은 클립 시간을 쓰므로 보이는 이펙트와 판정이 일치함
+        /// </summary>
+        public void SweepTrailHits(List<TrailHit> hits)
+        {
+            hits.Clear();
+            if (!player) return;
+            if (player.ActionSerial != _sweepSerial) { _sweepSerial = player.ActionSerial; _sweepPrev.Clear(); }
+            var t = player.transform;
+            int window = -1;
+            foreach (var e in entries)
+            {
+                if (e == null || e.action != player.CurrentAction || !HasHitShape(e)) continue;
+                window++;
+                float u = Mathf.InverseLerp(e.swingRange.x, e.swingRange.y, ClipTime(e));
+                bool started = _sweepPrev.TryGetValue(e, out float prev);
+                if (u <= 0f) continue;                   // 아직 휘두르기 전
+                if (started && prev >= 1f) continue;     // 이미 끝까지 쓸고 지나감
+                if (!started) prev = 0f;
+                _sweepPrev[e] = u;
+
+                if (e.kind == FxKind.Thrust)
+                {
+                    // 찌르기: 손(시작점) → 지금 칼끝(조금 더 앞) 막대
+                    Vector3 a = t.TransformPoint(e.localPosition);
+                    Vector3 tip = tipBone.TransformPoint(tipLocal);
+                    Vector3 dir = tip - a;
+                    Vector3 b = tip + (dir.sqrMagnitude > 1e-6f ? dir.normalized * thrustHitExtra : Vector3.zero);
+                    Collect(a, b, window, hits);
+                    continue;
+                }
+
+                // 베기: 경로에서 이번 프레임에 새로 그려진 부분 (꼬리는 처음 휘두를 때 한꺼번에)
+                int n = e.pathOuter.Length, pre = Mathf.Clamp(e.pathPrefix, 0, n - 2);
+                float h0 = started ? pre + prev * (n - 1 - pre) : 0f;
+                float h1 = pre + u * (n - 1 - pre);
+                int i0 = Mathf.FloorToInt(h0), i1 = Mathf.Min(Mathf.CeilToInt(h1), n - 1);
+                for (int i = i0; i <= i1; i++)
+                {
+                    float s = Mathf.Clamp(i, h0, h1);
+                    int k = Mathf.Min(Mathf.FloorToInt(s), n - 2);
+                    float f = s - k;
+                    Vector3 o = t.TransformPoint(Vector3.LerpUnclamped(e.pathOuter[k], e.pathOuter[k + 1], f));
+                    Vector3 inn = t.TransformPoint(Vector3.LerpUnclamped(e.pathInner[k], e.pathInner[k + 1], f));
+                    Collect(o, inn, window, hits);
+                }
+            }
+        }
+
+        void Collect(Vector3 a, Vector3 b, int window, List<TrailHit> hits)
+        {
+            int c = Physics.OverlapCapsuleNonAlloc(a, b, hitThickness, _overlap, ~0, QueryTriggerInteraction.Collide);
+            for (int i = 0; i < c; i++) hits.Add(new TrailHit { collider = _overlap[i], window = window });
+            if (_gizmoUntil < Time.time) _gizmoSegs.Clear();
+            _gizmoSegs.Add((a, b));
+            _gizmoUntil = Time.time + 0.4f;
+        }
+
+        void OnDrawGizmosSelected()
+        {
+            if (!Application.isPlaying || Time.time > _gizmoUntil) return;
+            Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.8f);
+            foreach (var (a, b) in _gizmoSegs) Gizmos.DrawLine(a, b);
         }
 
         // ================================================================ 칼끝 따라가기

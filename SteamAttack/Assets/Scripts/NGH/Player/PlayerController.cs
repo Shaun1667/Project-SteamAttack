@@ -7,7 +7,7 @@ namespace NGH
     /// <summary>
     /// 3인칭 플레이어 이동 + 근접 전투 프로토타입.
     ///  WASD 8방향(카메라 기준, 대각선도 같은 속도) / Shift 달리기 / Space 구르기(무적)
-    ///  F 발도·납도 / 좌클릭 약공격(최대 5연타) / 우클릭 강공격 / 휠클릭 락온 / Tab 무기 교체
+    ///  F 발도·납도 / 좌클릭 약공격(최대 5연타) / 우클릭 강공격 / Tab 무기 교체
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour
@@ -64,9 +64,6 @@ namespace NGH
         public float backpedalSpeed = 1.44f;
         [Tooltip("뒷걸음 애니메이션 재생 속도 (걷기 동작을 거꾸로 재생, 1 = 걷기와 같은 빠르기)")]
         public float backpedalAnimSpeed = 0.72f;
-        public float strafeSpeed = 0.77f;
-        [Tooltip("락온 중 좌/우 걷기 동작 재생 속도 (동작 원래 속도 약 1m/s 기준, Strafe Speed와 맞추면 발이 덜 미끄러짐)")]
-        public float strafeAnimSpeed = 0.8f;
         public float runSpeed = 3.5f;
         public float turnSpeed = 720f;        // 도/초
         public float gravity = -20f;
@@ -137,8 +134,6 @@ namespace NGH
         [Min(0)] public float attackEndBlend = 0.5f;
         [Tooltip("판정 구간보다 이만큼(클립 기준 0~1) 먼저 전진을 시작")]
         [Range(0, 0.2f)] public float lungeLead = 0.04f;
-        [Tooltip("락온 대상과 이 거리(m)보다 가까우면 더 파고들지 않음")]
-        public float lungeStopDistance = 0.6f;
         public AttackData shotAttack = new AttackData
             { playSpeed = 1f, endAt = 0.45f, hitWindows = new Vector2[0] };
         [Header("발도 / 납도 (F) — 각각 Draw Sword / Sheath Sword 동작")]
@@ -148,7 +143,7 @@ namespace NGH
         [Range(0, 1)] public float drawShowAt = 0.3f;
         [Tooltip("납도 동작의 몇 % 지점에서 칼이 사라질지")]
         [Range(0, 1)] public float sheathHideAt = 0.75f;
-        [Tooltip("공격하거나 락온할 때 발도 동작 없이 즉시 칼을 꺼냄")]
+        [Tooltip("공격할 때 발도 동작 없이 즉시 칼을 꺼냄")]
         public bool instantDrawOnAttack = false;   // 끔: 납도 상태에서 공격하면 발도 동작 후 공격
 
         [Header("받아치기 (칼) — YPH 받아치기 신호를 받아 CombatBridge가 재생")]
@@ -162,6 +157,14 @@ namespace NGH
         public AttackData hitSmallAction = new AttackData { playSpeed = 1f, endAt = 1f, hitWindows = new Vector2[0] };
         [Tooltip("기준 데미지 이상: 피격(대, 넉백)")]
         public AttackData hitLargeAction = new AttackData { playSpeed = 1f, endAt = 1f, hitWindows = new Vector2[0] };
+        [Tooltip("피격(대)로 넘어지며 뒤로 밀리는 거리(m). x = 클립 진행도 0~1 (넘어지는 클립에서 잰 값)")]
+        public AnimationCurve hitLargePushBack = new AnimationCurve(
+            new Keyframe(0f, 0f), new Keyframe(0.43f, 0f), new Keyframe(0.5f, 0.08f), new Keyframe(0.571f, 0.232f), new Keyframe(0.643f, 0.373f),
+            new Keyframe(0.714f, 0.539f), new Keyframe(0.786f, 0.714f), new Keyframe(0.857f, 0.885f), new Keyframe(0.929f, 1.004f), new Keyframe(1f, 1.076f));
+        [Tooltip("피격(대) 뒤 일어나는 동작 상태 이름 (비우면 넘어진 뒤 바로 대기로)")]
+        public string getUpState = "GetUp";
+        [Tooltip("피격(대) 뒤 일어나는 동작. 동작 중 입력 무시·무적")]
+        public AttackData getUpAction = new AttackData { clipLength = 2.7f, playSpeed = 1f, endAt = 1f, hitWindows = new Vector2[0], blendIn = 0.25f };
         [Tooltip("테스트용: 숫자 1 = 데미지 1(피격 소), 숫자 2 = 기준 데미지(피격 대)을 자신에게 줌")]
         public bool debugHitKeys = true;
 
@@ -174,10 +177,6 @@ namespace NGH
         // 이전 버전 씬 호환용 (클립 길이)
         [HideInInspector] public float lightAttackDuration, heavyAttackDuration, shotDuration, rollDuration;
 
-        [Header("락온")]
-        [Tooltip("락온 가능 거리(m). 락온 후 이 거리의 1.3배보다 멀어지면 해제")]
-        public float lockOnRange = 9f;
-
         [Header("애니메이터 상태 이름")]
         public string locomotionState = "Locomotion";
         public string rollState = "Roll";
@@ -187,8 +186,6 @@ namespace NGH
         public string combo3State = "Combo3";
         public string combo4State = "Combo4";
         public string combo5State = "Combo5";
-        public string strafeLeftState = "StrafeLeft";
-        public string strafeRightState = "StrafeRight";
         public string shotState = "Shot";
         public string drawState = "Draw";
         public string sheathState = "Sheath";
@@ -209,7 +206,6 @@ namespace NGH
         [Header("현재 상태 (확인용)")]
         [SerializeField] bool drawn;
         [SerializeField] ActionState action;
-        [SerializeField] Damageable lockTarget;
 
         public bool IsDrawn => drawn;
         public bool IsHitReacting => action == ActionState.HitSmall || action == ActionState.HitLarge;
@@ -217,7 +213,6 @@ namespace NGH
         public bool IsInvincible => (action == ActionState.Roll && _actionTime < rollInvincibleTime) || IsHitReacting
                                     || IsDead || Time.time < _spawnInvincibleUntil
                                     || _externalInvincible.Count > 0;   // 외부 무적 (예: 시간 역행 연출, CHG_TimeRewind)
-        public Damageable LockTarget => lockTarget;
         public ActionState CurrentAction => action;
         /// <summary>현재 동작의 클립 기준 진행도 (0~1). 클립 기준 동작(공격·발도 등)이 아니면 0</summary>
         public float ActionClipProgress => _attack != null ? _actionTime * _actionPlaySpeed / Mathf.Max(0.01f, _attack.clipLength) : 0f;
@@ -245,11 +240,14 @@ namespace NGH
         Vector3 _rollDir;
         ActionState _buffered;
         bool _chainBlend;   // 다음 StartAction 이 앞 타의 후딜레이에서 바로 이어지는 것인지
+        float _pushBackDone;   // 피격(대)로 이번 동작에서 이미 뒤로 민 거리
         ActionState _comboLast;          // 이어지지 않고 끝난 마지막 약공격 타 (유예 시간 동안 다음 타로 이어 붙임)
         float _comboEndAt = -999f;
         float _blendOverride = -1f;
         readonly HashSet<Damageable> _hitThisSwing = new HashSet<Damageable>();
         int _lastReviewedWallSerial = -1;
+        AttackFx _fx;   // 칼 궤적 판정 (없으면 구 판정)
+        readonly List<AttackFx.TrailHit> _trailHits = new List<AttackFx.TrailHit>();
         readonly HashSet<object> _externalInvincible = new HashSet<object>();   // 외부에서 켠 무적 (켠 쪽별로 관리)
 
         static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -263,6 +261,7 @@ namespace NGH
             if (PlayerCarryOver.TakeHp(out int carriedHp)) hp = Mathf.Clamp(carriedHp, 1, maxHp);
             if (!animator) animator = GetComponentInChildren<Animator>();
             if (!weapons) weapons = GetComponent<WeaponHolder>();
+            _fx = GetComponent<AttackFx>();
             if (!cameraTransform && Camera.main) cameraTransform = Camera.main.transform;
             if (lightAttack.clipLength <= 0f) lightAttack.clipLength = lightAttackDuration > 0f ? lightAttackDuration : 1f;
             if (heavyAttack.clipLength <= 0f) heavyAttack.clipLength = heavyAttackDuration > 0f ? heavyAttackDuration : 1f;
@@ -332,12 +331,9 @@ namespace NGH
             }
             if (kb.fKey.wasPressedThisFrame) Request(drawn ? ActionState.Sheath : ActionState.Draw);
             if (kb.tabKey.wasPressedThisFrame && weapons && action == ActionState.None) weapons.SwapNext();
-            if (mouse.middleButton.wasPressedThisFrame) ToggleLockOn();
 
             if (kb.spaceKey.wasPressedThisFrame) Request(ActionState.Roll);
             ReadAttackInput(mouse);
-
-            ValidateLockOn();
 
             Vector3 moveDir = CameraRelative(input);
 
@@ -355,7 +351,6 @@ namespace NGH
 
             // ---------- 이동
             float speed = 0f, animSpeedParam = 0f, playRate = 1f;
-            int strafeSide = 0;   // 락온 중 좌(-1) / 우(+1) 걷기 동작
             Vector3 face = Vector3.zero;
             bool hasInput = input.sqrMagnitude > 0.01f;
 
@@ -364,21 +359,6 @@ namespace NGH
                 if (run)
                 {
                     speed = runSpeed; animSpeedParam = 1f; face = moveDir;
-                }
-                else if (lockTarget)
-                {
-                    // 락온: 대상을 바라보며 이동 (A/D 옆걸음, S 뒷걸음)
-                    face = Flat(lockTarget.transform.position - transform.position);
-                    float fwd = Vector3.Dot(moveDir, face.normalized);
-                    bool sideInput = input.y >= -0.1f && Mathf.Abs(input.x) > 0.1f;   // A, D, WA, WD
-                    if (sideInput)
-                    {
-                        speed = strafeSpeed; strafeSide = input.x < 0f ? -1 : 1; playRate = strafeAnimSpeed;
-                    }
-                    else if (fwd < -0.3f) { speed = backpedalSpeed; playRate = -backpedalAnimSpeed; }
-                    else if (fwd > 0.3f) speed = combatWalkSpeed;
-                    else speed = strafeSpeed;
-                    animSpeedParam = 0.5f;
                 }
                 else if (drawn && input.y < -0.1f)
                 {
@@ -390,10 +370,6 @@ namespace NGH
                     // 대기 상태 전방향 / 전투 상태 W, WA, WD, A, D: 이동 방향을 보고 걷기
                     speed = drawn ? combatWalkSpeed : walkSpeed; face = moveDir; animSpeedParam = 0.5f;
                 }
-            }
-            else if (lockTarget)
-            {
-                face = Flat(lockTarget.transform.position - transform.position);
             }
 
             if (face.sqrMagnitude > 0.0001f) TurnTowards(face);
@@ -407,11 +383,10 @@ namespace NGH
             {
                 animator.SetFloat(SpeedHash, animSpeedParam, 0.1f, Time.deltaTime);
                 animator.SetFloat(AnimSpeedHash, playRate);
-                string want = strafeSide < 0 ? strafeLeftState : strafeSide > 0 ? strafeRightState : locomotionState;
-                if (want != _locoState)
+                if (_locoState != locomotionState)
                 {
-                    animator.CrossFadeInFixedTime(want, 0.15f);
-                    _locoState = want;
+                    animator.CrossFadeInFixedTime(locomotionState, 0.15f);
+                    _locoState = locomotionState;
                 }
             }
         }
@@ -473,7 +448,6 @@ namespace NGH
 
         void Die()
         {
-            SetLockTarget(null);
             _attack = null;
             action = ActionState.Death;
             _actionTime = 0f;
@@ -553,7 +527,6 @@ namespace NGH
                 if (instantDrawOnAttack) SetDrawn(true);
                 else { StartAction(ActionState.Draw); _buffered = a; return; }
             }
-            if (a == ActionState.Sheath) SetLockTarget(null);
             _visualSwitched = false;
 
             Vector3 moveDir = CameraRelative(ReadMoveInput());
@@ -565,6 +538,7 @@ namespace NGH
             _hitThisSwing.Clear();
             _hitWindowIndex = -1;
             _healedThisAction = false;
+            _pushBackDone = 0f;
             _attack = null;
 
             string state = locomotionState;
@@ -621,7 +595,10 @@ namespace NGH
                 // 클립 기준 진행도 (0~1)
                 float clipT = _actionTime * _actionPlaySpeed / Mathf.Max(0.01f, _attack.clipLength);
                 if (IsLightChain(action) || action == ActionState.HeavyAttack) Lunge(clipT);
-                for (int i = 0; i < _attack.hitWindows.Length; i++)
+                if (action == ActionState.HitLarge) PushBack(clipT);
+                // 약·강공격: 칼 궤적 이펙트가 있으면 판정도 궤적 면으로 (보이는 궤적과 판정 일치). 없으면 아래 구 판정
+                if (IsMeleeAttack(action) && _fx && _fx.UsesTrailHitbox(action)) TrailHit(action == ActionState.HeavyAttack);
+                else for (int i = 0; i < _attack.hitWindows.Length; i++)
                 {
                     var w = _attack.hitWindows[i];
                     if (clipT < w.x || clipT > w.y) continue;
@@ -655,6 +632,7 @@ namespace NGH
                 _attack = null;
                 if (animator) animator.speed = 1f;
                 if (next != ActionState.None) { _chainBlend = chaining; StartAction(next); }
+                else if (finished == ActionState.HitLarge && StartGetUp()) return;   // 넘어진 뒤 일어나기
                 else
                 {
                     if (IsLightChain(finished)) { _comboLast = finished; _comboEndAt = Time.time; }
@@ -666,12 +644,39 @@ namespace NGH
             }
         }
 
+        // 피격(대): 넘어지는 클립은 제자리(뒤로 밀리는 이동을 포즈에서 뺌)라, 그 거리만큼 캐릭터를 실제로 뒤로 민다 (벽에 막히면 멈춤)
+        void PushBack(float clipT)
+        {
+            if (hitLargePushBack == null || hitLargePushBack.length == 0) return;
+            float d = hitLargePushBack.Evaluate(Mathf.Clamp01(clipT));
+            _cc.Move(-transform.forward * (d - _pushBackDone));
+            _pushBackDone = d;
+        }
+
+        // 피격(대)으로 넘어진 뒤 일어나는 동작. 일어나는 동안 입력 무시·무적 (부활과 같은 StandUp 상태)
+        bool StartGetUp()
+        {
+            if (string.IsNullOrEmpty(getUpState) || getUpAction == null || getUpAction.clipLength <= 0f) return false;
+            action = ActionState.StandUp;
+            ActionSerial++;
+            _attack = getUpAction;
+            _actionTime = 0f;
+            _actionPlaySpeed = getUpAction.playSpeed;
+            _actionDuration = getUpAction.ActionTime;
+            _spawnInvincibleUntil = Mathf.Max(_spawnInvincibleUntil, Time.time + _actionDuration);
+            if (animator)
+            {
+                animator.speed = _actionPlaySpeed;
+                animator.CrossFadeInFixedTime(getUpState, getUpAction.blendIn * _actionPlaySpeed);
+            }
+            return true;
+        }
+
         // 휘두르는 순간(판정 구간 + 조금 앞)에만 앞으로 쭉 나감. 처음에 빠르고 끝에 감속
         void Lunge(float clipT)
         {
             float dist = _attack.lungeDistance;
             if (dist <= 0f) return;
-            if (lockTarget && Flat(lockTarget.transform.position - transform.position).magnitude < lungeStopDistance) return;
             for (int i = 0; i < _attack.hitWindows.Length; i++)
             {
                 float a = Mathf.Max(0f, _attack.hitWindows[i].x - lungeLead), b = _attack.hitWindows[i].y;
@@ -683,40 +688,63 @@ namespace NGH
             }
         }
 
+        // 공격력: 지금 동작(콤보 타)의 Damage, 0 이하면 무기 기본값
+        float HitDamage(bool heavy)
+        {
+            var w = weapons ? weapons.Current : null;
+            return _attack != null && _attack.damage > 0f ? _attack.damage
+                 : w ? (heavy ? w.heavyDamage : w.lightDamage) : (heavy ? 3f : 1f);
+        }
+
         void DoHit(bool heavy)
         {
             var w = weapons ? weapons.Current : null;
             float reach = w ? w.reach : 0.9f, radius = w ? w.hitRadius : 0.6f;
-            // 공격력: 지금 동작(콤보 타)의 Damage, 0 이하면 무기 기본값
-            float dmg = _attack != null && _attack.damage > 0f ? _attack.damage
-                      : w ? (heavy ? w.heavyDamage : w.lightDamage) : (heavy ? 3f : 1f);
+            float dmg = HitDamage(heavy);
             Vector3 center = transform.position + Vector3.up * 0.5f + transform.forward * reach;
             foreach (var col in Physics.OverlapSphere(center, radius, ~0, QueryTriggerInteraction.Collide))
+                ApplyHit(col, dmg, heavy);
+        }
+
+        // 궤적 판정: 이펙트(베기) 하나 = 판정 구간 하나. 구간마다 새로 맞음 (모션당 1회면 유지)
+        void TrailHit(bool heavy)
+        {
+            _fx.SweepTrailHits(_trailHits);
+            float dmg = HitDamage(heavy);
+            foreach (var h in _trailHits)
             {
-                var d = col.GetComponentInParent<Damageable>();
-                if (!d && !col.isTrigger && !col.transform.IsChildOf(transform) && _lastReviewedWallSerial != ActionSerial)
+                if (_hitWindowIndex != h.window)
                 {
-                    string surface = col.name.ToLowerInvariant();
-                    if (surface.Contains("wall") || col.name.Contains("벽"))
-                    {
-                        _lastReviewedWallSerial = ActionSerial;
-                        ReviewedAudio.Play(Random.value < 0.5f ? "Revision/12_SwordWall_v01" : "Revision/12_SwordWall_v02", 0.7f);
-                    }
+                    _hitWindowIndex = h.window;
+                    if (!_attack.hitOncePerAction) _hitThisSwing.Clear();
                 }
-                if (!d || !d.IsAlive || _hitThisSwing.Contains(d)) continue;
-                _hitThisSwing.Add(d);
-                d.TakeDamage(dmg, transform.position);
-                ReviewedAudio.Play(heavy ? "Revision/13_HeavyHit_v02" : "AdditionalReview/R11_FleshHit_v02", 0.7f);
-                OnHitLanded?.Invoke(d);
-                if (!_healedThisAction) { _healedThisAction = true; Heal(healOnHit); }   // 공격 1회당 한 번만 회복
+                ApplyHit(h.collider, dmg, heavy);
             }
+        }
+
+        void ApplyHit(Collider col, float dmg, bool heavy)
+        {
+            var d = col.GetComponentInParent<Damageable>();
+            if (!d && !col.isTrigger && !col.transform.IsChildOf(transform) && _lastReviewedWallSerial != ActionSerial)
+            {
+                string surface = col.name.ToLowerInvariant();
+                if (surface.Contains("wall") || col.name.Contains("벽"))
+                {
+                    _lastReviewedWallSerial = ActionSerial;
+                    ReviewedAudio.Play(Random.value < 0.5f ? "Revision/12_SwordWall_v01" : "Revision/12_SwordWall_v02", 0.7f);
+                }
+            }
+            if (!d || !d.IsAlive || _hitThisSwing.Contains(d)) return;
+            _hitThisSwing.Add(d);
+            d.TakeDamage(dmg, transform.position);
+            ReviewedAudio.Play(heavy ? "Revision/13_HeavyHit_v02" : "AdditionalReview/R11_FleshHit_v02", 0.7f);
+            OnHitLanded?.Invoke(d);
+            if (!_healedThisAction) { _healedThisAction = true; Heal(healOnHit); }   // 공격 1회당 한 번만 회복
         }
 
         void FaceAttackDirection(Vector3 moveDir)
         {
-            Vector3 dir = lockTarget ? Flat(lockTarget.transform.position - transform.position)
-                        : (moveDir.sqrMagnitude > 0.01f ? moveDir : Vector3.zero);
-            if (dir.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(dir);
+            if (moveDir.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(moveDir);
         }
 
         void ApplyGravityOnly()
@@ -725,13 +753,12 @@ namespace NGH
             _cc.Move(Vector3.up * _vy * Time.deltaTime);
         }
 
-        // ================================================================ 발도 / 락온
+        // ================================================================ 발도
 
         void SetDrawn(bool value)
         {
             drawn = value;
             if (weapons) weapons.SetDrawn(drawn);
-            if (!drawn) SetLockTarget(null);
             Debug.Log(drawn ? "[CHG] 발도 (전투 상태)" : "[CHG] 납도 (대기 상태)");
         }
 
@@ -777,60 +804,6 @@ namespace NGH
             return w == null || w.isMelee;
         }
 
-        void ToggleLockOn()
-        {
-            if (lockTarget) { SetLockTarget(null); return; }
-            if (!IsMeleeEquipped()) { Debug.Log("[CHG] 락온은 근접 무기만 가능"); return; }
-
-            // 카메라 정면에 가깝고 가까운 대상 우선
-            Vector3 camFwd = cameraTransform ? Flat(cameraTransform.forward).normalized : transform.forward;
-            Damageable best = null; float bestScore = float.MaxValue;
-            foreach (var d in FindObjectsByType<Damageable>())
-            {
-                if (!d.IsAlive) continue;
-                Vector3 to = Flat(d.transform.position - transform.position);
-                float dist = to.magnitude;
-                if (dist > lockOnRange || dist < 0.01f) continue;
-                float angle = Vector3.Angle(camFwd, to);
-                if (angle > 80f) continue;
-                float score = dist + angle * 0.05f;
-                if (score < bestScore) { bestScore = score; best = d; }
-            }
-            if (!best) return;
-            if (!drawn)
-            {
-                // 납도 상태: 발도 동작을 하면서 락온 (카메라는 바로 대상을 따라감)
-                if (IsHitReacting || IsDead || IsStandingUp) return;
-                if (action == ActionState.None) StartAction(ActionState.Draw);
-                else if (action != ActionState.Draw && _buffered == ActionState.None) _buffered = ActionState.Draw;   // 지금 동작이 끝나면 발도
-                if (!DrawPending()) return;   // 무기 교체 중 등으로 발도할 수 없으면 락온도 하지 않음
-            }
-            SetLockTarget(best);
-        }
-
-        // 발도가 진행 중이거나 예약돼 있는지 (납도 상태 공격 예약도 발도를 거침)
-        bool DrawPending()
-        {
-            if (action == ActionState.Draw || _buffered == ActionState.Draw) return true;
-            return IsLightChain(_buffered) || _buffered == ActionState.HeavyAttack || _buffered == ActionState.Shot;
-        }
-
-        void ValidateLockOn()
-        {
-            if (!lockTarget) return;
-            bool tooFar = Flat(lockTarget.transform.position - transform.position).magnitude > lockOnRange * 1.3f;
-            // 발도가 피격 등으로 끊겨 납도 상태로 남으면 락온도 해제
-            bool sheathedNoDraw = !drawn && !DrawPending();
-            if (!lockTarget.isActiveAndEnabled || !lockTarget.IsAlive || tooFar || !IsMeleeEquipped() || sheathedNoDraw) SetLockTarget(null);
-        }
-
-        void SetLockTarget(Damageable t)
-        {
-            if (lockTarget) lockTarget.SetLocked(false);
-            lockTarget = t;
-            if (lockTarget) lockTarget.SetLocked(true);
-        }
-
         // ================================================================ 시간 역행 연동 (CHG_TimeRewind)
         // NGH(남귀훈) 추가: 시간 역행이 플레이어 내부 상태를 기록/복원할 수 있도록 하는 통로.
         // 위치·회전·애니메이터는 CHG_TimeRewind가 직접 기록/복원하고, 여기서는 이 스크립트 안의 상태만 다룬다.
@@ -854,7 +827,6 @@ namespace NGH
             public string locoState;
             public float spawnInvincibleRemaining;
             public float deadTimeAgo;
-            public Damageable lockTarget;
         }
 
         /// <summary>외부 시스템이 무적을 켜고 끔. 켠 쪽(source)별로 관리하며, 모두 끄면 해제된다.</summary>
@@ -888,14 +860,12 @@ namespace NGH
                 locoState = _locoState,
                 spawnInvincibleRemaining = Mathf.Max(0f, _spawnInvincibleUntil - Time.time),
                 deadTimeAgo = Time.time - DeadTime,
-                lockTarget = lockTarget,
             };
         }
 
-        /// <summary>기록해 둔 상태로 되돌림 (체력, 행동, 발도·납도, 무기 칸, 락온)</summary>
+        /// <summary>기록해 둔 상태로 되돌림 (체력, 행동, 발도·납도, 무기 칸)</summary>
         public void RestoreRewindState(RewindState s)
         {
-            SetLockTarget(null);
             _hitThisSwing.Clear();
             SetHp(s.hp);
 
@@ -917,12 +887,7 @@ namespace NGH
             _vy = s.verticalVelocity;
             _locoState = string.IsNullOrEmpty(s.locoState) ? locomotionState : s.locoState;
             _spawnInvincibleUntil = Time.time + s.spawnInvincibleRemaining;
-            DeadTime = Time.time - s.deadTimeAgo;
-
-            // 락온: 대상이 아직 살아 있고, 발도 상태에서 근접 무기를 들고 있을 때만 되살림
-            Damageable lt = s.lockTarget;
-            if (lt && lt.isActiveAndEnabled && lt.IsAlive && drawn && IsMeleeEquipped()) SetLockTarget(lt);
-        }
+            DeadTime = Time.time - s.deadTimeAgo;        }
 
         AttackData AttackDataFor(ActionState a)
         {

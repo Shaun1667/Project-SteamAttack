@@ -33,6 +33,11 @@ namespace YPH
         private float radius;
         private float traveled;
         private bool flying;
+
+        /// <summary>탄이 무언가에 맞아 멈춘 순간 (맞은 위치, 플레이어를 맞혔는지). NGH 효과음이 구독 — NGH(남귀훈) 추가</summary>
+        public static event System.Action<Vector3, bool> AnyHit;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetAnyHit() => AnyHit = null;
         private Transform ignoredPlayer;   // 무적이라 통과한 플레이어는 다시 맞지 않음
 
         private void Awake()
@@ -186,6 +191,7 @@ namespace YPH
                     return;
                 }
             }
+            AnyHit?.Invoke(transform.position, player != null);   // 꽂히는 소리 등 (NGH 효과음)
             Stop();
         }
 

@@ -172,6 +172,11 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 5.9480085, y: 12, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!4 &5246722 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5754386994977642181, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
+  m_PrefabInstance: {fileID: 562215038}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &68479128
 GameObject:
   m_ObjectHideFlags: 0
@@ -8588,14 +8593,22 @@ PrefabInstance:
     - target: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
       propertyPath: player
       value: 
-      objectReference: {fileID: 562215039}
+      objectReference: {fileID: 0}
     - target: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
       propertyPath: target
       value: 
-      objectReference: {fileID: 562215045}
+      objectReference: {fileID: 0}
     - target: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
       propertyPath: distance
-      value: 0.92
+      value: 2.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
+      propertyPath: pivotHeight
+      value: 1.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 4128290998692565916, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
+      propertyPath: shoulderOffset
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5515296568939255497, guid: f8886604d85ea7d4b9f9d6d7b1d0dd3c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -9051,17 +9064,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
---- !u!114 &562215039 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5444686568199331752, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-  m_PrefabInstance: {fileID: 562215038}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b451237558f54104482dee4a759898ee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::chg_PlayerController
 --- !u!114 &562215040 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4864631429770560851, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
@@ -9084,11 +9086,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46e29a533bcd6bc4d8db379d6c073ef7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NMJ.BossDefeatBanner
---- !u!4 &562215045 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2226188604775483541, guid: d37cef2ee2d00d7428d34aa83f41329e, type: 3}
-  m_PrefabInstance: {fileID: 562215038}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &573687742
 GameObject:
   m_ObjectHideFlags: 0
@@ -10949,6 +10946,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 558124442}
     m_Modifications:
+    - target: {fileID: 2177534023529623286, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
+      propertyPath: _head
+      value: 
+      objectReference: {fileID: 5246722}
     - target: {fileID: 2177534023529623286, guid: 1dca0eb4f0d2657419963bc3ed212e67, type: 3}
       propertyPath: _camera
       value: 

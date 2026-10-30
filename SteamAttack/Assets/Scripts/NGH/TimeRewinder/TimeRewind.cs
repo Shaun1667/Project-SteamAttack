@@ -86,6 +86,10 @@ namespace NGH
         [SerializeField] private bool followRecordedPath = true;
         [Tooltip("경로를 따라갈 때 카메라가 가는 방향(남은 먹선)을 바라봄. 끝부분에서 되돌아갈 시점의 카메라 각도로 돌아감")]
         [SerializeField] private bool cameraLookAlongPath = true;
+        [Tooltip("되감는 동안 그 지점을 지날 때 기록해 둔 카메라 각도를 거꾸로 다시 보여줌 (켜면 위의 '경로 바라보기'보다 우선)")]
+        [SerializeField] private bool replayRecordedCamera = true;
+        [Tooltip("기록된 카메라 각도를 따라갈 때의 부드러움 (클수록 기록에 바로 붙음)")]
+        [SerializeField, Min(1f)] private float recordedCameraSharpness = 14f;
         [Tooltip("카메라가 바라볼 앞쪽 거리 (경로 전체 대비 비율)")]
         [SerializeField, Range(0.02f, 0.5f)] private float pathLookAhead = 0.25f;
         [Tooltip("경로를 따라가는 동안 카메라 상하 각도 (내려다보는 정도)")]
@@ -145,6 +149,8 @@ namespace NGH
         public Vector3 RewindTargetPosition { get; private set; }
         /// <summary>되감기 이동 진행도 (0 = 누른 위치, 1 = 되돌아갈 위치). 경로를 따라갈 때는 지나온 경로 길이 기준</summary>
         public float RewindTravelProgress { get; private set; }
+        /// <summary>되감기 이동 중 지금 지나는 경로 위 발 위치 (떠오른 높이 제외 — 먹선이 그려지는 경로와 같은 높이)</summary>
+        public Vector3 RewindPathPoint { get; private set; }
 
         /// <summary>시간 역행 시작 (연출 시작 직전)</summary>
         public event Action RewindStarted;
@@ -419,9 +425,11 @@ namespace NGH
             // 지나온 경로 (지금 위치 → 최근 기록 → … → 되돌아갈 위치)와 누적 거리
             var path = new System.Collections.Generic.List<Vector3>();
             var arc = new System.Collections.Generic.List<float>();
+            var pathTime = new System.Collections.Generic.List<float>();   // 경로 각 점을 지난 기록 시각 (카메라 각도 되감기용)
+            float newestTime = SnapshotAt(count - 1).time;
             if (followRecordedPath && count >= 2)
             {
-                path.Add(fromPos); arc.Add(0f);
+                path.Add(fromPos); arc.Add(0f); pathTime.Add(newestTime);
                 for (int i = count - 1; i >= 0; i--)
                 {
                     Vector3 p = SnapshotAt(i).position;
@@ -429,8 +437,9 @@ namespace NGH
                     if (d < 0.001f) continue;
                     arc.Add(arc[arc.Count - 1] + d);
                     path.Add(p);
+                    pathTime.Add(SnapshotAt(i).time);
                 }
-                if (Vector3.Distance(path[path.Count - 1], target.position) > 0.001f) { arc.Add(arc[arc.Count - 1] + Vector3.Distance(path[path.Count - 1], target.position)); path.Add(target.position); }
+                if (Vector3.Distance(path[path.Count - 1], target.position) > 0.001f) { arc.Add(arc[arc.Count - 1] + Vector3.Distance(path[path.Count - 1], target.position)); path.Add(target.position); pathTime.Add(target.time); }
             }
             bool usePath = path.Count >= 2 && arc[arc.Count - 1] > 0.01f;
             System.Func<float, Vector3> along = u =>
@@ -441,8 +450,19 @@ namespace NGH
                 while (k < arc.Count - 2 && arc[k + 1] < s) k++;
                 return Vector3.Lerp(path[k], path[k + 1], Mathf.InverseLerp(arc[k], arc[k + 1], s));
             };
+            // 진행도 u 에서 플레이어가 지나고 있는 지점의 기록 시각 (경로가 없으면 시간으로 곧장)
+            System.Func<float, float> timeAt = u =>
+            {
+                if (!usePath) return Mathf.Lerp(newestTime, target.time, u);
+                float s = u * arc[arc.Count - 1];
+                int k = 0;
+                while (k < arc.Count - 2 && arc[k + 1] < s) k++;
+                return Mathf.Lerp(pathTime[k], pathTime[k + 1], Mathf.InverseLerp(arc[k], arc[k + 1], s));
+            };
+            bool replayCamera = replayRecordedCamera && playerCamera && target.hasCamera;
+            float camYaw = fromView.x, camPitch = fromView.y;
             RewindTravelProgress = 0f;
-            float camYaw = fromView.x;
+            RewindPathPoint = fromPos;
 
             // 애니메이션: 되돌아가는 동안 공중에 뜬 동작 → 도착 직전에 되돌아갈 시점의 동작으로 섞여 넘어감
             // (뜨는 동작이 없으면 처음부터 바로 되돌아갈 시점의 동작으로)
@@ -469,8 +489,21 @@ namespace NGH
                     float lift = travelLiftHeight * Mathf.SmoothStep(0f, 1f, x / travelLiftPortion)
                                * (1f - Mathf.SmoothStep(0f, 1f, (x - (1f - travelLiftPortion)) / travelLiftPortion));
                     RewindTravelProgress = u;
+                    RewindPathPoint = along(u);
                     transform.SetPositionAndRotation(along(u) + Vector3.up * lift, Quaternion.Slerp(fromRot, target.rotation, u));
-                    if (usePath && cameraLookAlongPath && playerCamera)
+                    if (replayCamera)
+                    {
+                        // 그 지점을 지날 때 보던 카메라 각도를 거꾸로 다시 보여줌 (서 있던 구간을 건너뛸 때 튀지 않게 살짝 부드럽게)
+                        FindPair(timeAt(u), out Snapshot ca, out Snapshot cb, out float cf);
+                        if (ca.hasCamera && cb.hasCamera)
+                        {
+                            float k = 1f - Mathf.Exp(-recordedCameraSharpness * Time.deltaTime);
+                            camYaw = Mathf.LerpAngle(camYaw, Mathf.LerpAngle(ca.cameraYaw, cb.cameraYaw, cf), k);
+                            camPitch = Mathf.Lerp(camPitch, Mathf.Lerp(ca.cameraPitch, cb.cameraPitch, cf), k);
+                            playerCamera.SetViewAngles(camYaw, camPitch);
+                        }
+                    }
+                    else if (usePath && cameraLookAlongPath && playerCamera)
                     {
                         // 카메라가 가는 방향(남은 먹선)을 바라보며 따라감 → 끝부분에서 되돌아갈 시점의 카메라 각도로
                         Vector3 ahead = along(Mathf.Min(1f, u + pathLookAhead)) - along(u);
@@ -484,6 +517,7 @@ namespace NGH
                     yield return null;
                 }
                 RewindTravelProgress = 1f;
+                RewindPathPoint = target.position;
                 transform.SetPositionAndRotation(target.position, target.rotation);
                 if (animate && !landed) BlendToTargetAnimation(target, landBlend);
             }
@@ -544,6 +578,56 @@ namespace NGH
 
         /// <summary>i번째 기록 (0 = 가장 오래된 것)</summary>
         private Snapshot SnapshotAt(int i) => buffer[(head + i) % buffer.Length];
+
+        /// <summary>i번째 기록 (0 = 가장 오래된 것, RecordCount - 1 = 가장 최근). 연출용 — 내용을 바꾸지 말 것</summary>
+        public Snapshot GetSnapshot(int i) => SnapshotAt(Mathf.Clamp(i, 0, count - 1));
+
+        /// <summary>기록 시각 time 의 위치·방향 (앞뒤 기록 사이 보간). 기록이 없으면 false</summary>
+        public bool SampleTransform(float time, out Vector3 position, out Quaternion rotation)
+        {
+            position = transform.position; rotation = transform.rotation;
+            if (count == 0) return false;
+            FindPair(time, out Snapshot a, out Snapshot b, out float f);
+            position = Vector3.Lerp(a.position, b.position, f);
+            rotation = Quaternion.Slerp(a.rotation, b.rotation, f);
+            return true;
+        }
+
+        /// <summary>
+        /// 기록 시각 time 의 애니메이션 자세를 다른 애니메이터(같은 컨트롤러를 쓰는 잔상 등)에 적용한다.
+        /// 대상 애니메이터는 speed 0 으로 두고 매 프레임 부르는 식으로 쓴다 (Update(0) 까지 호출함).
+        /// </summary>
+        public bool SampleAnimatorPose(Animator target, float time)
+        {
+            if (count == 0 || !target || layerCount == 0) return false;
+            FindPair(time, out Snapshot a, out Snapshot b, out float f);
+            for (int i = 0; i < floatParamIds.Length; i++) target.SetFloat(floatParamIds[i], Mathf.Lerp(a.floatParams[i], b.floatParams[i], f));
+            for (int i = 0; i < intParamIds.Length; i++) target.SetInteger(intParamIds[i], a.intParams[i]);
+            for (int i = 0; i < boolParamIds.Length; i++) target.SetBool(boolParamIds[i], a.boolParams[i]);
+            int layers = Mathf.Min(layerCount, target.layerCount);
+            for (int l = 0; l < layers; l++)
+            {
+                if (a.stateHashes[l] == 0) continue;
+                float st = a.stateHashes[l] == b.stateHashes[l] ? Mathf.Lerp(a.stateTimes[l], b.stateTimes[l], f) : a.stateTimes[l];
+                st = a.stateLoops[l] ? Mathf.Repeat(st, 1f) : Mathf.Clamp01(st);
+                target.Play(a.stateHashes[l], l, st);
+            }
+            target.Update(0f);
+            return true;
+        }
+
+        // time 을 감싸는 앞뒤 기록과 보간 비율
+        private void FindPair(float time, out Snapshot a, out Snapshot b, out float f)
+        {
+            int ia = 0;
+            for (int i = count - 1; i >= 0; i--)
+            {
+                if (SnapshotAt(i).time <= time) { ia = i; break; }
+            }
+            int ib = Mathf.Min(ia + 1, count - 1);
+            a = SnapshotAt(ia); b = SnapshotAt(ib);
+            f = b.time > a.time ? Mathf.Clamp01((time - a.time) / (b.time - a.time)) : 0f;
+        }
 
         /// <summary>기록된 위치와 기록 시각(Time.time)을 오래된 것 → 최근 순으로 채움 (먹선 궤적 등 연출용)</summary>
         public void GetRecordedPath(System.Collections.Generic.List<Vector3> positions, System.Collections.Generic.List<float> times)

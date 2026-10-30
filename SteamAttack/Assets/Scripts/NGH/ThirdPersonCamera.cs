@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 namespace NGH
 {
-    /// <summary>3인칭 백사이드뷰 카메라. 마우스로 회전, 락온 시 대상 쪽으로 자동 회전.</summary>
+    /// <summary>3인칭 백사이드뷰 카메라. 마우스로 회전.</summary>
     public class ThirdPersonCamera : MonoBehaviour
     {
         public Transform target;                 // 플레이어
@@ -15,7 +15,6 @@ namespace NGH
         [Tooltip("외부 조준 시스템의 감도 배율입니다. 1이면 기존 감도, 낮추면 마우스 회전이 느려집니다. (병합 — YPH 조준 배율 연결용)")]
         public float SensitivityMultiplier = 1f;
         public float minPitch = -25f, maxPitch = 60f;
-        public float lockOnTurnSpeed = 8f;
         public float collisionRadius = 0.15f;
 
         float _yaw, _pitch = 15f;
@@ -57,19 +56,8 @@ namespace NGH
             }
 
             Vector3 pivot = target.position + Vector3.up * pivotHeight;
-            var lockT = player ? player.LockTarget : null;
 
-            if (lockT)
-            {
-                // 플레이어 뒤에서 대상을 바라보도록
-                Vector3 to = lockT.AimPoint - pivot;
-                float wantYaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
-                float wantPitch = Mathf.Clamp(-Mathf.Atan2(to.y, new Vector2(to.x, to.z).magnitude) * Mathf.Rad2Deg + 12f, minPitch, maxPitch);
-                float k = 1f - Mathf.Exp(-lockOnTurnSpeed * Time.deltaTime);
-                _yaw = Mathf.LerpAngle(_yaw, wantYaw, k);
-                _pitch = Mathf.Lerp(_pitch, wantPitch, k);
-            }
-            else if (!guideOpen && mouse != null && Cursor.lockState == CursorLockMode.Locked)
+            if (!guideOpen && mouse != null && Cursor.lockState == CursorLockMode.Locked)
             {
                 Vector2 d = mouse.delta.ReadValue() * mouseSensitivity * SensitivityMultiplier;
                 _yaw += d.x;

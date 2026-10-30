@@ -47,7 +47,7 @@ Material:
     - _TailWidth: 1
     - _TaperLen: 0.05
     - _Wet: 0.35
-    - _Width: 0.9
+    - _Width: 1.17
     m_Colors:
     - _AccentColor: {r: 0.85, g: 0.15999997, b: 0.079999976, a: 0}
     - _InkColor: {r: 0.035, g: 0.035, b: 0.045, a: 1}

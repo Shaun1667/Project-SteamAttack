@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e53396d4db6d3c34e9eacb20f4f7513c, type: 3}
+  m_Name: NGH_SfxLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.NghSfxLibrary
+  swordHit:
+    clips:
+    - {fileID: 8300000, guid: 1a0ad267d43affb49afdc7a12c552da5, type: 3}
+    - {fileID: 8300000, guid: df161f924aed22942a4812c630b54b85, type: 3}
+    - {fileID: 8300000, guid: 93d736a53d6ea8b4f8a46110aa5f0411, type: 3}
+    - {fileID: 8300000, guid: 29175006acdcb8349afae6a21a67c892, type: 3}
+    - {fileID: 8300000, guid: 011e1e13032b78f4ba8108902fd9d004, type: 3}
+    - {fileID: 8300000, guid: cbae8223d17b33d48848f3cf8f571d4c, type: 3}
+    - {fileID: 8300000, guid: 558fda8707619d24a8fd7d7b215c124c, type: 3}
+    volume: 0.75
+    pitchJitter: 0.06
+  rollCloth:
+    clips:
+    - {fileID: 8300000, guid: e75642d14ddf5524cab4b0254101986b, type: 3}
+    - {fileID: 8300000, guid: d310baf669a3a864d9fd2c817683d850, type: 3}
+    - {fileID: 8300000, guid: fd54e27cc69eccf4e891539ba52fe740, type: 3}
+    volume: 0.6
+    pitchJitter: 0.06
+  bowPull:
+    clips:
+    - {fileID: 8300000, guid: 01a29ee23134a0b40bce8fdd7bc51a4a, type: 3}
+    - {fileID: 8300000, guid: 9eb205a104f053e41b0f088a03cbab95, type: 3}
+    - {fileID: 8300000, guid: 1d5c129e4aa177a4692a05f9678e8973, type: 3}
+    - {fileID: 8300000, guid: 19a5d620b152ce94ea99d716130b22f4, type: 3}
+    volume: 0.7
+    pitchJitter: 0.06
+  arrowWhoosh:
+    clips:
+    - {fileID: 8300000, guid: ec03b3650276e434cab6608f946c6268, type: 3}
+    volume: 0.7
+    pitchJitter: 0.06
+  arrowImpact:
+    clips:
+    - {fileID: 8300000, guid: 87d47f6be9ad6d648acddae0fffb9ed2, type: 3}
+    volume: 0.75
+    pitchJitter: 0.06
+  bossStomp:
+    clips:
+    - {fileID: 8300000, guid: 93e78193826fb0e4d91dd4e63f81c76e, type: 3}
+    - {fileID: 8300000, guid: b57704d61f4388c449f57cfcf13ad52c, type: 3}
+    volume: 0.75
+    pitchJitter: 0.06
+  bossBreath:
+    clips:
+    - {fileID: 8300000, guid: f9d7801f4d24328428ec058d23feb453, type: 3}
+    - {fileID: 8300000, guid: 9187c638337b6d841a750d918458847d, type: 3}
+    volume: 0.9
+    pitchJitter: 0.06
+  ambientLoop: {fileID: 8300000, guid: 05f3eade4c88bc447aaecd4e6cd68de7, type: 3}
+  ambientVolume: 0.35
