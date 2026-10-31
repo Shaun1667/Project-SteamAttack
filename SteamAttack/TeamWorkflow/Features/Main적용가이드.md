@@ -162,7 +162,7 @@ Main에 없는 것은 **머리 연결(`Head`)** 입니다. YPH 시험 씬에는 
 
 ## 8. 옛 `Enemy` 오브젝트 정리 (5번)
 
-`Main`에 이름이 `Enemy`인 오브젝트가 있습니다(위치 0,1,0, `EnemyAI`·`EnemyMotor` 붙음). YPH가 `EnemyAI`를 역할별 컴포넌트로 나누기 전 설정으로 저장된 적입니다. NGH에게 보낸 [요청](../Requests/진행/NGH_요청_20261015_기존EnemyAI적교체.md)이 아직 진행 상태입니다. 삭제하거나 `Prefabs/YPH/Enemy/YPH_MutantSoldier.prefab`으로 바꾸면 됩니다. 정식 배치는 `NMJ_EnemySpawns`가 하므로 삭제가 단순합니다.
+`Main`에 이름이 `Enemy`인 오브젝트가 있습니다(위치 0,1,0, `EnemyAI`·`EnemyMotor` 붙음). YPH가 `EnemyAI`를 역할별 컴포넌트로 나누기 전 설정으로 저장된 적입니다. NGH에게 보낸 [요청](../Requests/완료/NGH_요청_20261015_기존EnemyAI적교체.md)이 아직 진행 상태입니다. 삭제하거나 `Prefabs/YPH/Enemy/YPH_MutantSoldier.prefab`으로 바꾸면 됩니다. 정식 배치는 `NMJ_EnemySpawns`가 하므로 삭제가 단순합니다.
 
 ## 9. 새 총 이펙트 (6번)
 

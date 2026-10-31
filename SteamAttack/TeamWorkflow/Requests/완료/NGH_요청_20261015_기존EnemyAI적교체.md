@@ -8,7 +8,7 @@
 | 우선순위 | 🟡 보통 |
 | 희망 기한 | 2026-10-21 (기능 마감, D-091) |
 | 관련 기획서 | `Design/적/일반몬스터.md` (D-045, D-052) |
-| 상태 | 요청됨 |
+| 상태 | 완료 |
 
 ## 1. 한 줄 요약
 
@@ -82,3 +82,4 @@ YPH가 `EnemyAI`(2,170줄)를 역할별 컴포넌트로 나누면서 설정값�
 | 날짜 | 처리자 | 결과 | 비고 |
 |---|---|---|---|
 | 2026-10-20 | YPH | 재확인: 일부 남음 | YPH 적 프리팹 배치는 NMJ가 `NMJ_EnemySpawns`로 처리(NMJ `16e4aa5`). 그러나 `Main`에 프리팹이 아닌 옛 `EnemyAI` 적 1마리가 남아 있음(`9082bf7`·NMJ `4ec7dc6` 모두). 이 적에는 `EnemyMeleeAttack`이 없어 공격하지 못함. `NGH_EnemyTest`도 같은 적 1마리. 교체 없이 **삭제**만 하면 됨 |
+| 2026-10-31 | NGH | 완료 | `Main`의 `Merge_TestArea/NGH_EnemyZone/Enemy`, `NGH_EnemyTest`의 `Enemy`(프리팹 아닌 옛 `EnemyAI` 적)를 삭제하고 저장. 두 씬에 프리팹 밖 `EnemyAI` 참조 0개 확인. Play 확인은 미실행 |
