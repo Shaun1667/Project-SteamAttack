@@ -59,6 +59,8 @@ namespace NGH
         public System.Func<bool> HeavyAttackGate { get; set; }
         /// <summary>원거리 장비로 좌클릭했을 때 사격 동작을 시작해도 되는지 묻습니다. false면 사격 동작을 시작하지 않습니다. 비어 있으면 항상 허용합니다. (병합 — YPH 화승총 발사 가능 확인용)</summary>
         public System.Func<Weapon, bool> ShotGate { get; set; }
+        /// <summary>Shift를 눌렀을 때 달려도 되는지 묻습니다. false면 걷기 속도·동작을 씁니다. 비어 있으면 항상 허용합니다. (병합 — YPH 조준 중 달리기 막기용)</summary>
+        public System.Func<bool> SprintGate { get; set; }
 
         [Header("이동 속도 (m/s)")]
         public float walkSpeed = 0.7f;
@@ -324,7 +326,8 @@ namespace NGH
 
             // ---------- 입력
             Vector2 input = ReadMoveInput();
-            bool run = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
+            bool run = (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed)
+                && (SprintGate == null || SprintGate());
 
             if (debugHitKeys)
             {
