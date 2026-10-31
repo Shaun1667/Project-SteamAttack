@@ -54,7 +54,7 @@ namespace YPH
         private Color[] baseColors;
         private Coroutine flashRoutine;
         // NGH.Damageable이 만드는 표식 이름과 같아야 몸 숨김에서 제외됩니다. 담당자와 함께 변경하세요.
-        private const string LockMarkerName = "chg_LockMarker";
+        private const string LockMarkerName = "NGH_LockMarker";
 
         private void Awake()
         {

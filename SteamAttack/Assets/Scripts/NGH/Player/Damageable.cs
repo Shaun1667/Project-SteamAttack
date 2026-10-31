@@ -51,7 +51,7 @@ namespace NGH
             }
 
             // 락온 표시용 작은 구 (UI 대신 월드 오브젝트) — 오브젝트 풀에서 꺼냄
-            _marker = ObjectPool.Spawn("chg_LockMarker", CreateMarker, transform);
+            _marker = ObjectPool.Spawn("NGH_LockMarker",CreateMarker, transform);
             if (_marker)
             {
                 _marker.transform.localPosition = Vector3.up * markerHeight / Mathf.Max(0.01f, transform.lossyScale.y);

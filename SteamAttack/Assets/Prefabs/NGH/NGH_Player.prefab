@@ -38493,7 +38493,7 @@ GameObject:
   - component: {fileID: 9123538673224798437}
   - component: {fileID: 3350934367433199176}
   m_Layer: 0
-  m_Name: chg_sword
+  m_Name: HeroSword
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
