@@ -1,0 +1,19 @@
+머리카락 UV 베이크에 사용한 외부 자료
+
+원본: Hair texture
+저작자: Robert Ramsay
+출처: https://opengameart.org/content/hair-texture-1
+라이선스: Creative Commons Attribution 4.0 International (CC BY 4.0)
+라이선스 전문: https://creativecommons.org/licenses/by/4.0/legalcode
+
+변경 내용: 원본의 색상·노멀 텍스처 일부를 추출하고 크기, 대비와 방향을 조절한 뒤
+캐릭터 표면 방향과 굵은 머리 다발을 합성하여 기존 UV에 베이크했습니다.
+결과물: YPH_HairUvBakedSurface.png (결의 명암·노멀),
+         YPH_HairUvBakedFlow.png (결의 방향).
+
+추가 사용 (2026-10-31):
+머리 전용 YPH_HairReferenceSurface.png의 옆머리 노멀과 YPH_HairCurlFibers.png에
+이 자료를 사용했습니다. 색상 대비와 노멀 방향을 정리한 CurlFiberSource.png를
+곡선을 따르는 좌표로 읽어 UV 조각 사이에서도 결이 이어지도록 했습니다.
+YPH_HairCurveCoordinates.png와 방향 맵은 원본 캐릭터의 메시에서 만든 자체 데이터입니다.
+그 밖의 머리 영역은 별도로 만든 AI 시안에서 베이크했습니다.
