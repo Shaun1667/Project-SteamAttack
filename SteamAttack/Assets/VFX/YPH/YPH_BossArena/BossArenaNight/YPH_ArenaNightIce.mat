@@ -106,13 +106,13 @@ Material:
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
-    - _BumpScale: 0.16
+    - _BumpScale: 0.1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
     - _Cutoff: 0.5
-    - _DetailAlbedoMapScale: 0.52
-    - _DetailNormalMapScale: 1
+    - _DetailAlbedoMapScale: 0.08
+    - _DetailNormalMapScale: 0.3
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
@@ -126,7 +126,7 @@ Material:
     - _ReceiveShadows: 1
     - _ScreenSpaceReflections: 1
     - _ScreenSpaceReflectionsContributeTransparent: 1
-    - _Smoothness: 0.78
+    - _Smoothness: 0.64
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
@@ -136,9 +136,9 @@ Material:
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.57627267, g: 0.6292468, b: 0.6981132, a: 1}
-    - _Color: {r: 0.5762726, g: 0.6292468, b: 0.6981132, a: 1}
+    - _BaseColor: {r: 1, g: 0.97, b: 0.85, a: 1}
+    - _Color: {r: 1, g: 0.96999997, b: 0.85, a: 1}
     - _EmissionColor: {r: 0.003, g: 0.006, b: 0.01, a: 1}
-    - _SpecColor: {r: 0.045, g: 0.05, b: 0.055, a: 1}
+    - _SpecColor: {r: 0.065, g: 0.065, b: 0.065, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
