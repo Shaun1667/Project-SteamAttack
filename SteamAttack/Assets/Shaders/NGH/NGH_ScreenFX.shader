@@ -5,6 +5,7 @@
 // - _NGH_Shock (0~1 진행도) + _NGH_ShockCenter(화면 uv): 강한 타격 순간 그 자리에서 물결 고리가 퍼지며 화면이 출렁인다 (ScreenShockwave 가 올림)
 // - _NGH_InkWipe (0~1): 씬 이동 때 먹물이 번져 화면을 덮었다가 걷힌다 (InkTransition 이 올림)
 // - _NGH_ParryFlash (0~1): 받아치기 성공 순간 화면이 잠깐 종이색↔먹색으로 뒤집힌다 (ParryFlash 가 올림)
+// - _NGH_LowHpWash (0~1) + _NGH_LowHpPulse (0~1): HP가 낮으면 화면 색이 바래고 가장자리에 먹빛이 맥박처럼 번진다 (LowHpScreen 이 올림)
 Shader "NGH/ScreenFX"
 {
     Properties
@@ -35,6 +36,12 @@ Shader "NGH/ScreenFX"
         _ParryInk ("반전 때 먹 색 (밝은 곳이 이 색이 됨)", Color) = (0.06, 0.05, 0.05, 1)
         _ParryPivot ("반전 기준 밝기 (이보다 밝으면 먹, 어두우면 종이)", Range(0.02, 0.8)) = 0.2
         _ParryContrast ("반전 대비", Range(0.5, 8)) = 3
+
+        [Header(Low HP)]
+        _LowHpInk ("낮은 HP 가장자리 먹 색", Color) = (0.05, 0.03, 0.03, 1)
+        _LowHpReach ("먹빛이 가장 많이 들어올 때 안쪽까지 오는 정도", Range(0, 1)) = 0.45
+        _LowHpScale ("먹 번짐 무늬 크기", Float) = 2.5
+        _LowHpDesat ("가장 많이 바랬을 때 채도 감소", Range(0, 1)) = 0.7
     }
 
     SubShader
@@ -62,7 +69,9 @@ Shader "NGH/ScreenFX"
             float _InkScale;
             float4 _ParryPaper, _ParryInk;
             float _ParryPivot, _ParryContrast;
-            float _NGH_Frost, _NGH_RedKeep, _NGH_Shock, _NGH_InkWipe, _NGH_ParryFlash;
+            float4 _LowHpInk;
+            float _LowHpReach, _LowHpScale, _LowHpDesat;
+            float _NGH_Frost, _NGH_RedKeep, _NGH_Shock, _NGH_InkWipe, _NGH_ParryFlash, _NGH_LowHpWash, _NGH_LowHpPulse;
             float4 _NGH_ShockCenter;
 
             float2 Hash22(float2 p)
@@ -122,8 +131,10 @@ Shader "NGH/ScreenFX"
                 float shock = _NGH_Shock;
                 float inkWipe = saturate(_NGH_InkWipe);
                 float parryFlash = saturate(_NGH_ParryFlash);
+                float lowWash = saturate(_NGH_LowHpWash);
+                float lowPulse = saturate(_NGH_LowHpPulse);
                 bool shockOn = shock > 0.0 && shock < 1.0;
-                if (frost <= 0.001 && redKeep <= 0.001 && !shockOn && inkWipe <= 0.001 && parryFlash <= 0.001)
+                if (frost <= 0.001 && redKeep <= 0.001 && !shockOn && inkWipe <= 0.001 && parryFlash <= 0.001 && lowWash <= 0.001 && lowPulse <= 0.001)
                     return SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv);
 
                 float aspect = _ScreenParams.x / _ScreenParams.y;
@@ -178,6 +189,19 @@ Shader "NGH/ScreenFX"
                 {
                     float3 iced = lerp(col.rgb, _FrostColor.rgb, 0.5) + crystal * 0.18 * _FrostColor.rgb;
                     col.rgb = lerp(col.rgb, iced, frostMask);
+                }
+
+                // ---------- 낮은 HP: 색 바램 + 가장자리 먹빛 맥박 ----------
+                if (lowWash > 0.001 || lowPulse > 0.001)
+                {
+                    float g = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    col.rgb = lerp(col.rgb, g.xxx, lowWash * _LowHpDesat);
+                    float2 c3 = (uv - 0.5) * float2(aspect, 1.0);
+                    float edge3 = length(c3) / length(float2(aspect, 1.0) * 0.5);   // 가운데 0 ~ 모서리 1
+                    float n3 = NghFbm(sp * _LowHpScale + _Time.y * 0.05);           // 먹이 천천히 번지는 무늬
+                    float th3 = 1.0 - lowPulse * _LowHpReach;                       // 이 값보다 바깥이면 먹
+                    float ink3 = smoothstep(th3 - 0.15, th3 + 0.05, edge3 + (n3 - 0.5) * 0.7);   // 무늬를 크게 섞어 경계를 먹 번짐처럼 들쭉날쭉하게
+                    col.rgb = lerp(col.rgb, _LowHpInk.rgb, ink3 * saturate(lowPulse * 1.2));
                 }
 
                 // ---------- 받아치기 반전 ----------

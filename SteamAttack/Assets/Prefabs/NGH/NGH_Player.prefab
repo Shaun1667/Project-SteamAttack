@@ -11646,6 +11646,7 @@ GameObject:
   - component: {fileID: 9200294875898811981}
   - component: {fileID: 3306988949309448018}
   - component: {fileID: 8970600900621911479}
+  - component: {fileID: 7943710926361575989}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -20385,6 +20386,27 @@ MonoBehaviour:
   strength: 1
   playShockwave: 1
   fallbackHeight: 1.2
+--- !u!114 &7943710926361575989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be0163dde69c4d84faecc40d499651fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.LowHpScreen
+  player: {fileID: 5444686568199331752}
+  startRatio: 0.35
+  fullRatio: 0.1
+  maxWash: 0.6
+  basePulse: 0.25
+  peakPulse: 0.85
+  slowBpm: 60
+  fastBpm: 110
+  blendSpeed: 2
 --- !u!1 &1768426502158964230
 GameObject:
   m_ObjectHideFlags: 0
