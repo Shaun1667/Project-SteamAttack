@@ -11645,6 +11645,7 @@ GameObject:
   - component: {fileID: 8373175216239976316}
   - component: {fileID: 9200294875898811981}
   - component: {fileID: 3306988949309448018}
+  - component: {fileID: 8970600900621911479}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -20365,6 +20366,25 @@ MonoBehaviour:
   fadeIn: 0.4
   hold: 2.2
   fadeOut: 0.9
+--- !u!114 &8970600900621911479
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69fe64e546801cc4f86b68f15a64e28c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.ParryFlash
+  parry: {fileID: 5772974326641473484}
+  shockwave: {fileID: 8373175216239976316}
+  holdTime: 0.05
+  fadeTime: 0.1
+  strength: 1
+  playShockwave: 1
+  fallbackHeight: 1.2
 --- !u!1 &1768426502158964230
 GameObject:
   m_ObjectHideFlags: 0

@@ -4,6 +4,7 @@
 // - _NGH_RedKeep (0~1): 시간이 느려질 때 화면이 흑백이 되고 붉은색만 남는다 (SlowMotionRedKeep 가 올림)
 // - _NGH_Shock (0~1 진행도) + _NGH_ShockCenter(화면 uv): 강한 타격 순간 그 자리에서 물결 고리가 퍼지며 화면이 출렁인다 (ScreenShockwave 가 올림)
 // - _NGH_InkWipe (0~1): 씬 이동 때 먹물이 번져 화면을 덮었다가 걷힌다 (InkTransition 이 올림)
+// - _NGH_ParryFlash (0~1): 받아치기 성공 순간 화면이 잠깐 종이색↔먹색으로 뒤집힌다 (ParryFlash 가 올림)
 Shader "NGH/ScreenFX"
 {
     Properties
@@ -28,6 +29,12 @@ Shader "NGH/ScreenFX"
         [Header(Ink Wipe)]
         _InkColor ("먹물 색", Color) = (0.04, 0.04, 0.05, 1)
         _InkScale ("먹 번짐 무늬 크기", Float) = 3.5
+
+        [Header(Parry Flash)]
+        _ParryPaper ("반전 때 종이 색 (어두운 곳이 이 색이 됨)", Color) = (0.93, 0.89, 0.8, 1)
+        _ParryInk ("반전 때 먹 색 (밝은 곳이 이 색이 됨)", Color) = (0.06, 0.05, 0.05, 1)
+        _ParryPivot ("반전 기준 밝기 (이보다 밝으면 먹, 어두우면 종이)", Range(0.02, 0.8)) = 0.2
+        _ParryContrast ("반전 대비", Range(0.5, 8)) = 3
     }
 
     SubShader
@@ -53,7 +60,9 @@ Shader "NGH/ScreenFX"
             float _ShockWidth, _ShockStrength, _ShockRadius;
             float4 _InkColor;
             float _InkScale;
-            float _NGH_Frost, _NGH_RedKeep, _NGH_Shock, _NGH_InkWipe;
+            float4 _ParryPaper, _ParryInk;
+            float _ParryPivot, _ParryContrast;
+            float _NGH_Frost, _NGH_RedKeep, _NGH_Shock, _NGH_InkWipe, _NGH_ParryFlash;
             float4 _NGH_ShockCenter;
 
             float2 Hash22(float2 p)
@@ -112,8 +121,9 @@ Shader "NGH/ScreenFX"
                 float redKeep = saturate(_NGH_RedKeep);
                 float shock = _NGH_Shock;
                 float inkWipe = saturate(_NGH_InkWipe);
+                float parryFlash = saturate(_NGH_ParryFlash);
                 bool shockOn = shock > 0.0 && shock < 1.0;
-                if (frost <= 0.001 && redKeep <= 0.001 && !shockOn && inkWipe <= 0.001)
+                if (frost <= 0.001 && redKeep <= 0.001 && !shockOn && inkWipe <= 0.001 && parryFlash <= 0.001)
                     return SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv);
 
                 float aspect = _ScreenParams.x / _ScreenParams.y;
@@ -168,6 +178,15 @@ Shader "NGH/ScreenFX"
                 {
                     float3 iced = lerp(col.rgb, _FrostColor.rgb, 0.5) + crystal * 0.18 * _FrostColor.rgb;
                     col.rgb = lerp(col.rgb, iced, frostMask);
+                }
+
+                // ---------- 받아치기 반전 ----------
+                if (parryFlash > 0.001)
+                {
+                    float lum = dot(saturate(col.rgb), float3(0.299, 0.587, 0.114));
+                    lum = saturate((lum - _ParryPivot) * _ParryContrast + 0.5);   // 화면이 어두운 밤이라 기준을 낮춰 먹과 종이가 고루 나오게
+                    float3 flipped = lerp(_ParryPaper.rgb, _ParryInk.rgb, lum);       // 어두운 곳은 종이, 밝은 곳은 먹
+                    col.rgb = lerp(col.rgb, flipped, parryFlash);
                 }
 
                 // ---------- 먹 번짐 전환 ----------

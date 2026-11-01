@@ -30,6 +30,8 @@ Material:
     - _FrostScale: 7
     - _GrayContrast: 1.15
     - _InkScale: 3.5
+    - _ParryContrast: 3
+    - _ParryPivot: 0.2
     - _RedMinSat: 0.3
     - _RedRange: 0.12
     - _ShockRadius: 0.9
@@ -38,6 +40,8 @@ Material:
     m_Colors:
     - _FrostColor: {r: 0.82, g: 0.92, b: 1, a: 1}
     - _InkColor: {r: 0.04, g: 0.04, b: 0.049999982, a: 1}
+    - _ParryInk: {r: 0.059999965, g: 0.049999982, b: 0.049999982, a: 1}
+    - _ParryPaper: {r: 0.93, g: 0.89, b: 0.8, a: 1}
     - _RedHue: {r: 0.8, g: 0.09999997, b: 0.079999976, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
