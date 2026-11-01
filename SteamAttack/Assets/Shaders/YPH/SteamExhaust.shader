@@ -43,17 +43,17 @@ Shader "YPH/SteamExhaust"
             half4 Frag(Varyings i) : SV_Target
             {
                 float2 p=i.uv*2-1;
-                float2 flow=float2(_Time.y*.13,-_Time.y*.19);
+                float2 flow=float2(_Time.y*.09,-_Time.y*.14);
                 float2 warp=float2(Noise(p*2.4+flow),Noise(p*2.4-flow+23))-.5;
                 float2 q=p+warp*.36;
                 float cloud=Billow(q*2.2+flow);
                 float silhouette=1-dot(q,q);
-                // 원형 윤곽을 노이즈로 깎고 내부 농도에 명암을 주어 연기 덩어리를 드러냅니다.
-                float density=smoothstep(.06,.62,silhouette*(cloud*.9+.25));
-                float edge=1-smoothstep(.72,1,dot(p,p));
-                float lighting=saturate(.55+(cloud-Billow(q*2.2+flow+float2(-.25,.32)))*1.5);
+                // 가장자리까지 완만하게 사라지는 농도로 입자 사이의 둥근 경계를 감춥니다.
+                float density=smoothstep(0,.78,silhouette)*lerp(.3,1,smoothstep(.16,.8,cloud));
+                float edge=1-smoothstep(.32,1,dot(p,p));
+                float lighting=saturate(.6+(cloud-Billow(q*2.2+flow+float2(-.25,.32)))*1.25);
                 float3 tint=_BaseColor.rgb*i.color.rgb;
-                float3 rgb=tint*lerp(.48,1.15,lighting)+lighting*.07;
+                float3 rgb=tint*lerp(.68,1.08,lighting)+lighting*.035;
                 return half4(rgb,density*edge*i.color.a*_BaseColor.a);
             }
             ENDHLSL
