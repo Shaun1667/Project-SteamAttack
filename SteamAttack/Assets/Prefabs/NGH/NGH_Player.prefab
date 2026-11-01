@@ -11647,6 +11647,7 @@ GameObject:
   - component: {fileID: 3306988949309448018}
   - component: {fileID: 8970600900621911479}
   - component: {fileID: 7943710926361575989}
+  - component: {fileID: 2095231196208218504}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -20407,6 +20408,38 @@ MonoBehaviour:
   slowBpm: 60
   fastBpm: 110
   blendSpeed: 2
+--- !u!114 &2095231196208218504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04e3e272ea24c3b449403a7391c5d632, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.PathGuide
+  player: {fileID: 5444686568199331752}
+  target: {fileID: 0}
+  targetName: NGH_Portal_ToBossArena_Trigger
+  markerMaterial: {fileID: 2100000, guid: 0bb7915942e1cf046b77548b6bcf40c0, type: 2}
+  showGuide: 1
+  markerCount: 10
+  spacing: 1.6
+  startOffset: 1.2
+  markerSize: 0.9
+  filled: 1
+  lineWidth: 0.13
+  heightOffset: 0.08
+  color: {r: 1, g: 0.93, b: 0.6, a: 0.95}
+  farFade: 0.5
+  flowSpeed: 1.2
+  hideWithin: 4
+  repathInterval: 0.25
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &1768426502158964230
 GameObject:
   m_ObjectHideFlags: 0
