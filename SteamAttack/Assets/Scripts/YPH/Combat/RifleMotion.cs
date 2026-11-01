@@ -1,5 +1,7 @@
 using NGH;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace YPH
 {
@@ -29,6 +31,16 @@ namespace YPH
         [SerializeField, Tooltip("실제 사격 방향을 읽을 총입니다. 발사 판정 전에 몸과 총구를 같은 좌우 방향으로 돌립니다. Aim과 함께 연결하세요.")]
         private SteamGun _gun;
 
+        [Header("상황별 클립")]
+        [SerializeField, Tooltip("Rifle 이동 BlendTree의 원래 대기 클립입니다. Idle Aiming과 함께 연결하면 정지 조준 때만 대체하며, 비우면 기존 대기를 유지합니다.")]
+        private AnimationClip _idleClip;
+        [SerializeField, Tooltip("이동 입력 없이 조준할 때 재생할 반복 클립입니다. Rifle Idle Aiming을 연결하고, 비우면 기존 대기를 유지합니다.")]
+        private AnimationClip _idleAimingClip;
+        [SerializeField, Tooltip("RifleShoot 상태의 원래 사격 클립입니다. Run Shoot과 함께 연결하면 달리며 사격할 때만 대체합니다.")]
+        private AnimationClip _walkShootClip;
+        [SerializeField, Tooltip("이동 입력과 Shift를 누르며 사격할 때 재생할 클립입니다. Rifle Run Shoot을 연결하며, 비우면 원래 사격을 유지합니다.")]
+        private AnimationClip _runShootClip;
+
         [Header("상체 모션")]
         [SerializeField, Tooltip("상체 레이어 이름입니다. Animator와 다르면 경고 후 이 컴포넌트를 끕니다.")]
         private string _layerName = "Rifle";
@@ -47,6 +59,32 @@ namespace YPH
         private int _shootHash;
         private int _parryHash;
         private TimeRewind _rewind;
+        private RuntimeAnimatorController _originalController;
+        private AnimatorOverrideController _runtimeOverrides;
+        private List<KeyValuePair<AnimationClip, AnimationClip>> _clipOverrides;
+        private AnimationClip _originalIdleClip;
+        private AnimationClip _originalShootClip;
+        private int _idleOverrideIndex = -1;
+        private int _shootOverrideIndex = -1;
+        private bool _isStationaryAiming;
+
+        public bool IsStationaryAiming => _isStationaryAiming;
+
+        /// <summary>현재 조준점·광선 방향·전환 비율을 읽습니다. 다른 행동이 우선이면 자세 보정을 허용하지 않습니다.</summary>
+        public bool TryGetAimPose(out Vector3 point, out Vector3 direction, out float weight)
+        {
+            point = direction = Vector3.zero;
+            weight = 0f;
+            if (!isActiveAndEnabled || !CanFaceAim())
+            {
+                return false;
+            }
+            bool shooting = _player.CurrentAction == PlayerController.ActionState.Shot;
+            weight = shooting ? 1f : _aim.AimBlend;
+            direction = _gun.AimDirection;
+            return weight > 0.001f && direction.sqrMagnitude > MinFacingDirectionSqr
+                && _gun.TryGetAimPoint(out point);
+        }
 
         /// <summary>매 프레임 찾지 않도록 연결과 상태 번호를 시작할 때 준비합니다.</summary>
         private void Awake()
@@ -93,6 +131,7 @@ namespace YPH
             {
                 return;
             }
+            InitializeClipOverrides();
             _player.ShotStarted += OnShotStarted;
             _parry.ParryAttempted += OnParryAttempted;
             if (_gun != null)
@@ -106,6 +145,109 @@ namespace YPH
         {
             float target = IsHoldingRifle() ? 1f : 0f;
             _animator.SetLayerWeight(_layerIndex, Mathf.MoveTowards(_animator.GetLayerWeight(_layerIndex), target, _blendSpeed * Time.deltaTime));
+            UpdateStationaryAiming();
+        }
+
+        /// <summary>공유 Animator는 편집하지 않고 이 플레이어만 사용할 클립 교체를 준비합니다.</summary>
+        private void InitializeClipOverrides()
+        {
+            if (_runtimeOverrides != null || _animator.runtimeAnimatorController == null
+                || ((_idleClip == null || _idleAimingClip == null) && (_walkShootClip == null || _runShootClip == null)))
+            {
+                return;
+            }
+            _originalController = _animator.runtimeAnimatorController;
+            _runtimeOverrides = new AnimatorOverrideController(_originalController);
+            _runtimeOverrides.name = "RifleMotion 실행 클립";
+            _clipOverrides = new List<KeyValuePair<AnimationClip, AnimationClip>>(_runtimeOverrides.overridesCount);
+            _runtimeOverrides.GetOverrides(_clipOverrides);
+            for (int i = 0; i < _clipOverrides.Count; i++)
+            {
+                KeyValuePair<AnimationClip, AnimationClip> pair = _clipOverrides[i];
+                if (pair.Key == _idleClip && _idleAimingClip != null)
+                {
+                    _idleOverrideIndex = i;
+                    _originalIdleClip = pair.Value != null ? pair.Value : pair.Key;
+                }
+                if (pair.Key == _walkShootClip && _runShootClip != null)
+                {
+                    _shootOverrideIndex = i;
+                    _originalShootClip = pair.Value != null ? pair.Value : pair.Key;
+                }
+            }
+            _animator.runtimeAnimatorController = _runtimeOverrides;
+        }
+
+        /// <summary>정지 조준일 때만 대기 클립을 바꿉니다. 사격·패링·다른 행동의 상태 전환은 유지합니다.</summary>
+        private void UpdateStationaryAiming()
+        {
+            if (_idleOverrideIndex < 0)
+            {
+                return;
+            }
+            bool aiming = CanFaceAim() && _aim.IsAiming
+                && _player.CurrentAction == PlayerController.ActionState.None && !HasMovementInput()
+                && _animator.GetCurrentAnimatorStateInfo(_layerIndex).fullPathHash != _parryHash
+                && (!_animator.IsInTransition(_layerIndex)
+                    || _animator.GetNextAnimatorStateInfo(_layerIndex).fullPathHash != _parryHash);
+            if (aiming == _isStationaryAiming)
+            {
+                return;
+            }
+            _isStationaryAiming = aiming;
+            if (SetClipOverride(_idleOverrideIndex, aiming ? _idleAimingClip : _originalIdleClip))
+            {
+                _runtimeOverrides.ApplyOverrides(_clipOverrides);
+            }
+        }
+
+        /// <summary>이동 코드와 같은 WASD 합산을 사용해 벽에 막혀도 이동 입력을 올바르게 판정합니다.</summary>
+        private static bool HasMovementInput()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null)
+            {
+                return false;
+            }
+            int horizontal = (keyboard.dKey.isPressed ? 1 : 0) - (keyboard.aKey.isPressed ? 1 : 0);
+            int vertical = (keyboard.wKey.isPressed ? 1 : 0) - (keyboard.sKey.isPressed ? 1 : 0);
+            return horizontal != 0 || vertical != 0;
+        }
+
+        /// <summary>실제로 바뀐 클립만 기록합니다. 목록을 재사용해 매 프레임 바인딩을 만들지 않습니다.</summary>
+        private bool SetClipOverride(int index, AnimationClip clip)
+        {
+            if (index < 0 || _clipOverrides[index].Value == clip)
+            {
+                return false;
+            }
+            _clipOverrides[index] = new KeyValuePair<AnimationClip, AnimationClip>(_clipOverrides[index].Key, clip);
+            return true;
+        }
+
+        /// <summary>비활성화·Play 종료 때 원본 연결로 돌려 임시 Controller가 씬에 남지 않게 합니다.</summary>
+        private void ReleaseClipOverrides()
+        {
+            if (_runtimeOverrides != null)
+            {
+                if (_animator != null && _animator.runtimeAnimatorController == _runtimeOverrides)
+                {
+                    _animator.runtimeAnimatorController = _originalController;
+                }
+                if (Application.isPlaying)
+                {
+                    Destroy(_runtimeOverrides);
+                }
+                else
+                {
+                    DestroyImmediate(_runtimeOverrides);
+                }
+            }
+            _runtimeOverrides = null;
+            _originalController = null;
+            _clipOverrides = null;
+            _idleOverrideIndex = _shootOverrideIndex = -1;
+            _isStationaryAiming = false;
         }
 
         /// <summary>이동 회전과 카메라 갱신이 끝난 뒤 조준 방향을 맞춥니다. 조준을 풀어도 진행 중인 사격 모션은 같은 기준을 씁니다.</summary>
@@ -165,6 +307,7 @@ namespace YPH
             {
                 _animator.SetLayerWeight(_layerIndex, 0f);
             }
+            ReleaseClipOverrides();
         }
 
         /// <summary>총 장착뿐 아니라 발도·교체·행동 상태까지 같은 기준으로 검사합니다.</summary>
@@ -172,7 +315,7 @@ namespace YPH
         {
             return _player.IsDrawn && !_weapons.IsSwapping && _weapons.Current != null && !_weapons.Current.isMelee
                 && !_player.IsDead && !_player.IsStandingUp && !_player.IsHitReacting
-                && _player.CurrentAction != PlayerController.ActionState.Roll;
+                && (_player.CurrentAction == PlayerController.ActionState.None || _player.CurrentAction == PlayerController.ActionState.Shot);
         }
 
         /// <summary>원거리 사격 신호만 상체 사격으로 바꾸며, 피해 판정은 기존 SteamGun이 맡습니다.</summary>
@@ -180,6 +323,16 @@ namespace YPH
         {
             if (weapon != null && !weapon.isMelee && IsHoldingRifle())
             {
+                Keyboard keyboard = Keyboard.current;
+                bool running = HasMovementInput() && keyboard != null
+                    && (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
+                _isStationaryAiming = false;
+                bool changed = SetClipOverride(_idleOverrideIndex, _originalIdleClip);
+                changed |= SetClipOverride(_shootOverrideIndex, running ? _runShootClip : _originalShootClip);
+                if (changed)
+                {
+                    _runtimeOverrides.ApplyOverrides(_clipOverrides);
+                }
                 _animator.CrossFadeInFixedTime(_shootHash, _crossFade, _layerIndex);
             }
         }
