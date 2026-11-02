@@ -200,17 +200,13 @@ namespace NGH
     public sealed class ReviewedPlayerAudio : MonoBehaviour
     {
         private PlayerController player;
-        private CharacterController controller;
         private int serial = -1;
         private PlayerController.ActionState previousAction;
-        private float nextStep;
         private float nextHeartbeat;
-        private bool alternate;
 
         private void Awake()
         {
             player = GetComponent<PlayerController>();
-            controller = GetComponent<CharacterController>();
         }
 
         private void Update()
@@ -219,8 +215,6 @@ namespace NGH
             var action = player.CurrentAction;
             if (action != previousAction && action == PlayerController.ActionState.Death)
                 ReviewedAudio.Play("AdditionalReview/31_PlayerDeath_v01_from_3s");
-            if (previousAction == PlayerController.ActionState.Roll && action == PlayerController.ActionState.None)
-                nextStep = Time.time + 0.15f;
             previousAction = action;
             if (serial != player.ActionSerial)
             {
@@ -254,25 +248,7 @@ namespace NGH
                 nextHeartbeat = Time.time + 2f;
                 ReviewedAudio.Play("Initial/06_Player/LowHealth_v01", 0.7f);
             }
-            if (!controller || !controller.isGrounded || action != PlayerController.ActionState.None || Time.time < nextStep) return;
-            Vector3 velocity = controller.velocity; velocity.y = 0f;
-            float speed = velocity.magnitude;
-            if (speed < 0.15f) return;
-            bool running = speed > Mathf.Max(1.5f, player.runSpeed * 0.65f);
-            nextStep = Time.time + (running ? 0.34f : 0.65f);
-            string step;
-            if (Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down, out var hit, 1.5f,
-                ~0, QueryTriggerInteraction.Ignore) && hit.collider &&
-                (hit.collider.name.ToLowerInvariant().Contains("stone") || hit.collider.name.Contains("박석")))
-                step = "Revision/03_StoneStep_v01";
-            else if (running) step = "Initial/01_Movement/SFX_SnowRun_01";
-            else
-            {
-                alternate = !alternate;
-                step = alternate ? "Initial/01_Movement/SFX_Player_Walk_Snow_L_01" : "Initial/01_Movement/SFX_Player_Walk_Snow_R_01";
-            }
-            ReviewedAudio.Play(step, 0.8f);
-            if (running) ReviewedAudio.Play("Revision/07_PackRun_v01", 0.45f);
+            // 걷기·달리기 발자국 소리(와 달릴 때 가방 흔들리는 소리)는 뺐습니다 (2026-11-02 요청)
         }
     }
 }
