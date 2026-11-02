@@ -45726,6 +45726,26 @@ PrefabInstance:
       propertyPath: 'm_Bones.Array.data[88]'
       value: 
       objectReference: {fileID: 1632326598537479904}
+    - target: {fileID: 7190477142046049571, guid: 02358f59a42e9df47a72c4ee767962b0, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: c8d56d7452436054b9943092cd34b31d, type: 2}
+    - target: {fileID: 7190477142046049571, guid: 02358f59a42e9df47a72c4ee767962b0, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: c68aaaf0c86be0f49a95787a0fe0e36c, type: 2}
+    - target: {fileID: 7190477142046049571, guid: 02358f59a42e9df47a72c4ee767962b0, type: 3}
+      propertyPath: 'm_Materials.Array.data[2]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 1d1425112e0254a4abc26f833fe69868, type: 2}
+    - target: {fileID: 8125863218138536561, guid: 02358f59a42e9df47a72c4ee767962b0, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.00047391653
+      objectReference: {fileID: 0}
+    - target: {fileID: 8125863218138536561, guid: 02358f59a42e9df47a72c4ee767962b0, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.06760752
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -46038,6 +46058,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: -0.072
       objectReference: {fileID: 0}
+    - target: {fileID: 3255518145325264043, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6025444451656667794, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -46069,6 +46093,10 @@ PrefabInstance:
     - target: {fileID: 8299038887259130098, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
       propertyPath: InitialModule.startRotationY.minMaxState
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8307655831002322207, guid: 1e9f6beb11c5d3d478f52dfd4a8f2c87, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -107,8 +107,7 @@ namespace YPH
             if (isActiveAndEnabled && _state == State.Ready && _tank != null && !_tank.CanConsume(_steamCostPerShot))
             {
                 // 증기가 모자랄 때만 부르므로 소비되지 않고 실패 신호만 남습니다. 재장전 중에는 탱크를 건드리지 않습니다.
-                _tank.TryConsume(_steamCostPerShot);
-                NGH.ReviewedAudio.Play("Initial/04_Steam/SFX_GunEmpty_01");
+                _tank.TryConsume(_steamCostPerShot);   // 증기 부족 소리는 뺐습니다 (NGH, 2026-11-02 요청)
             }
             OnFireBlocked?.Invoke();
         }

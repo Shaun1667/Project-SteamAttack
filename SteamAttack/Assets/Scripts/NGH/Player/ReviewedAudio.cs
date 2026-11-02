@@ -199,20 +199,34 @@ namespace NGH
     [DisallowMultipleComponent]
     public sealed class ReviewedPlayerAudio : MonoBehaviour
     {
+        private const float RollFadeOut = 0.08f;
         private PlayerController player;
         private int serial = -1;
         private PlayerController.ActionState previousAction;
         private float nextHeartbeat;
+        // 구르기 소리는 구르기가 끝나면 멈춰야 해서 따로 재생 (PlayOneShot 은 도중에 멈출 수 없음)
+        private AudioSource rollSource;
+        private float rollVolume;
 
         private void Awake()
         {
             player = GetComponent<PlayerController>();
+            rollSource = gameObject.AddComponent<AudioSource>();
+            rollSource.playOnAwake = false;
+            rollSource.spatialBlend = 0f;
+            rollSource.clip = Resources.Load<AudioClip>("NGH/VARCO_Reviewed/Initial/01_Movement/SFX_SnowRoll_03");
         }
 
         private void Update()
         {
             if (!player || !player.isActiveAndEnabled || Time.timeScale <= 0f) return;
             var action = player.CurrentAction;
+            // 구르기가 끝나면 (다른 동작으로 넘어가거나 다시 서면) 구르기 소리를 짧게 줄이며 멈춤
+            if (rollSource.isPlaying && action != PlayerController.ActionState.Roll)
+            {
+                rollSource.volume = Mathf.MoveTowards(rollSource.volume, 0f, rollVolume * Time.unscaledDeltaTime / RollFadeOut);
+                if (rollSource.volume <= 0f) rollSource.Stop();
+            }
             if (action != previousAction && action == PlayerController.ActionState.Death)
                 ReviewedAudio.Play("AdditionalReview/31_PlayerDeath_v01_from_3s");
             previousAction = action;
@@ -222,7 +236,12 @@ namespace NGH
                 switch (action)
                 {
                     case PlayerController.ActionState.Roll:
-                        ReviewedAudio.Play("Initial/01_Movement/SFX_SnowRoll_03");
+                        if (rollSource.clip)
+                        {
+                            rollVolume = 1f;
+                            rollSource.volume = rollVolume;
+                            rollSource.Play();
+                        }
                         break;
                     case PlayerController.ActionState.Draw:
                         ReviewedAudio.Play(player.weapons && player.weapons.Current && !player.weapons.Current.isMelee

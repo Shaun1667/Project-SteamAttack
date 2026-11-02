@@ -26,6 +26,7 @@ namespace NGH
 
         readonly HashSet<PlayerController> players = new HashSet<PlayerController>();
         readonly Dictionary<PlayerController, PlayerController.ActionState> lastAction = new Dictionary<PlayerController, PlayerController.ActionState>();
+        readonly Dictionary<PlayerController, (AudioSource src, AudioClip clip)> rollSources = new Dictionary<PlayerController, (AudioSource, AudioClip)>();
         readonly HashSet<EnemyRangedAttack> archers = new HashSet<EnemyRangedAttack>();
         readonly Dictionary<BossBreathAttack, bool> breaths = new Dictionary<BossBreathAttack, bool>();
 
@@ -73,14 +74,27 @@ namespace NGH
             if (!lib) return;
             if (Time.unscaledTime >= nextScan) { nextScan = Time.unscaledTime + 1f; Scan(); }
 
-            // 구르기 시작
+            // 구르기 시작 → 옷 소리, 구르기가 끝나면 그 소리를 짧게 줄이며 멈춤
             foreach (var p in players)
             {
                 if (!p) continue;
                 var a = p.CurrentAction;
                 lastAction.TryGetValue(p, out var prev);
                 if (a == PlayerController.ActionState.Roll && prev != PlayerController.ActionState.Roll)
-                    Play(lib.rollCloth, p.transform.position + Vector3.up, false);
+                {
+                    var src = Play(lib.rollCloth, p.transform.position + Vector3.up, false);
+                    if (src) rollSources[p] = (src, src.clip);
+                }
+                else if (a != PlayerController.ActionState.Roll && rollSources.TryGetValue(p, out var roll))
+                {
+                    var rs = roll.src;
+                    if (rs && rs.isPlaying && rs.clip == roll.clip)   // 돌려 쓰는 소스가 이미 다른 소리를 내면 건드리지 않음
+                    {
+                        rs.volume = Mathf.MoveTowards(rs.volume, 0f, Time.unscaledDeltaTime / 0.08f);
+                        if (rs.volume <= 0f) { rs.Stop(); rollSources.Remove(p); }
+                    }
+                    else rollSources.Remove(p);
+                }
                 lastAction[p] = a;
             }
 
@@ -166,12 +180,12 @@ namespace NGH
 
         void OnArrowHit(Vector3 pos, bool hitPlayer) => Play(lib.arrowImpact, pos, true);
 
-        // 3D 위치 소리(spatial) 또는 화면 소리. AudioSource 를 돌려 쓴다
-        void Play(NghSfxLibrary.Sound s, Vector3 pos, bool spatial)
+        // 3D 위치 소리(spatial) 또는 화면 소리. AudioSource 를 돌려 쓴다 (재생한 소스를 돌려줌, 못 내면 null)
+        AudioSource Play(NghSfxLibrary.Sound s, Vector3 pos, bool spatial)
         {
-            if (s == null || !lib) return;
+            if (s == null || !lib) return null;
             var clip = s.Pick();
-            if (!clip) return;
+            if (!clip) return null;
             AudioSource src = null;
             foreach (var a in pool) if (!a.isPlaying) { src = a; break; }
             if (!src)
@@ -196,6 +210,7 @@ namespace NGH
             src.clip = clip;
             src.volume = s.volume;
             src.Play();
+            return src;
         }
     }
 }
