@@ -209,6 +209,84 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1249324}
   m_Mesh: {fileID: 4300000, guid: 67848cf7d65f16d44b0679b8507a24ef, type: 2}
+--- !u!1001 &1645429
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1097871046}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.8280594
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.8280594
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.8280594
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -3.0594542
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.61159027
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 79.55008
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.12278785
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.12278785
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.6963643
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.6963643
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: b2ba4dbf3313991468be4b91f12481ba, type: 2}
+    - target: {fileID: 919132149155446097, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+      propertyPath: m_Name
+      value: VARCO_PR_FrozenVillager_Eunuch
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+--- !u!4 &1645430 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0612389175b26b848b7dc8c107219ce0, type: 3}
+  m_PrefabInstance: {fileID: 1645429}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2100264
 GameObject:
   m_ObjectHideFlags: 0
@@ -136039,6 +136117,84 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 553095805}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1001 &553737843
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1097871046}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.6949475
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.6949475
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.6949475
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3.0595531
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.61776143
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 79.55303
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.122787826
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.122787826
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.6963643
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.6963643
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 3d65bd9de5b9f89439af2ddcba59491b, type: 2}
+    - target: {fileID: 919132149155446097, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+      propertyPath: m_Name
+      value: VARCO_PR_FrozenVillager_CourtLady
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+--- !u!4 &553737844 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 58714e93923d8544e826d53f5c3e0506, type: 3}
+  m_PrefabInstance: {fileID: 553737843}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &554286439
 GameObject:
   m_ObjectHideFlags: 0
@@ -180245,7 +180401,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 2147483647
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &728738080
 Transform:
   m_ObjectHideFlags: 0
@@ -274026,6 +274182,8 @@ Transform:
   - {fileID: 1338147984}
   - {fileID: 1415966762}
   - {fileID: 1878837892}
+  - {fileID: 1645430}
+  - {fileID: 553737844}
   m_Father: {fileID: 754413129}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1097871047
@@ -334709,7 +334867,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 2147483647
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1338147984
 Transform:
   m_ObjectHideFlags: 0
@@ -424551,6 +424709,7 @@ GameObject:
   - component: {fileID: 1692747450}
   - component: {fileID: 1692747452}
   - component: {fileID: 1692747451}
+  - component: {fileID: 1692747453}
   m_Layer: 0
   m_Name: "\uBA48\uCD98 \uB208\uC1A1\uC774 (\uADFC\uACBD, \uAD75\uC740 \uB208)"
   m_TagString: Untagged
@@ -424669,7 +424828,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 1
   looping: 1
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 1
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -426314,7 +426473,7 @@ ParticleSystem:
     collidesWithDynamic: 1
     interiorCollisions: 0
   TriggerModule:
-    enabled: 1
+    enabled: 0
     serializedVersion: 2
     inside: 1
     outside: 0
@@ -426839,6 +426998,21 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!114 &1692747453
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1692747449}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e511d389b13d6e43bd0d962df842475, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.FrozenSnowFill
+  blockers:
+  - {fileID: 524694780}
+  count: 0
 --- !u!1 &1693110281
 GameObject:
   m_ObjectHideFlags: 0
@@ -470794,7 +470968,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 2147483647
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1878837892
 Transform:
   m_ObjectHideFlags: 0
@@ -521263,6 +521437,7 @@ GameObject:
   - component: {fileID: 2087696506}
   - component: {fileID: 2087696508}
   - component: {fileID: 2087696507}
+  - component: {fileID: 2087696509}
   m_Layer: 0
   m_Name: "\uBA48\uCD98 \uB208\uC1A1\uC774 (\uC815\uC9C0\uB41C \uC2DC\uAC04)"
   m_TagString: Untagged
@@ -521381,7 +521556,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 1
   looping: 1
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 1
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -523026,7 +523201,7 @@ ParticleSystem:
     collidesWithDynamic: 1
     interiorCollisions: 0
   TriggerModule:
-    enabled: 1
+    enabled: 0
     serializedVersion: 2
     inside: 1
     outside: 0
@@ -523551,6 +523726,21 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!114 &2087696509
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087696505}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e511d389b13d6e43bd0d962df842475, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.FrozenSnowFill
+  blockers:
+  - {fileID: 524694780}
+  count: 0
 --- !u!1 &2087981613
 GameObject:
   m_ObjectHideFlags: 0
@@ -536895,6 +537085,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: c9b04bacf65e06d4eb2f2646927ff376, type: 3}
       propertyPath: m_Name
       value: CH_Gojong
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: c9b04bacf65e06d4eb2f2646927ff376, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: c9b04bacf65e06d4eb2f2646927ff376, type: 3}
       propertyPath: m_StaticEditorFlags

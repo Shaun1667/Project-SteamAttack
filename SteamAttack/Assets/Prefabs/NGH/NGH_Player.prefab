@@ -18857,7 +18857,7 @@ MonoBehaviour:
   normalLifetime: 3
   normalFadeStart: 2
   tailInk: 0.45
-  bodyFade: 0.35
+  bodyFade: 0
   rewindWidth: 0.14
   spreadPortion: 0.25
   frontBulge: 0.12

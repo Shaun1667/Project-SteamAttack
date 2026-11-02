@@ -420251,6 +420251,7 @@ GameObject:
   - component: {fileID: 1692747450}
   - component: {fileID: 1692747452}
   - component: {fileID: 1692747451}
+  - component: {fileID: 1692747453}
   m_Layer: 0
   m_Name: "\uBA48\uCD98 \uB208\uC1A1\uC774 (\uADFC\uACBD, \uAD75\uC740 \uB208)"
   m_TagString: Untagged
@@ -420369,7 +420370,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 1
   looping: 1
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 1
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -422014,7 +422015,7 @@ ParticleSystem:
     collidesWithDynamic: 1
     interiorCollisions: 0
   TriggerModule:
-    enabled: 1
+    enabled: 0
     serializedVersion: 2
     inside: 1
     outside: 0
@@ -422539,6 +422540,21 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!114 &1692747453
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1692747449}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e511d389b13d6e43bd0d962df842475, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.FrozenSnowFill
+  blockers:
+  - {fileID: 524694780}
+  count: 0
 --- !u!1 &1693110281
 GameObject:
   m_ObjectHideFlags: 0
@@ -516521,6 +516537,7 @@ GameObject:
   - component: {fileID: 2087696506}
   - component: {fileID: 2087696508}
   - component: {fileID: 2087696507}
+  - component: {fileID: 2087696509}
   m_Layer: 0
   m_Name: "\uBA48\uCD98 \uB208\uC1A1\uC774 (\uC815\uC9C0\uB41C \uC2DC\uAC04)"
   m_TagString: Untagged
@@ -516639,7 +516656,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 1
   looping: 1
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 1
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -518284,7 +518301,7 @@ ParticleSystem:
     collidesWithDynamic: 1
     interiorCollisions: 0
   TriggerModule:
-    enabled: 1
+    enabled: 0
     serializedVersion: 2
     inside: 1
     outside: 0
@@ -518809,6 +518826,21 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!114 &2087696509
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087696505}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e511d389b13d6e43bd0d962df842475, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.FrozenSnowFill
+  blockers:
+  - {fileID: 524694780}
+  count: 0
 --- !u!1 &2087981613
 GameObject:
   m_ObjectHideFlags: 0

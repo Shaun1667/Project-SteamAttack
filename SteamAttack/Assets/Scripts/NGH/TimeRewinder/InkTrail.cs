@@ -27,6 +27,10 @@ namespace NGH
         public string bodyBoneName = "Spine1";
         [Tooltip("몸통 뼈를 못 찾았을 때의 높이 (발 기준, m)")]
         public float bodyHeight = 0.62f;
+        [Tooltip("켜면 몸통 뼈 대신 발목 높이에 먹선을 그림 (시간 역행 검은 연기도 이 높이를 따름)")]
+        public bool atAnkle = true;
+        [Tooltip("발목 높이 (발 기준, m)")]
+        public float ankleHeight = 0.15f;
         public Color inkColor = new Color(0.02f, 0.02f, 0.025f, 1f);
 
         [Header("평상시 — 남는 먹선")]
@@ -40,8 +44,8 @@ namespace NGH
         public float normalFadeStart = 2f;
         [Tooltip("꼬리 끝(가장 오래된 지점)에 남는 먹 진하기 — 돌아갈 위치가 보이도록 (0 = 다 사라짐)")]
         [Range(0f, 1f)] public float tailInk = 0.45f;
-        [Tooltip("몸통에서 이 거리(m)까지 가늘게 시작해 굵어짐 (몸에서 뻗어 나오는 느낌)")]
-        public float bodyFade = 0.35f;
+        [Tooltip("몸통에서 이 거리(m)까지 가늘게 시작해 굵어짐 (0 = 처음부터 넓게)")]
+        public float bodyFade = 0f;
 
         [Header("시간 역행 — 짙은 먹선")]
         public float rewindWidth = 0.42f;
@@ -164,7 +168,8 @@ namespace NGH
             // 몸통 높이 (평상시 동작 기준으로 천천히 따라감 — 공격·구르기로 출렁이지 않게)
             if (!_rewinding)
             {
-                float h = bodyBone ? Mathf.Clamp(bodyBone.position.y - transform.position.y, 0.1f, 3f) : bodyHeight;
+                float h = atAnkle ? ankleHeight
+                        : bodyBone ? Mathf.Clamp(bodyBone.position.y - transform.position.y, 0.1f, 3f) : bodyHeight;
                 _bodyOffset = _bodyOffset < 0f ? h : Mathf.Lerp(_bodyOffset, h, 1f - Mathf.Exp(-3f * Time.deltaTime));
             }
             _mat.color = inkColor;
