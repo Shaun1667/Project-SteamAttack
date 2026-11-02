@@ -30,8 +30,8 @@ Material:
     - _FogMax: 0.61
     - _FogStart: 12.5
     - _HeightBase: 2
-    - _HeightFalloff: 0.025
-    - _HeightMin: 0.475
+    - _HeightFalloff: 0.06
+    - _HeightMin: 0.3
     - _RegionFade: 45
     m_Colors:
     - _FogColor: {r: 0.6, g: 0.6399999, b: 0.7, a: 1}
