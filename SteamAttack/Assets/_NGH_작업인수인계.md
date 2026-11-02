@@ -1,4 +1,4 @@
-# NGH 작업 인수인계 (2026-10-30)
+# NGH 작업 인수인계 (2026-10-30, 2026-11-01 갱신)
 
 새 작업 환경에서 이어서 하기 위한 정리입니다. NGH(브랜치 `NGH`) 담당 작업 기준입니다.
 
@@ -39,7 +39,72 @@
 
 ---
 
-## 4. 최근 작업 (최신 커밋 `0849031`, 푸시 안 함)
+## 4. 최근 작업
+
+### 4-0. 2026-11-01 작업 (커밋 `1a6806f` ~ `75fe918`, 이 PC에서 진행)
+
+데모 11/3, 빌드 잠금 11/2 기준으로 진행. **원격 NGH보다 커밋 5개(이 문서 커밋 포함) 앞서 있고 푸시 안 함** (베이크 커밋이 약 1GB라 푸시가 오래 걸림).
+
+**정리·조작**
+| 커밋 | 내용 |
+|---|---|
+| `1a6806f` | Main·NGH_EnemyTest에 남은 옛 EnemyAI 적 삭제 |
+| `dea59cf` | `chg_` 공유 이름 정리 (락온 표식·칼·원본 모델) |
+| `44c4f17` | 화승총 조준 중에는 Shift를 눌러도 걷기 유지 |
+| `a1fe881` | TeamWorkflow 열린 요청 7건 처리 기록 |
+
+**화면 연출** (`NGH_ScreenFX.shader`에 전역 값 추가)
+| 커밋 | 스크립트 / 에셋 | 내용 |
+|---|---|---|
+| `981a7bd` | `Player/ParryFlash.cs` (`_NGH_ParryFlash`) | 받아치기 성공 시 종이↔먹 화면 반전 + 충격파 |
+| `5ce3793` | `Player/LowHpScreen.cs` (`_NGH_LowHpWash`, `_NGH_LowHpPulse`) | HP 낮을 때 색 바램 + 가장자리 먹빛 맥박 |
+| `2c5ab3f` | Main `NGH_LampGlow` | 가로등에 발광 등갓을 더해 렌즈 플레어가 보이게 함 (플레어 0.5 유지) |
+| `b054360` | `NGH_InkCloud.shader`, `M_InkCloud.mat`, Main `NGH_MountainClouds` (판 33장) | 먼 산 중턱에 수묵 구름 판 (카메라를 보는 판, 무늬가 천천히 흐름). **MeshBaker로 굽지 말 것** |
+
+**밝기 조정** (`b7c2a40`, `3da47f8`) — 사용자가 "전체가 너무 어둡다" → 한 번 푸르스름하게 갔다가 "푸르스름·흐릿함 빼고 밝기만"으로 확정. 볼륨 `VP_NGH_JoseonSteampunk.asset`:
+| 항목 | 전 | 후 |
+|---|---|---|
+| 노출 | +0.15 | +0.85 |
+| 대비 | 12 | 10 |
+| 채도 | -8 | -4 |
+| 화이트 밸런스 | -2 | +5 |
+| SplitToning | 그늘 남색 / 밝은 곳 놋쇠 | 중립(회색 0.5) |
+| ShadowsMidtonesHighlights | 조정됨 | 중립 |
+| 비네트 | 먹색 0.3 | (0.08,0.08,0.08) 0.15 |
+| 블룸 | 따뜻한 색 | 흰색, 세기 0.85, 문턱 1 |
+| LiftGammaGain | — | 넣었다가 뺌 (저장 안 된 빈 항목은 `3da47f8`에서 지움) |
+| 렌즈 플레어 | 0.5 | 0.5 |
+
+**길 안내** (`e18dd68`) — `Player/PathGuide.cs` (플레이어 프리팹), `NGH_PathGuide.shader`, `M_PathGuide.mat`
+- NavMesh로 플레이어 → `NGH_Portal_ToBossArena_Trigger`까지 길을 찾아 바닥에 **속이 찬 연한 노란 세모** 10개 (색 (1,0.93,0.6,0.95), 크기 0.9, 간격 1.6m, 앞으로 흐름)
+- 길은 근정전 **건물 안 가운데**를 가로지름. 세모 높이 = 레이로 찾은 바닥과 NavMesh 중 높은 쪽
+
+**근정전 문** (`67437bc`)
+- 근정전 앞뒤 가운데 문에 문턱 NavMeshLink (`NGH_GJJ_DoorLinks`, `Unity.AI.Navigation`)
+- `World/ProximityDoor.cs` + `AutoDoor_Back/Front`를 만들었으나 NMJ의 `NmjHingedDoor`(문 8짝, 4.5m 안에서 안쪽으로 열림)와 겹쳐서 **AutoDoor 두 개는 꺼 둠**. 문 여닫기는 NMJ 스크립트가 함
+
+**충돌체 최적화** (`78f775c`)
+- 안전한 메쉬 콜라이더만 박스로 교체 (1차·2차). 박스는 `NGH_ColliderProxies` 아래 `Proxy_<원래 이름>`으로 모음, 원래 메쉬 콜라이더는 끔
+- 근정전 앞 계단 양옆 틈(빠지면 못 나옴) 막기: `NGH_GJJ_StairFix` (SideWall·GapFill 동·서)
+- NavMesh는 사용자가 다시 구움 (`YPH_Navigation`의 NavMeshSurface)
+
+**MeshBaker 베이크** (`2fb5edc`, `12e8fa1`)
+- 사용자가 넣은 툴 `Assets/MeshBaker-master` (MeshBaker_URP, `InsaneOne.DevTools.MeshBakerCore.Bake`)
+- 정적 렌더러 606개에 Static 지정 (문처럼 움직이는 것 제외, 위치는 옮기지 않음)
+- 80m 구역 × 셰이더 종류로 묶어 **71개**로 구움 → Main `NGH_MeshBaked`, 결과 파일 `Assets/Baked/Main/` (467개, 약 956MB). "용량은 줄이지 말고" 요청대로 아틀라스 크기를 줄이지 않음
+- 굽지 못한 것: 정점 15만 넘는 묶음 7개, 4096 아틀라스에 안 들어가는 묶음 7개, 재질 하나뿐인 묶음, UV가 반복되는 메쉬, 재질 여러 개인 메쉬, 게임 스크립트가 붙은 렌더러(409개)
+- 구운 원본 1409개: 렌더러 끔 → **오브젝트 1402개 비활성화**. 충돌체가 달린 7개(궁문_홍예문짝, 내부_기둥_1~4, 어좌, 건청궁_rail)는 충돌을 살리려고 켜 둠 (렌더러만 꺼짐)
+- LFS를 쓰지 않고 **일반 커밋** (사용자가 다른 PC 두 대에서 pull해야 해서). 저장소가 이미 8.5GB라 다시 구울 때마다 약 1GB씩 쌓이는 점 주의
+- NavMesh 파일이 `NavMesh-YPH_Navigation 2.asset`로 새로 생김 (씬은 2번을 씀). 예전 1번 파일은 그대로 둠
+
+**계단 수정** (`75fe918`)
+- 근정전 앞 계단: 사용자가 만든 바닥 박스 `월대_박석_아래`(높이 0.88m)가 계단 통로를 덮어 아래에 0.88m 턱이 생김 → 못 올라가고 내려올 때 어색함
+- 박스를 좌·우·뒤 3조각으로 나눠 **계단 통로(x ±1.75, z 9.99~13.4)만 비움**. 높이는 그대로
+- 플레이어와 같은 CharacterController(높이 1.16, 반지름 0.2, 턱 0.2)로 계단 폭 5곳에서 오르내리기 통과 확인
+
+**팀원에게 알릴 것 (사용자가 직접)**
+- NMJ: 근정전 문(AutoDoor 끔), 메쉬 콜라이더 → 박스 교체, 구운 원본 비활성화(NMJ 오브젝트 포함)
+- YPH: NavMesh 다시 굽기(2번 파일), `NMJ_LevelDressing`·`NMJ_BackgroundMountains` 등 베이크 대상 포함
 
 ### 4-1. 맵·씬
 - **보스방** `Scenes/Common/BossArena_Hyangwonjeong.unity`: 맵 전체를 `Scenes/YPH/YPH_BossArena.unity`의 맵으로 교체
@@ -56,6 +121,7 @@
 **기본 톤** — 볼륨 `Materials/NGH/PostFX/VP_NGH_JoseonSteampunk.asset`
 - 플레이어 카메라 프리팹 `Prefabs/NGH/NGH_PlayerCamera.prefab`의 자식 `NGH_PostFX_JoseonSteampunk`(전역 Volume, priority 10)에 붙음 → Main·NGH_Main·보스방 모두 적용
 - 구성: Tonemapping ACES / ColorAdjustments(노출 +0.15, 대비 12, 채도 -8) / WhiteBalance(-2) / SplitToning(그늘 남색, 밝은 곳 놋쇠) / ShadowsMidtonesHighlights / Bloom(따뜻한 색) / Vignette(먹색 0.3) / FilmGrain(약) / ScreenSpaceLensFlare(0.5)
+- ※ 11/1에 밝기 조정으로 값이 바뀜 → 4-0 표 참고
 - 노출 +0.15는 YPH 임시 볼륨 `TEMP_ArenaBloom`(노출 -1.2)이 보스방을 너무 어둡게 해서 넣은 값
 - URP 에셋 색 보정 모드를 HDR로 바꿈 (`PC_RPAsset`)
 
@@ -109,23 +175,25 @@
 
 ---
 
-## 5. 커밋 안 된 것 (내가 바꾸지 않은 것)
-- `Materials/NGH/Player_SemiRealInk/*.mat` 22개 + `Scripts/NGH/Editor/PlayerSemiRealInkApplier.cs` (림 값 변경 — 세미리얼 먹 쉐이더 작업 이어서인 듯)
-- `Scenes/Common/Main.unity` (오방기 깃발 검정·노랑 꺼짐, 카메라 설정 몇 개)
-→ 사용자에게 커밋 여부 확인 중
+## 5. 커밋 안 된 것
+- 없음 (11/1 기준 작업 폴더 깨끗함). 예전 5번 항목(세미리얼 먹 재질·Main 변경)은 `d496940`에서 커밋됨
+- 다른 팀원 파일(NMJ_SteamRifle.mat, YPH WaterDepthSnapshot 재질 3개, EditorBuildSettings 등)은 줄바꿈(LF/CRLF)만 달랐고 내용 변경 없음
 
 ## 6. 다음에 하려던 것 (사용자 선택 대기)
 
-후처리·연출 다음 후보 (추천 순):
-1. **패링 성공 연출** — 0.1초 종이색↔먹색 반전 + 충격파 (`ScreenShockwave.Play()` 재사용 가능)
-2. **HP 낮을 때 화면** — 가장자리 먹빛 맥박 + 색 바램 (`HpTint`와 짝)
+후처리·연출 다음 후보 (추천 순, 1·2번은 11/1에 완료):
+1. ~~패링 성공 연출~~ → `ParryFlash` 완료
+2. ~~HP 낮을 때 화면~~ → `LowHpScreen` 완료
 3. **보스 단계 전환 연출** — 다리 파괴·코어 노출 때 흔들림 + 충격파 + 잠깐 슬로모션 (`BossCoreHealth.Destroyed`, `BossCoreController` 이벤트 이용)
 4. **사망 연출** — 먹 번짐(`_NGH_InkWipe`)으로 흑백 굳기
 - 기타: 먹선·한지 다시 켜기(얼룩 원인 찾기), 빛줄기, 데칼(보스 균열·먹 자국), LUT, 회상 판화 효과, 눈보라 강도 변화
 
 그 밖에 남은 일:
-- 렌즈 플레어는 지금 맵에서 거의 안 보임 (가로등이 충분히 밝지 않음). 1.2로 올리면 화면이 회색으로 덮이는 문제 있었음
-- 열 아지랑이·충격파·먹 번짐·모션 블러·보스 초점 흐림은 **플레이 모드에서 직접 확인 못 함** — 첫 작업으로 한번 플레이해 보길 권장
+- **푸시**: NGH 브랜치 커밋 5개(베이크 약 1GB 포함)
+- 계단 수정·베이크 결과는 에디터 시험만 함 → **플레이로 근정전 계단 오르내리기, 포털까지 길 안내 확인** 권장
+- 길 안내 경로 검사에서 NavMesh 경로가 `PathPartial`로 나옴 (포털 근처까지는 이어짐). 실제로 포털까지 걸어가 보기
+- 예전 NavMesh 파일(1번) 지울지 결정
+- 열 아지랑이·충격파·먹 번짐·모션 블러·보스 초점 흐림은 **플레이 모드에서 직접 확인 못 함**
 - 사운드 적용 요청(Audios/NMJ)은 새 파일을 못 찾아 보류 중
 
 ## 7. 작업 팁 (Unity MCP)
@@ -133,4 +201,9 @@
 - 테스트 렌더가 옛 화면이면 GPU Resident Drawer를 껐다 켜기 (`gpuResidentDrawerMode` Disabled → 원래 값)
 - 셰이더를 다시 불러온 직후 렌더하면 회색 화면이 찍힘 → 한 번 더 찍으면 정상
 - 씬 간 오브젝트 복사는 `Unsupported.CopyGameObjectsToPasteboard / PasteGameObjectsFromPasteboard` (프리팹 연결·덮어쓰기 유지)
-- 테스트 렌더는 플레이어 카메라를 복사한 임시 카메라 + `renderPostProcessing = true`로
+- 테스트 렌더는 플레이어 카메라를 복사한 임시 카메라 + `renderPostProcessing = true`로. 블룸·플레어를 보려면 HDR RenderTexture에 그린 뒤 sRGB로 옮겨 저장
+- `Unity_RunCommand`: 클래스는 `internal class CommandScript : IRunCommand`, `System.Reflection`·`HashSet`·`Regex`는 못 씀
+- 걷기 시험: 플레이어와 같은 설정의 임시 CharacterController로 `Move()`를 반복하면 에디터에서도 오르내리기를 확인할 수 있음
+- 씬 오브젝트를 버전 사이에서 짝지을 때는 `GlobalObjectId`가 정확함 (이름은 겹침)
+- `git commit`은 훅 때문에 오래 걸려서 백그라운드로 돌림. `.git/index.lock`이 남으면 git 프로세스가 없는지 확인하고 지움 (GitHub Desktop이 남기기도 함)
+- 이 PC에는 Python 3.12가 있음 (`TeamWorkflow/Tools/check.py`)

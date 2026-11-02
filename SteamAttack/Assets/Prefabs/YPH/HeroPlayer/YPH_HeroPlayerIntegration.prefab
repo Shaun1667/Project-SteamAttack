@@ -18052,8 +18052,6 @@ MonoBehaviour:
   combatWalkSpeed: 1
   backpedalSpeed: 1.44
   backpedalAnimSpeed: 0.72
-  strafeSpeed: 0.77
-  strafeAnimSpeed: 0.8
   runSpeed: 3
   turnSpeed: 720
   gravity: -20
@@ -18131,9 +18129,9 @@ MonoBehaviour:
   comboInputFrom: 0.2
   comboGraceTime: 0.5
   comboResumeBlend: 0.12
-  bothClickWindow: 0.08
+  comboChainBlend: 0.2
+  attackEndBlend: 0.5
   lungeLead: 0.04
-  lungeStopDistance: 0.6
   shotAttack:
     damage: 0
     clipLength: 1.8333334
@@ -18167,6 +18165,16 @@ MonoBehaviour:
   drawShowAt: 0.3
   sheathHideAt: 0.75
   instantDrawOnAttack: 0
+  parryAction:
+    damage: 0
+    clipLength: 0.33
+    playSpeed: 0.8
+    endAt: 1
+    hitWindows: []
+    hitOncePerAction: 0
+    lungeDistance: -1
+    blendIn: 0.05
+    chainAt: 1
   heavyHitThreshold: 25
   hitSmallAction:
     damage: 0
@@ -18188,6 +18196,113 @@ MonoBehaviour:
     lungeDistance: -1
     blendIn: 0.08
     chainAt: 1
+  hitLargePushBack:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.43
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.5
+      value: 0.08
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.571
+      value: 0.232
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.643
+      value: 0.373
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.714
+      value: 0.539
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.786
+      value: 0.714
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.857
+      value: 0.885
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.929
+      value: 1.004
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1.076
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  getUpState: GetUp
+  getUpAction:
+    damage: 0
+    clipLength: 2.7
+    playSpeed: 1
+    endAt: 1
+    hitWindows: []
+    hitOncePerAction: 0
+    lungeDistance: -1
+    blendIn: 0.25
+    chainAt: 1
   debugHitKeys: 1
   attackForwardRatio: 0.5
   attackMoveRatio: 0.5
@@ -18196,7 +18311,6 @@ MonoBehaviour:
   heavyAttackDuration: 0
   shotDuration: 0
   rollDuration: 0
-  lockOnRange: 9
   locomotionState: Locomotion
   rollState: Roll
   lightState: LightAttack
@@ -18205,19 +18319,18 @@ MonoBehaviour:
   combo3State: Combo3
   combo4State: Combo4
   combo5State: Combo5
-  strafeLeftState: StrafeLeft
-  strafeRightState: StrafeRight
   shotState: Shot
   drawState: Draw
   sheathState: Sheath
   hitSmallState: HitSmall
   hitLargeState: HitLarge
+  parryState: Parry
   swordArmLayer: SwordArm
   swordArmBlendIn: 6
   swordArmBlendOut: 20
+  attackStartArmBlend: 0.26
   drawn: 0
   action: 0
-  lockTarget: {fileID: 0}
 --- !u!114 &5208211637770746903
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18262,6 +18375,8 @@ MonoBehaviour:
   travelMode: 0
   followRecordedPath: 1
   cameraLookAlongPath: 1
+  replayRecordedCamera: 1
+  recordedCameraSharpness: 14
   pathLookAhead: 0.25
   travelCameraPitch: 30
   rewindTravelTime: 1
@@ -18329,6 +18444,9 @@ MonoBehaviour:
   trailTipExtend: 0.08
   tipBone: {fileID: 2713913732249889954}
   tipLocal: {x: 0.4915883, y: 0.013795412, z: 0.039068997}
+  trailHitbox: 1
+  hitThickness: 0.2
+  thrustHitExtra: 0.35
   entries:
   - label: "1\uD0C0 (\uB300\uAC01 \uB0B4\uB824\uBCA0\uAE30)"
     action: 2
@@ -18950,6 +19068,12 @@ MonoBehaviour:
     swingSeconds: 0.08999998
     useTrail: 1
     tailExtend: 0
+    keepWholeTrail: 0
+    straightenStart: 0
+    streamline: 0
+    trailScale: 1
+    outerScale: 1
+    innerScale: 1
     pathOuter:
     - {x: 0.6792144, y: 0.9318261, z: -0.055920698}
     - {x: 0.6951601, y: 0.93229413, z: -0.008841237}
@@ -19701,6 +19825,12 @@ MonoBehaviour:
     swingSeconds: 0.11333336
     useTrail: 1
     tailExtend: 0
+    keepWholeTrail: 0
+    straightenStart: 0
+    streamline: 0
+    trailScale: 1
+    outerScale: 1
+    innerScale: 1
     pathOuter:
     - {x: -0.19054228, y: 0.8450128, z: -0.721965}
     - {x: -0.16125408, y: 0.847852, z: -0.7339385}
@@ -19858,6 +19988,12 @@ MonoBehaviour:
     swingSeconds: 0.05950001
     useTrail: 1
     tailExtend: 0
+    keepWholeTrail: 0
+    straightenStart: 0
+    streamline: 0
+    trailScale: 1
+    outerScale: 1
+    innerScale: 1
     pathOuter: []
     pathInner: []
     pathPrefix: 0
@@ -20481,6 +20617,12 @@ MonoBehaviour:
     swingSeconds: 0.20999996
     useTrail: 1
     tailExtend: 0
+    keepWholeTrail: 0
+    straightenStart: 0
+    streamline: 0
+    trailScale: 1
+    outerScale: 1
+    innerScale: 1
     pathOuter:
     - {x: -0.52711225, y: 0.47902796, z: -0.58721095}
     - {x: -0.5263369, y: 0.5215006, z: -0.61031735}
@@ -21232,6 +21374,12 @@ MonoBehaviour:
     swingSeconds: 0.26253334
     useTrail: 1
     tailExtend: 40
+    keepWholeTrail: 0
+    straightenStart: 0
+    streamline: 0
+    trailScale: 1
+    outerScale: 1
+    innerScale: 1
     pathOuter:
     - {x: -0.74675536, y: 0.21006942, z: -0.14923635}
     - {x: -0.76492, y: 0.23208058, z: -0.078815356}
@@ -21999,6 +22147,12 @@ MonoBehaviour:
     swingSeconds: 0.17599998
     useTrail: 1
     tailExtend: 0
+    keepWholeTrail: 0
+    straightenStart: 0
+    streamline: 0
+    trailScale: 1
+    outerScale: 1
+    innerScale: 1
     pathOuter:
     - {x: 0.08692347, y: 0.8913471, z: -0.5406949}
     - {x: 0.08668224, y: 0.89621675, z: -0.53865683}
@@ -22176,11 +22330,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NGH_RewindScreenTint
   rewind: {fileID: 1548467226801079592}
   targetCamera: {fileID: 0}
-  tintColor: {r: 1, g: 0.93, b: 0.75, a: 1}
+  hue: {r: 0.12, g: 0.46, b: 0.7, a: 1}
+  tintStrength: 0.3
   saturation: -10
   exposure: 0.15
-  vignetteColor: {r: 0.55, g: 0.38, b: 0.1, a: 1}
+  vignetteBrightness: 0.5
   vignetteIntensity: 0.3
+  chromaticAberration: 1
+  lensDistortion: -0.7
   fadeIn: 0.15
   fadeOut: 0.3
 --- !u!114 &6347576647544692311
@@ -22221,6 +22378,106 @@ MonoBehaviour:
   wobble: 0.03
   cameraFadeNear: 0.5
   cameraFadeFar: 1.6
+--- !u!114 &4990473850159392292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3104297047625066499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d796dc1f901a4083b1b73a70344b63a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.InkHealthBar
+  player: {fileID: 7706470834897513168}
+  brushShader: {fileID: 4800000, guid: 7157adcec3b447944a9179780ed1c4dd, type: 3}
+  sealFont: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
+  position: {x: 96, y: 92}
+  size: {x: 520, y: 64}
+  showSeal: 1
+  sealText: "\u547D"
+  sealSize: 48
+  sealAngle: -5
+  thickness: 34
+  headLength: 0.07
+  headBulge: 1.15
+  tailLength: 0.18
+  bristleCount: 64
+  roughness: 1
+  dryness: 0.9
+  splatter: 0.6
+  waviness: 2.2
+  slant: 6
+  rimBristles: 0.14
+  seed: 3
+  inkLight: {r: 0.2, g: 0.19, b: 0.19, a: 1}
+  inkDark: {r: 0.03, g: 0.03, b: 0.04, a: 1}
+  redLight: {r: 0.93, g: 0.18, b: 0.14, a: 1}
+  redDark: {r: 0.42, g: 0.02, b: 0.03, a: 1}
+  trailColor: {r: 0.97, g: 0.7, b: 0.64, a: 0.9}
+  sealColor: {r: 0.78, g: 0.12, b: 0.1, a: 1}
+  paperColor: {r: 0.96, g: 0.93, b: 0.85, a: 1}
+  haloAlpha: 0
+  tearLength: 16
+  fringeLength: 18
+  trailDelay: 0.45
+  trailSpeed: 0.55
+  refillSpeed: 1.2
+  hitShake: 5
+  lowHpRatio: 0.3
+  lowPulseDepth: 0.28
+  dripAmount: 1
+  dripGravity: 520
+--- !u!114 &4412064709674172395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3104297047625066499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 795e0f5270a84bb8ae64553d2a2eeb6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NMJ.SteamCylinderGauge
+  tank: {fileID: 6342032219919825200}
+  player: {fileID: 7706470834897513168}
+  glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
+  glyphShader: {fileID: 4800000, guid: 68e6db2ebdc24f95958faec2be5558d6, type: 3}
+  position: {x: 60, y: 22}
+  size: {x: 600, y: 58}
+  gunCost: 5
+  strongCost: 30
+  rewindCost: 70
+  gunLabel: "\u9283"
+  strongLabel: "\u5F37"
+  rewindLabel: "\u9006"
+  meleeGlyph: "\u5200"
+  gunGlyph: "\u9283"
+  sheathedAlpha: 0.45
+  strongChanceTime: 1.2
+  gun: {fileID: 0}
+  parry: {fileID: 0}
+  emptyText: "\uC99D\uAE30 \uBD80\uC871 \xB7 \uCE7C\uB85C \uBCA0\uC5B4 \uCC44\uC6B0\uAE30"
+  emptyPromptTime: 1.8
+  ironColor: {r: 0.17, g: 0.15, b: 0.14, a: 1}
+  brassColor: {r: 0.62, g: 0.44, b: 0.19, a: 1}
+  inkColor: {r: 0.05, g: 0.05, b: 0.06, a: 1}
+  dryInkColor: {r: 0.16, g: 0.15, b: 0.14, a: 0.95}
+  paperColor: {r: 0.88, g: 0.83, b: 0.72, a: 1}
+  glassColor: {r: 0.1, g: 0.11, b: 0.12, a: 1}
+  steamColor: {r: 0.95, g: 0.95, b: 0.93, a: 1}
+  chanceColor: {r: 0.8, g: 0.1, b: 0.07, a: 1}
+  warnColor: {r: 0.85, g: 0.15, b: 0.1, a: 1}
+  drainSpeed: 1.6
+  refillSpeed: 0.8
+  swirlSpeed: 0.04
+  puffsPer10: 2
+  failShake: 6
+  inkSpeed: 5
+  seed: 5
+  testKeys: 1
 --- !u!1 &3153274227430968840
 GameObject:
   m_ObjectHideFlags: 0
@@ -24692,14 +24949,17 @@ MonoBehaviour:
   weapons: {fileID: 6889316147223106519}
   playerCamera: {fileID: 6612701525761820616}
   gunWeapon: {fileID: 1009021871004605608}
-  grenadeWeapon: {fileID: 0}
   gun: {fileID: 3772118567962639336}
-  thrower: {fileID: 0}
-  grenadeHandView: {fileID: 0}
   aim: {fileID: 1706900830597590158}
   hitRefill: {fileID: 3280665350318653873}
-  chargeKey: 32
-  craftKey: 21
+  parry: {fileID: 0}
+  parrySparkPrefab: {fileID: 0}
+  parrySparkDelay: 0.27
+  parrySparkBladeOffset: 0.55
+  parrySparkHeight: 1.45
+  parrySparkForward: 0.75
+  parrySparkLifetime: 1.5
+  parryHitStop: 0.07
   logActions: 1
 --- !u!1 &3354954053067006640
 GameObject:
@@ -25028,7 +25288,7 @@ GameObject:
   - component: {fileID: 6017533022674871497}
   - component: {fileID: 6695351902765368765}
   m_Layer: 0
-  m_Name: chg_sword
+  m_Name: HeroSword
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -25254,7 +25514,7 @@ GameObject:
   - component: {fileID: 1759798609369747477}
   - component: {fileID: 7821710284158470259}
   m_Layer: 0
-  m_Name: chg_Model
+  m_Name: HeroSourceRig
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -27378,6 +27638,9 @@ MonoBehaviour:
   _particlesPerPressure: 0.5
   _maxBurstCount: 60
   _failBurstCount: 8
+  _fullSteamEnabled: 0
+  _fullSteamColor: {r: 0.85, g: 0.15, b: 0.1, a: 0.8}
+  _fullSteamRate: 12
 --- !u!1 &5368486223021468108
 GameObject:
   m_ObjectHideFlags: 0
@@ -27421,7 +27684,7 @@ GameObject:
   - component: {fileID: 1476602416301594926}
   - component: {fileID: 291392352509029021}
   m_Layer: 0
-  m_Name: chg_body
+  m_Name: HeroSourceBody
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -27819,7 +28082,6 @@ MonoBehaviour:
   SensitivityMultiplier: 1
   minPitch: -25
   maxPitch: 60
-  lockOnTurnSpeed: 8
   collisionRadius: 0.15
 --- !u!114 &1027887175648318635
 MonoBehaviour:
@@ -33718,6 +33980,14 @@ MonoBehaviour:
   _controller: {fileID: 1706900830597590158}
   _camera: {fileID: 7776384734346970260}
   _aimFovMultiplier: 0.8
+  _orbitCamera: {fileID: 0}
+  _aimDistance: 0.92
+  _head: {fileID: 0}
+  _headViewport: {x: 0.23, y: 0.28}
+  _collisionRadius: 0.15
+  _collisionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &1832361101415741385
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -54185,99 +54455,3 @@ Transform:
   - {fileID: 8824496777217953950}
   m_Father: {fileID: 454106195038044651}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4990473850159392292
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3104297047625066499}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d796dc1f901a4083b1b73a70344b63a7, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::NMJ.InkHealthBar
-  player: {fileID: 7706470834897513168}
-  brushShader: {fileID: 4800000, guid: 7157adcec3b447944a9179780ed1c4dd, type: 3}
-  sealFont: {fileID: 11400000, guid: c62bbc190efdf2b4dbaa9ade4e2c3654, type: 2}
-  position: {x: 96, y: 92}
-  size: {x: 520, y: 64}
-  showSeal: 1
-  sealText: "\u547D"
-  sealSize: 48
-  sealAngle: -5
-  thickness: 34
-  headLength: 0.07
-  headBulge: 1.15
-  tailLength: 0.18
-  bristleCount: 64
-  roughness: 1
-  dryness: 0.9
-  splatter: 0.6
-  waviness: 2.2
-  slant: 6
-  rimBristles: 0.14
-  seed: 3
-  inkLight: {r: 0.2, g: 0.19, b: 0.19, a: 1}
-  inkDark: {r: 0.03, g: 0.03, b: 0.04, a: 1}
-  redLight: {r: 0.93, g: 0.18, b: 0.14, a: 1}
-  redDark: {r: 0.42, g: 0.02, b: 0.03, a: 1}
-  trailColor: {r: 0.97, g: 0.7, b: 0.64, a: 0.9}
-  sealColor: {r: 0.78, g: 0.12, b: 0.1, a: 1}
-  paperColor: {r: 0.96, g: 0.93, b: 0.85, a: 1}
-  haloAlpha: 0
-  tearLength: 16
-  fringeLength: 18
-  trailDelay: 0.45
-  trailSpeed: 0.55
-  refillSpeed: 1.2
-  hitShake: 5
-  lowHpRatio: 0.3
-  lowPulseDepth: 0.28
-  dripAmount: 1
-  dripGravity: 520
---- !u!114 &4412064709674172395
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3104297047625066499}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 795e0f5270a84bb8ae64553d2a2eeb6e, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::NMJ.SteamCylinderGauge
-  tank: {fileID: 6342032219919825200}
-  player: {fileID: 7706470834897513168}
-  glyphFont: {fileID: 11400000, guid: 83ee9e331d1d1c441a83ee4683eef5b0, type: 2}
-  glyphShader: {fileID: 4800000, guid: 68e6db2ebdc24f95958faec2be5558d6, type: 3}
-  position: {x: 60, y: 22}
-  size: {x: 600, y: 58}
-  gunCost: 5
-  strongCost: 30
-  rewindCost: 70
-  gunLabel: "\u9283"
-  strongLabel: "\u5F37"
-  rewindLabel: "\u9006"
-  meleeGlyph: "\u5200"
-  gunGlyph: "\u9283"
-  sheathedAlpha: 0.45
-  strongChanceTime: 1.2
-  ironColor: {r: 0.17, g: 0.15, b: 0.14, a: 1}
-  brassColor: {r: 0.62, g: 0.44, b: 0.19, a: 1}
-  inkColor: {r: 0.05, g: 0.05, b: 0.06, a: 1}
-  dryInkColor: {r: 0.16, g: 0.15, b: 0.14, a: 0.95}
-  paperColor: {r: 0.88, g: 0.83, b: 0.72, a: 1}
-  glassColor: {r: 0.1, g: 0.11, b: 0.12, a: 1}
-  steamColor: {r: 0.95, g: 0.95, b: 0.93, a: 1}
-  chanceColor: {r: 0.8, g: 0.1, b: 0.07, a: 1}
-  warnColor: {r: 0.85, g: 0.15, b: 0.1, a: 1}
-  drainSpeed: 1.6
-  refillSpeed: 0.8
-  swirlSpeed: 0.04
-  puffsPer10: 2
-  failShake: 6
-  inkSpeed: 5
-  seed: 5
-  testKeys: 1

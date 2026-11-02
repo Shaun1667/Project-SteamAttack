@@ -352,7 +352,7 @@ bool applied = target.ApplyParry(damage, playerPosition);
 - **수정 요청:** 다른 담당자 코드는 직접 변경하지 않고 요청 문서를 사용합니다.
 - **씬·프리팹:** `Legacy/YPH_EnemyTest`·`YPH_MainPlayerTest`는 YPH 한 사람이 편집합니다. YPH는 Main·BossArena·NGH_EnemyTest를 저장하지 않았습니다.
 - **보존할 계약:** EnemyAI 공개 이름·시그니처, IParryTarget, ParryTargets, 공격 신호 시점. 앞으로 직렬화 필드를 단순히 이름만 바꿀 때는 FormerlySerializedAs가 필요합니다.
-- **이번 구조 이관 예외:** 필드를 새 컴포넌트로 옮겼으므로 기존 적의 값이 자동 복구되지 않습니다. Main·NGH_EnemyTest의 옛 적은 [교체 요청](../Requests/진행/NGH_요청_20261015_기존EnemyAI적교체.md)에 따라 E1 프리팹으로 교체해야 합니다. E1-a 프리팹 경로는 `Assets/Prefabs/YPH/Enemy/YPH_MutantSoldier.prefab`입니다.
+- **이번 구조 이관 예외:** 필드를 새 컴포넌트로 옮겼으므로 기존 적의 값이 자동 복구되지 않습니다. Main·NGH_EnemyTest의 옛 적은 [교체 요청](../Requests/완료/NGH_요청_20261015_기존EnemyAI적교체.md)에 따라 E1 프리팹으로 교체해야 합니다. E1-a 프리팹 경로는 `Assets/Prefabs/YPH/Enemy/YPH_MutantSoldier.prefab`입니다.
 - **현재 사용자:** YPH `ParryController`·`ParryRingView`(공통 규약), YPH `SteamGun`·`Grenade`·`SteamHitRefill`(태그 `Enemy`), NGH `PlayerHUD`(`DebugView.Enabled`), NGH `PlayerParry`·`ParryRingUI`(옛 API, 씬 미사용).
 
 ### 9-1. NGH가 적을 놓을 때
@@ -436,7 +436,7 @@ E0 검사 기록입니다. R1은 아래 추가 기록과 [받아치기 검증](�
 
 | 구분 | 내용 | 영향 | 해결 방향 |
 |---|---|---|---|
-| 이관 | Main `Enemy`에 공격 부품 없음. NGH_EnemyTest `Enemy`는 옛 필드만 있고 EnemyHealth·EnemyMotor 없음 | Main 적은 공격하지 않음. NGH_EnemyTest는 Play 시 오류 예상(미실행) | [교체 요청](../Requests/진행/NGH_요청_20261015_기존EnemyAI적교체.md). E1 프리팹 뒤 NGH가 교체 |
+| 이관 | Main `Enemy`에 공격 부품 없음. NGH_EnemyTest `Enemy`는 옛 필드만 있고 EnemyHealth·EnemyMotor 없음 | Main 적은 공격하지 않음. NGH_EnemyTest는 Play 시 오류 예상(미실행) | [교체 요청](../Requests/완료/NGH_요청_20261015_기존EnemyAI적교체.md). E1 프리팹 뒤 NGH가 교체 |
 | 프리팹 없음 | `Prefabs/YPH/Enemy/`와 총알 프리팹 에셋이 없음 | 교체 요청을 NGH가 아직 처리할 수 없음 | E1에서 변이 포졸 프리팹 생성 후 요청 문서 갱신 |
 | 경직 단계 미전달 | `EnemyAttackHitbox`·`EnemyBullet`이 `HitStagger`를 넘기지 않음(코드 TODO) | `*Stagger` 필드를 바꿔도 효과 없음. 경직은 피해 25 기준 | `PlayerController.TakeHit`이 경직 단계를 받게 되면 함께 전달 (NGH 요청 필요) |
 | 개발 키 문구 해결 (2026-10-17) | 2번 피해를 `heavyHitThreshold`로 변경하고 안내문 캐시 | 피해 경로 호출로 HitSmall / HitLarge, HP 100→99→74 확인 | 실제 키 조작 검수는 별도 |
@@ -469,4 +469,4 @@ E0 검사 기록입니다. R1은 아래 추가 기록과 [받아치기 검증](�
 | 2026-10-16 | YPH / Codex | E1-a 변이 포졸 프리팹·씬 교체·사망 옵션 안내. 상세 검증은 변이포졸 문서 | 미커밋 |
 | 2026-10-16 | YPH / Codex | E1-b 모델·클립·이벤트 연결 현황과 남은 보행 조정 반영 | 미커밋 |
 | 2026-10-17 | YPH / Codex | 시험 씬 탱크 참조 단일화, 변이 포졸 쿨다운 override 제거, 디버그 2번 피해를 heavyHitThreshold와 일치. 승인된 안내 문자열 캐시 1개 추가. Play에서 HitSmall·HitLarge 확인 | 미커밋 |
-| 2026-10-20 | YPH / Codex | YPH 코드의 옛 담당자 표기를 현재 namespace·클래스 이름으로 정리. 생성 UI는 YPH_EnemyHpBarCanvas·YPH_EnemyHpBar·YPH_DebugViewRunner, 시험 씬 그룹은 YPH_SoldierZone·YPH_MeleeDummies로 변경. NGH 표식 검색용 chg_LockMarker는 유지하며 [공유 이름 변경 요청](../Requests/진행/NGH_요청_20261020_공유이름잔여정리.md)에 기록 | 미커밋 |
+| 2026-10-20 | YPH / Codex | YPH 코드의 옛 담당자 표기를 현재 namespace·클래스 이름으로 정리. 생성 UI는 YPH_EnemyHpBarCanvas·YPH_EnemyHpBar·YPH_DebugViewRunner, 시험 씬 그룹은 YPH_SoldierZone·YPH_MeleeDummies로 변경. NGH 표식 검색용 chg_LockMarker는 유지하며 [공유 이름 변경 요청](../Requests/완료/NGH_요청_20261020_공유이름잔여정리.md)에 기록 | 미커밋 |

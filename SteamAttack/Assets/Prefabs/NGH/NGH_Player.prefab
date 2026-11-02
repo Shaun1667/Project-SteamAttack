@@ -11645,6 +11645,9 @@ GameObject:
   - component: {fileID: 8373175216239976316}
   - component: {fileID: 9200294875898811981}
   - component: {fileID: 3306988949309448018}
+  - component: {fileID: 8970600900621911479}
+  - component: {fileID: 7943710926361575989}
+  - component: {fileID: 2095231196208218504}
   m_Layer: 0
   m_Name: NGH_Player
   m_TagString: Player
@@ -20365,6 +20368,78 @@ MonoBehaviour:
   fadeIn: 0.4
   hold: 2.2
   fadeOut: 0.9
+--- !u!114 &8970600900621911479
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69fe64e546801cc4f86b68f15a64e28c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.ParryFlash
+  parry: {fileID: 5772974326641473484}
+  shockwave: {fileID: 8373175216239976316}
+  holdTime: 0.05
+  fadeTime: 0.1
+  strength: 1
+  playShockwave: 1
+  fallbackHeight: 1.2
+--- !u!114 &7943710926361575989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be0163dde69c4d84faecc40d499651fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.LowHpScreen
+  player: {fileID: 5444686568199331752}
+  startRatio: 0.35
+  fullRatio: 0.1
+  maxWash: 0.6
+  basePulse: 0.25
+  peakPulse: 0.85
+  slowBpm: 60
+  fastBpm: 110
+  blendSpeed: 2
+--- !u!114 &2095231196208218504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766717810704266006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04e3e272ea24c3b449403a7391c5d632, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.PathGuide
+  player: {fileID: 5444686568199331752}
+  target: {fileID: 0}
+  targetName: NGH_Portal_ToBossArena_Trigger
+  markerMaterial: {fileID: 2100000, guid: 0bb7915942e1cf046b77548b6bcf40c0, type: 2}
+  showGuide: 1
+  markerCount: 10
+  spacing: 1.6
+  startOffset: 1.2
+  markerSize: 0.9
+  filled: 1
+  lineWidth: 0.13
+  heightOffset: 0.08
+  color: {r: 1, g: 0.93, b: 0.6, a: 0.95}
+  farFade: 0.5
+  flowSpeed: 1.2
+  hideWithin: 4
+  repathInterval: 0.25
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &1768426502158964230
 GameObject:
   m_ObjectHideFlags: 0
@@ -38493,7 +38568,7 @@ GameObject:
   - component: {fileID: 9123538673224798437}
   - component: {fileID: 3350934367433199176}
   m_Layer: 0
-  m_Name: chg_sword
+  m_Name: HeroSword
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
