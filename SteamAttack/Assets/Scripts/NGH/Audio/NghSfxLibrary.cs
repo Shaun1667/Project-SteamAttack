@@ -31,6 +31,16 @@ namespace NGH
         public Sound swordHit = new Sound();
         [Tooltip("구르기 (옷자락 스침)")]
         public Sound rollCloth = new Sound();
+        [Tooltip("달릴 때 발이 땅에 닿는 소리 (한 걸음짜리 소리들, 매번 하나를 골라 냄)")]
+        public Sound runStep = new Sound();
+        [Tooltip("눈밭(돌 바닥 밖, FootSurfaceMap)을 걷거나 달릴 때 발자국 소리")]
+        public Sound snowRunStep = new Sound();
+        [Tooltip("발자국 소리 파일에서 발이 땅에 닿는 순간까지의 시간 (초). 이만큼 앞부분을 건너뛰고 틀어 발이 닿는 순간과 맞춤")]
+        [Min(0f)] public float runStepImpactAt = 0.12f;
+        [Tooltip("눈밭 발자국 소리 파일의 발 닿는 순간 (초)")]
+        [Min(0f)] public float snowRunStepImpactAt = 0.12f;
+        [Tooltip("걸을 때는 같은 발자국 소리를 이 비율로 작게 냄 (1 = 달릴 때와 같은 크기)")]
+        [Range(0f, 1f)] public float walkStepVolumeScale = 0.6f;
 
         [Header("궁수")]
         [Tooltip("활시위 당기기 (조준 시작)")]

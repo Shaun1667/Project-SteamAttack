@@ -25053,7 +25053,7 @@ MonoBehaviour:
   _rotationEaseIn: 3
   _maxRings: 4
   _overlapSfx: {fileID: 0}
-  _successSfx: {fileID: 0}
+  _successSfx: {fileID: 8300000, guid: f354de764e9439b4ba13f1aee635e98b, type: 3}
   _sfxVolume: 0.8
 --- !u!1 &3850471691837755448
 GameObject:
