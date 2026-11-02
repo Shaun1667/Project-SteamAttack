@@ -238,7 +238,7 @@ public class SnakeFSM : MonoBehaviour
         try
         {
             if (attack.BeginAttack(attackPivot, victim, heightTolerance,
-                amount => DamagePlayer(victim, amount, attack.IsDirectKnockdownHit))) return;
+                amount => DamagePlayer(victim, amount, attack.IsDirectKnockdownHit, attack is BossBreathAttack))) return;
             Debug.LogWarning($"SnakeFSM: {attack.GetType().Name} 시작 실패. 바로 앞에 출력된 해당 공격의 경고를 확인하세요.", attack);
         }
         catch (System.Exception exception)
@@ -290,7 +290,7 @@ public class SnakeFSM : MonoBehaviour
         ChangeState(State.Recovery);
     }
 
-    private void DamagePlayer(Transform victim, float amount, bool knockdown = false)
+    private void DamagePlayer(Transform victim, float amount, bool knockdown = false, bool cold = false)
     {
         if (victim == null || !victim.gameObject.activeInHierarchy) return;
         bool handled = false;
@@ -315,7 +315,10 @@ public class SnakeFSM : MonoBehaviour
         NGH.PlayerController ngh = victim.GetComponentInParent<NGH.PlayerController>();
         if (ngh != null)
         {
-            ngh.TakeHit(Mathf.Max(1, Mathf.RoundToInt(amount)), transform.position, knockdown ? HitStagger.Heavy : HitStagger.Light);
+            // 브레스·브레스 폭발이면 화면 서리 효과 (NGH.HitScreenFrost)
+            NGH.HitScreenFrost.ColdHit = cold;
+            try { ngh.TakeHit(Mathf.Max(1, Mathf.RoundToInt(amount)), transform.position, knockdown ? HitStagger.Heavy : HitStagger.Light); }
+            finally { NGH.HitScreenFrost.ColdHit = false; }
             handled = true;
         }
 

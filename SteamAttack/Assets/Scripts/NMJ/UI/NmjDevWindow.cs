@@ -46,7 +46,7 @@ namespace NMJ
         private struct Warp { public string label; public Vector3 pos; }
         private static readonly Warp[] Warps =
         {
-            new Warp { label = "2. 근정전 마당 · 첫 전투 포졸 2", pos = new Vector3(0f, 0.1f, 14f) },
+            new Warp { label = "2. 근정전 마당 · 첫 전투 포졸 2", pos = new Vector3(0f, 0.1f, 6f) },   // 하월대(z 9.9~47.9) 바로 앞 마당 바닥
             new Warp { label = "3. 비망록 · 궁수 · 첫 받아치기", pos = new Vector3(-3f, 0.1f, -4f) },
             new Warp { label = "4. 광화문 안쪽 · 얼음 문 전투", pos = new Vector3(0f, 0.1f, -24f) },
             new Warp { label = "5. 광화문 밖 · 육조거리", pos = new Vector3(0f, 0.1f, -56f) },

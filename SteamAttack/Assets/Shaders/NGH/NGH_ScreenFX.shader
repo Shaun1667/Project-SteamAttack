@@ -1,6 +1,6 @@
 // 화면 전체 연출 후처리 (NGH) — 평소에는 아무것도 하지 않고, 코드가 전역 값을 올릴 때만 보인다
 // - PC_Renderer 의 Full Screen Pass Renderer Feature(NGH_ScreenFX)가 이 재질로 그린다 (후처리 다음, 화면 맨 위)
-// - _NGH_Frost (0~1): 현무 냉기에 맞았을 때 화면 가장자리에 성에가 끼고 안쪽으로 번진다 (HitScreenFrost 가 올림)
+// - _NGH_Frost (0~1): 현무 브레스에 맞았을 때 화면 가장자리에 성에 그림(_FrostTex)이 끼고 안쪽으로 번진다 (HitScreenFrost 가 올림)
 // - _NGH_RedKeep (0~1): 시간이 느려질 때 화면이 흑백이 되고 붉은색만 남는다 (SlowMotionRedKeep 가 올림)
 // - _NGH_Shock (0~1 진행도) + _NGH_ShockCenter(화면 uv): 강한 타격 순간 그 자리에서 물결 고리가 퍼지며 화면이 출렁인다 (ScreenShockwave 가 올림)
 // - _NGH_InkWipe (0~1): 씬 이동 때 먹물이 번져 화면을 덮었다가 걷힌다 (InkTransition 이 올림)
@@ -11,8 +11,10 @@ Shader "NGH/ScreenFX"
     Properties
     {
         [Header(Frost)]
+        [NoScaleOffset] _FrostTex ("성에 그림 (검은 곳은 투명, 밝을수록 진한 성에)", 2D) = "black" {}
         _FrostColor ("성에 색", Color) = (0.82, 0.92, 1, 1)
-        _FrostScale ("성에 결정 크기", Float) = 7
+        _FrostGain ("성에 그림 밝기 배율", Range(0.5, 3)) = 1.3
+        _FrostOpacity ("성에 진하기", Range(0, 1)) = 0.9
         _FrostDistort ("성에 굴절 세기", Range(0, 0.05)) = 0.012
         _FrostReach ("가장 많이 번졌을 때 안쪽까지 오는 정도", Range(0, 1)) = 0.6
 
@@ -60,8 +62,9 @@ Shader "NGH/ScreenFX"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
+            TEXTURE2D(_FrostTex);
             float4 _FrostColor;
-            float _FrostScale, _FrostDistort, _FrostReach;
+            float _FrostGain, _FrostOpacity, _FrostDistort, _FrostReach;
             float4 _RedHue;
             float _RedRange, _RedMinSat, _GrayContrast;
             float _ShockWidth, _ShockStrength, _ShockRadius;
@@ -93,23 +96,6 @@ Shader "NGH/ScreenFX"
                 float v = 0.0, a = 0.5;
                 for (int k = 0; k < 4; k++) { v += a * NghNoise(p); p = p * 2.07 + 11.3; a *= 0.5; }
                 return v;
-            }
-
-            // 보로노이: x = 가장 가까운 점까지 거리, y = 경계까지 거리 (결정 모양)
-            float2 Voronoi(float2 p)
-            {
-                float2 i = floor(p), f = frac(p);
-                float d1 = 8.0, d2 = 8.0;
-                for (int y = -1; y <= 1; y++)
-                for (int x = -1; x <= 1; x++)
-                {
-                    float2 g = float2(x, y);
-                    float2 o = Hash22(i + g);
-                    float d = length(g + o - f);
-                    if (d < d1) { d2 = d1; d1 = d; }
-                    else if (d < d2) d2 = d;
-                }
-                return float2(d1, d2 - d1);
             }
 
             float3 NghRgbToHsv(float3 c)
@@ -155,18 +141,22 @@ Shader "NGH/ScreenFX"
                     float2 dir = r > 0.0001 ? d / r : float2(0, 0);
                     distortUv -= dir / float2(aspect, 1.0) * ring * _ShockStrength;
                 }
-                float crystal = 0.0;
+                // 성에 그림(_FrostTex)을 가장자리부터 드러냄: 많이 얼수록 안쪽까지, 녹을 때는 안쪽부터 사라짐
+                float3 frostTex = 0.0;
+                float frostReveal = 0.0;
                 if (frost > 0.001)
                 {
-                    float2 c = (uv - 0.5) * float2(aspect, 1.0);
-                    float edge = length(c) / length(float2(aspect, 1.0) * 0.5);   // 가운데 0 ~ 모서리 1
-                    float2 v = Voronoi(sp * _FrostScale);
-                    float2 v2 = Voronoi(sp * _FrostScale * 2.7 + 3.1);
+                    float2 c = uv - 0.5;
+                    float edgeRound = length(c * float2(aspect, 1.0)) / length(float2(aspect, 1.0) * 0.5);
+                    float edgeBox = max(abs(c.x), abs(c.y)) * 2.0;
+                    float edge = lerp(edgeRound, edgeBox, 0.5);                    // 가운데 0 ~ 가장자리 1
+                    frostTex = SAMPLE_TEXTURE2D(_FrostTex, sampler_LinearClamp, uv).rgb;
+                    float lum = saturate(dot(frostTex, float3(0.299, 0.587, 0.114)) * _FrostGain);
                     float grow = 1.0 - frost * _FrostReach;                       // 성에가 닿는 경계 (작을수록 안쪽까지)
-                    float jag = (v.x - 0.5) * 0.18 + (v2.x - 0.5) * 0.08;          // 경계가 결정 모양으로 들쭉날쭉
-                    frostMask = smoothstep(grow - 0.05, grow + 0.12, edge + jag) * frost;
-                    crystal = saturate(1.0 - v.y * 14.0) * 0.5 + saturate(1.0 - v2.y * 18.0) * 0.5;   // 결정 경계선
-                    distortUv += (Hash22(floor(sp * _FrostScale * 2.7)) - 0.5) * _FrostDistort * frostMask;
+                    float jag = (lum - 0.5) * 0.15;                               // 결정이 밝은 곳부터 먼저 자라 경계가 들쭉날쭉
+                    frostReveal = smoothstep(grow - 0.06, grow + 0.1, edge + jag) * saturate(frost * 3.0);
+                    frostMask = frostReveal * lum;
+                    distortUv += (Hash22(floor(uv * _ScreenParams.xy / 6.0)) - 0.5) * _FrostDistort * frostMask;
                 }
 
                 half4 col = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, distortUv);
@@ -187,8 +177,10 @@ Shader "NGH/ScreenFX"
 
                 if (frost > 0.001)
                 {
-                    float3 iced = lerp(col.rgb, _FrostColor.rgb, 0.5) + crystal * 0.18 * _FrostColor.rgb;
-                    col.rgb = lerp(col.rgb, iced, frostMask);
+                    float3 ice = saturate(frostTex * _FrostGain) * _FrostColor.rgb;
+                    float3 screened = 1.0 - (1.0 - saturate(col.rgb)) * (1.0 - ice);   // 성에 그림을 화면 위에 밝게 얹음 (검은 곳은 그대로)
+                    col.rgb = lerp(col.rgb, col.rgb * _FrostColor.rgb, frostMask * 0.35);   // 얼어붙은 곳은 살짝 차가운 빛
+                    col.rgb = lerp(col.rgb, screened, frostReveal * _FrostOpacity);
                 }
 
                 // ---------- 낮은 HP: 색 바램 + 가장자리 먹빛 맥박 ----------

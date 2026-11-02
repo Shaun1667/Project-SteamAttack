@@ -3,7 +3,8 @@ using UnityEngine;
 namespace NGH
 {
     /// <summary>
-    /// 현무 냉기 피격 화면 연출: 현무가 있는 씬에서 맞으면 화면 가장자리에 성에가 끼었다가 서서히 녹음.
+    /// 현무 냉기 피격 화면 연출: 현무의 브레스·브레스 폭발에 맞으면 화면 가장자리에 성에가 끼었다가 서서히 녹음.
+    ///  - 냉기 공격인지는 때린 쪽이 ColdHit 를 켜고 TakeHit 을 부르는 것으로 알림 (SnakeFSM.DamagePlayer)
     ///  - 강공격(피격 대)이면 더 안쪽까지 번짐
     ///  - 화면 효과는 NGH_ScreenFX 셰이더(PC_Renderer 의 NGH_ScreenFX)가 전역 값 _NGH_Frost 를 읽어 그림
     /// 플레이어(PlayerController 가 있는 오브젝트)에 붙입니다.
@@ -26,6 +27,9 @@ namespace NGH
         [Tooltip("다 낀 뒤 녹기 시작할 때까지")]
         [Min(0f)] public float hold = 1.6f;
         [Min(0.01f)] public float meltTime = 4.1f;
+
+        /// <summary>지금 들어오는 피격이 냉기 공격(브레스·브레스 폭발)인지. 때리는 쪽이 TakeHit 직전에 켜고 직후에 끔</summary>
+        public static bool ColdHit;
 
         static readonly int FrostId = Shader.PropertyToID("_NGH_Frost");
 
@@ -50,6 +54,7 @@ namespace NGH
 
         void OnDamaged(int damage, bool heavy)
         {
+            if (!ColdHit) return;
             if (onlyWithHyeonmu && !HyeonmuPresent()) return;
             _target = Mathf.Max(_target, heavy ? heavyAmount : amount);
             _holdUntil = Time.unscaledTime + growTime + hold;
