@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
+[DefaultExecutionOrder(300)]
 public class BossBreathAttack : BossAttack
 {
     [Header("뱀 FSM - 공격 범위 기즈모 기준")]
@@ -36,8 +37,18 @@ public class BossBreathAttack : BossAttack
     private LineRenderer breathLine;
     private Material runtimeLineMaterial;
 
+    [Header("분사 중 브레스 접촉 피해")]
+    [Tooltip("분사 중 입부터 바닥까지의 브레스에 닿으면 Damage만큼 1회 피해를 줍니다. 이후 얼음 폭발 피해와 별도로 판정합니다.")]
+    public bool damageOnBreathContact = true;
+    [Tooltip("브레스 선을 감싸는 접촉 판정의 반지름(월드 단위)입니다.")]
+    [Min(0.01f)] public float breathContactRadius = 0.4f;
+    private bool breathContactHit;
+    private HyunMuBreathVfxBridge contactVfx;
+    private Collider[] breathContactResults = new Collider[16];
+
     private void LateUpdate()
     {
+        TickBreathContact(Time.deltaTime);
         bool visible = showBreathLine && IsRunning && controlledHead != null &&
             controlledHead.isActiveAndEnabled && controlledHead.IsBreathSweeping;
         if (!visible)
@@ -79,6 +90,56 @@ public class BossBreathAttack : BossAttack
         breathLine.SetPosition(1, controlledHead.BreathAimPoint + Vector3.up * 0.03f);
         breathLine.enabled = true;
     }
+
+    private void TickBreathContact(float deltaTime)
+    {
+        if (deltaTime <= 0f || !damageOnBreathContact || breathContactHit || !IsRunning ||
+            explosionDelayStarted || explosionActive || controlledHead == null ||
+            !controlledHead.isActiveAndEnabled || !controlledHead.IsBreathSweeping ||
+            Target == null || !Target.gameObject.activeInHierarchy || damage <= 0f)
+            return;
+
+        Vector3 start, end;
+        if (contactVfx != null && contactVfx.isActiveAndEnabled)
+        {
+            // Read the geometry after the VFX LateUpdate, so Tip/ground offsets match.
+            if (!contactVfx.TryGetLiveBeamSegment(this, out start, out end)) return;
+        }
+        else
+        {
+            Transform origin = breathLineOrigin != null ? breathLineOrigin : controlledHead.mouthHead;
+            if (origin == null) origin = controlledHead.ikTarget;
+            if (origin == null) return;
+            start = origin.position;
+            end = controlledHead.BreathAimPoint + Vector3.up * .03f;
+        }
+
+        if ((end - start).sqrMagnitude < .000001f) return;
+        float radius = Mathf.Max(.01f, breathContactRadius);
+        while (true)
+        {
+            int count = Physics.OverlapCapsuleNonAlloc(start, end, radius,
+                breathContactResults, ~0, QueryTriggerInteraction.Collide);
+            for (int i = 0; i < count; i++)
+            {
+                Collider candidate = breathContactResults[i];
+                if (candidate == null || !candidate.enabled || !candidate.gameObject.activeInHierarchy ||
+                    (candidate.transform != Target && !candidate.transform.IsChildOf(Target)))
+                    continue;
+
+                // Sweeping still belongs to the base Ready phase. Keep its once flag
+                // separate from HitOnce so the later ice explosion can hit independently.
+                breathContactHit = true;
+                DamageReporter?.Invoke(Mathf.Max(0f, damage));
+                return;
+            }
+
+            if (count < breathContactResults.Length) return;
+            // A full query buffer may hide the player. Grow once as needed, then reuse it.
+            System.Array.Resize(ref breathContactResults, breathContactResults.Length * 2);
+        }
+    }
+
 
     [Header("브레스 판정 - 예고 시작 시 플레이어 거리 기준")]
     [Tooltip("플레이어 거리의 앞뒤 폭. 1이면 거리 6에서 5~7m에 판정이 생깁니다. 예고 시작 후에는 고정됩니다.")]
@@ -140,6 +201,16 @@ public class BossBreathAttack : BossAttack
     protected override bool PrepareAttack()
     {
         if (Target == null || !Target.CompareTag("Player")) return false;
+        breathContactHit = false;
+        if (contactVfx == null)
+        {
+            foreach (HyunMuBreathVfxBridge candidate in GetComponentsInChildren<HyunMuBreathVfxBridge>(true))
+            {
+                if (candidate.SourceAttack != this) continue;
+                contactVfx = candidate;
+                break;
+            }
+        }
         lockedExplosionDelay = Mathf.Max(0f, explosionDelay);
         lockedExplosionDuration = Mathf.Max(.01f, attackTime);
         explosionWaitElapsed = explosionElapsed = 0f;
@@ -267,6 +338,7 @@ public class BossBreathAttack : BossAttack
 
     protected override void EndAttack()
     {
+        breathContactHit = false;
         explosionActive = false;
         explosionDelayStarted = false;
         if (breathLine != null) breathLine.enabled = false;

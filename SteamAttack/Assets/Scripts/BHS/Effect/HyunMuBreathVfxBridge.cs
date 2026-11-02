@@ -92,6 +92,7 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
     private MaterialPropertyBlock traceBlock;
     private int count;
     private bool sweeping, contactPlaying, explosionArmed, exploded;
+    private int lastBeamFrame = -1;
     private ScorchBurstLifetime burstPool;
     private ParticleSystem[] burstParticles;
     private float burstNativeDuration;
@@ -109,6 +110,7 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
     public bool IsExplosionVisible => burstPool != null && burstPool.gameObject.activeInHierarchy;
     public UnityEngine.EntityId BurstPoolInstanceId => burstPool != null ? burstPool.GetEntityId() : default;
     public UnityEngine.EntityId TraceMeshInstanceId => traceMesh != null ? traceMesh.GetEntityId() : default;
+    public BossBreathAttack SourceAttack => breath;
     public Vector3 BeamStart => core != null ? core.GetPosition(0) : Vector3.zero;
     public Vector3 BeamEnd => core != null ? core.GetPosition(1) : Vector3.zero;
     public Vector3 LastTracePoint => count > 0 ? points[count - 1] : Vector3.zero;
@@ -357,6 +359,7 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
             (head.mouthHead != null ? head.mouthHead : head.ikTarget));
         if (origin == null) { core.enabled = spiral.enabled = false; return; }
         Vector3 start = origin.TransformPoint(mouthLocalOffset);
+        lastBeamFrame = Time.frameCount;
         if (pressureJet != null)
         {
             core.SetPosition(0, start); core.SetPosition(1, target);
@@ -694,5 +697,19 @@ public sealed class HyunMuBreathVfxBridge : MonoBehaviour
     {
         if (cacheRoot != null) Destroy(cacheRoot);
         if (traceMesh != null) Destroy(traceMesh);
+    }
+
+
+    // Read the exact segment drawn this frame, including the Tip offset and ground projection.
+    // The attack owns damage; this component only supplies its visual geometry.
+    public bool TryGetLiveBeamSegment(BossBreathAttack source, out Vector3 start, out Vector3 end)
+    {
+        start = end = Vector3.zero;
+        if (!isActiveAndEnabled || breath != source || !sweeping || core == null ||
+            head == null || !head.IsBreathSweeping || lastBeamFrame != Time.frameCount)
+            return false;
+        start = core.GetPosition(0);
+        end = core.GetPosition(1);
+        return (end - start).sqrMagnitude > .000001f;
     }
 }
