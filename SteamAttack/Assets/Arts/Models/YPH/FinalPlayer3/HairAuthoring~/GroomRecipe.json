@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-31",
+  "purpose": "GatHatBase의 다발 경계를 메시로 보강하고 외곽 잔머리를 Hair Cards로 추가",
+  "original_fbx_sha256": "ABF6769B2F4194A90E0AB555ADDDE626605FE5D9DEF011DEC264A95959E72FA0",
+  "original_mesh": "OriginalHairMesh.bin",
+  "blender_source": "HairGroomRefined.blend",
+  "native_mesh_sources": ["HairClumps.meshbin", "HairCards.meshbin"],
+  "source_format": "uint32 정점 수, uint32 인덱스 수; 정점마다 float 위치3/법선3/UV2, int32 원본 머리 삼각형, float 무게A/B; 이후 uint32 삼각형 인덱스",
+  "geometry": {
+    "groove_guides": 17,
+    "groove_depth_model_units": 0.0075,
+    "groove_width_model_units": 0.0095,
+    "normal_slope_weight": 0.45,
+    "original_scale": 0.3,
+    "base_vertex_count": 44346,
+    "base_hair_triangle_count": 19800,
+    "card_count": 178,
+    "card_vertex_count": 13797,
+    "card_triangle_count": 17684,
+    "method": "Blender BVH에서 결 방향장을 추적해 큰 홈을 만들고 원본 삼각형의 좌표로 뼈 가중치를 보간. 카드는 같은 뼈를 사용하는 별도 메시"
+  },
+  "atlas": {
+    "method": "이 작업에서 절차적으로 만든 섬유 알파·표면 데이터. 2048x1024, 8개 세로 영역",
+    "opacity": "../Textures/YPH_HairCardOpacity.png",
+    "surface": "../Textures/YPH_HairCardSurface.png",
+    "surface_channels": "RG Normal, B 표시 색 공간 명암, A 반사 변화",
+    "import": "Linear, Mipmap, Clamp, Trilinear, Aniso4, PC BC7. 알파 맵은 0.35 기준 coverage 보존"
+  },
+  "unity_prefab": "Assets/Prefabs/YPH/HeroPlayer/GatHatHairGroom.prefab",
+  "binding": "원본 Mesh가 연결된 SkinnedMeshRenderer의 자식에 둔다. HairGroomBinding이 뼈와 재질을 연결하며, 비활성화하면 원본 표시를 복원한다",
+  "lod": "LOD0에는 카드, LOD1에는 렌더러가 없음. 화면 비율 0.15에서 카드만 제거. 본체는 유지하며 카드 Mesh의 로컬 크기로 LOD 크기를 고정",
+  "reproduction": [
+    "Unity 프로젝트 루트에서 실행한다. 기존 Blender와 numpy/Pillow가 있는 Python을 사용한다",
+    "blender --background --python Assets/Scripts/YPH/Editor/HairAuthoring~/BuildHairGroom.py -- --output Temp/HairGroomBuild",
+    "python Assets/Scripts/YPH/Editor/HairAuthoring~/BuildHairCardAtlas.py --output Temp/HairGroomBuild",
+    "HairGroomAssetBuilder.BuildBase와 BuildCards에 원본 Mesh 및 생성한 .bin 바이트를 전달해 Unity Mesh를 저장한다"
+  ],
+  "validation": {
+    "editor": "원본 갓·장식 정점/UV/인덱스 보존, 89개 뼈, 가중치 합 및 인덱스 정상. 활성화/복원/재적용 3회. 재컴파일 후 재바인딩 확인",
+    "play": "프레임 231에서 1607까지 실제 진행. 머리뼈 35도 회전에 카드 정점이 이동함. Console 오류와 경고 0건",
+    "automatic_lod": "Editor와 실제 Play에서 0.24m/0.7m=LOD0, 2.2m=LOD1 확인. ForceLOD(-1) 사용",
+    "reproduction": "두 Mesh 바이너리와 두 PNG를 다시 생성해 SHA256 일치 확인",
+    "limits": "Windows D3D11 Editor/Play 검증. Player 빌드 및 다른 그래픽 API는 미실행. AI 시안과 픽셀 단위로 같은 결과를 보장하지 않음"
+  }
+}

@@ -71,6 +71,8 @@ namespace YPH
         private float KickHitTime => Animation != null && Animation.KickHitTime >= 0f ? Animation.KickHitTime : _kickHitClipTime;
         private float KickLength => Animation != null && Animation.KickLength >= 0f ? Animation.KickLength : _kickClipLength;
 
+        internal float GetWeaponWindup(bool heavy) => heavy ? HeavyWindup : AttackWindup;
+
         private void Start()
         {
             if (_attackHitboxPrefab != null)

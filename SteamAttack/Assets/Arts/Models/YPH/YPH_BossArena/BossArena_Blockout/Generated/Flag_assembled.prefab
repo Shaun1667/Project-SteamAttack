@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 2045789593186762184}
   - component: {fileID: 2180649157402523023}
   - component: {fileID: 6536299557834020722}
+  - component: {fileID: 8607204181985824045}
   m_Layer: 0
   m_Name: Plane
   m_TagString: Untagged
@@ -163,7 +164,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6260422558893655619}
-  m_Mesh: {fileID: -462981019419857548, guid: 3084df4b2c13f0043a70101a7d805ddf, type: 3}
+  m_Mesh: {fileID: 4300000, guid: d788784d0c713a946b686a60fcc4c5e9, type: 2}
 --- !u!23 &6536299557834020722
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -213,3 +214,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8607204181985824045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6260422558893655619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f0c54d9707851a4dab2ede53074dfc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::YPH.FlagWind
+  _windZone: {fileID: 0}
+  _windDirection: {x: 1, y: 0, z: 0.35}
+  _windStrength: 0.8
+  _amplitude: 0.075
+  _frequency: 1.6
+  _pinnedWidth: 0.02
