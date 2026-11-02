@@ -643,7 +643,13 @@ namespace NGH
                 action = ActionState.None;
                 _attack = null;
                 if (animator) animator.speed = 1f;
-                if (next != ActionState.None) { _chainBlend = chaining; StartAction(next); }
+                if (next != ActionState.None)
+                {
+                    _chainBlend = chaining;
+                    StartAction(next);
+                    // 예약된 동작이 시작되지 못함 (증기가 모자라 강공격이 막힘, 무기 교체 중 등) → 끝난 동작 마지막 자세에 멈추지 않게 대기로 돌아감
+                    if (action == ActionState.None && animator) animator.CrossFadeInFixedTime(locomotionState, 0.2f);
+                }
                 else if (finished == ActionState.HitLarge && StartGetUp()) return;   // 넘어진 뒤 일어나기
                 else
                 {

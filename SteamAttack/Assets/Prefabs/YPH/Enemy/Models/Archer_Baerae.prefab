@@ -772,8 +772,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: MagicaClothV2::MagicaCloth2.MagicaSettings
   refreshMode: 0
-  simulationFrequency: 120
-  maxSimulationCountPerFrame: 4
+  simulationFrequency: 90
+  maxSimulationCountPerFrame: 3
   initializationLocation: 0
   updateLocation: 0
   monitorPlayerLoop: 0
@@ -2132,8 +2132,8 @@ MonoBehaviour:
       cameraCullingMethod: 0
       cameraCullingRenderers: []
       distanceCullingLength:
-        value: 30
-        use: 0
+        value: 20
+        use: 1
       distanceCullingFadeRatio: 0.2
       distanceCullingReferenceObject: {fileID: 0}
     normalAxis: 1
@@ -2421,7 +2421,7 @@ MonoBehaviour:
           m_PostInfinity: 2
           m_RotationOrder: 4
     selfCollisionConstraint:
-      selfMode: 2
+      selfMode: 0
       surfaceThickness:
         value: 0.006
         useCurve: 0

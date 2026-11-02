@@ -6228,8 +6228,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: MagicaClothV2::MagicaCloth2.MagicaSettings
   refreshMode: 0
-  simulationFrequency: 150
-  maxSimulationCountPerFrame: 5
+  simulationFrequency: 90
+  maxSimulationCountPerFrame: 3
   initializationLocation: 0
   updateLocation: 0
   monitorPlayerLoop: 0
@@ -18871,7 +18871,7 @@ MonoBehaviour:
   hidePlayerDuringRewind: 0
   blotSize: 0
   blotFadeTime: 0.5
-  sampleSpacing: 0.06
+  sampleSpacing: 0.1
   textureLength: 1.4
   widthNoise: 0.3
   wobble: 0.03
@@ -20149,6 +20149,14 @@ MonoBehaviour:
   fadeToSimulation: 0.35
   resetOnActionEnd: 1
   ignoredActions: 0000000005000000060000000a0000000b000000i
+  settleWhenIdle: 1
+  idleBlendWeight: 0
+  idleSpeed: 0.15
+  idleDelay: 0.3
+  fadeToIdle: 0.5
+  pauseSleevesWhenSettled: 1
+  idleSkirtTimeScale: 0.4
+  skirts: []
 --- !u!114 &8843512113887520929
 MonoBehaviour:
   m_ObjectHideFlags: 0

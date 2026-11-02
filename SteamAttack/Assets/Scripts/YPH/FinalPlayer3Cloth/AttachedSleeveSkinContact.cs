@@ -158,6 +158,8 @@ public sealed class AttachedSleeveSkinContact : MonoBehaviour
 
     void Solve()
     {
+        // NGH 최적화: 가만히 서 있어 소매가 애니메이션 자세로 붙어 있는 동안은 건너뜀
+        if (NGH.SleeveActionGuard.SleevesResting) return;
         if (!ApplySkinContact()) return;
         using var sample = marker.Auto();
         var teams = MagicaManager.Team; var vm = MagicaManager.VMesh; var render = MagicaManager.Render;
