@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BakedMaterial_002
+  m_Shader: {fileID: 4800000, guid: d80e391ec621b8941a2119bd32876664, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 6181ebd19fd4e97419b1dadd01d4eda4, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _EdgeGrain: 0.08
+    - _EdgeRimInk: 0.12
+    - _Grain: 0.06
+    - _RimInk: 0.1
+    m_Colors:
+    - _BaseColor: {r: 0.5568628, g: 0.5568628, b: 0.5568628, a: 1}
+    - _EdgeBaseColor: {r: 0.87, g: 0.87, b: 0.85, a: 1}
+    - _EdgeShadowColor: {r: 0.6, g: 0.58, b: 0.56999993, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
+    - _InkColor: {r: 0.07, g: 0.07, b: 0.08, a: 1}
+    - _ShadowColor: {r: 0.51000005, g: 0.493, b: 0.48449996, a: 0.85}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

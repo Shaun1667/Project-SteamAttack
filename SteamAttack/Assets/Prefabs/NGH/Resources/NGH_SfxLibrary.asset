@@ -30,6 +30,23 @@ MonoBehaviour:
     - {fileID: 8300000, guid: fd54e27cc69eccf4e891539ba52fe740, type: 3}
     volume: 0.6
     pitchJitter: 0.06
+  runStep:
+    clips:
+    - {fileID: 8300000, guid: cb2e944026bef124187d03c07a0424d4, type: 3}
+    - {fileID: 8300000, guid: dee8cefbfc2944d45957e48cdada0713, type: 3}
+    - {fileID: 8300000, guid: 75cc8101d311e9a48ac3b349aee60b28, type: 3}
+    volume: 0.7
+    pitchJitter: 0.06
+  snowRunStep:
+    clips:
+    - {fileID: 8300000, guid: e23acba6c597a77428548c3e0b5076a2, type: 3}
+    - {fileID: 8300000, guid: c5af48741e0b6de42b88c1962a5c578e, type: 3}
+    - {fileID: 8300000, guid: f41f0b1952ae96a4eb846cfe52c8b6fc, type: 3}
+    volume: 0.7
+    pitchJitter: 0.06
+  runStepImpactAt: 0.12
+  snowRunStepImpactAt: 0.12
+  walkStepVolumeScale: 0.6
   bowPull:
     clips:
     - {fileID: 8300000, guid: 01a29ee23134a0b40bce8fdd7bc51a4a, type: 3}

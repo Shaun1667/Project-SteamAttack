@@ -12,8 +12,16 @@ public sealed class BossShellBurst : MonoBehaviour
     [SerializeField] private Transform[] pieces;
     [SerializeField, Min(0f)] private float moveDistance = 2f;
     [SerializeField, Min(0f)] private float moveDuration = 0.3f;
-    [Tooltip("도착한 위치에서 정지해 있다가 꺼지기까지의 시간")]
+    [Tooltip("이동 후 낙하를 이어가는 시간. Move Duration과 합친 시간이 코어 노출 시점입니다.")]
     [SerializeField, Min(0f)] private float holdDuration = 0.15f;
+    [Tooltip("날아가는 궤적의 위쪽 휘어짐 높이(월드 단위)")]
+    [SerializeField, Min(0f)] private float arcHeight = 0.6f;
+    [Tooltip("마지막에 시작 높이보다 내려가는 거리(월드 단위)")]
+    [SerializeField, Min(0f)] private float dropDistance = 0.45f;
+    [Tooltip("날아가는 동안 조각이 자신의 중심을 기준으로 회전하는 각도")]
+    [SerializeField, Min(0f)] private float tumbleAngle = 110f;
+    [Tooltip("조각별 거리, 높이, 회전량의 차이")]
+    [SerializeField, Range(0f, 0.5f)] private float pieceVariation = 0.22f;
     [SerializeField] private UnityEvent onBurstFinished = new UnityEvent();
 
     private sealed class PieceState
@@ -22,13 +30,21 @@ public sealed class BossShellBurst : MonoBehaviour
         public Vector3 position;
         public Quaternion rotation;
         public Vector3 scale;
-        public Vector3 start;
-        public Vector3 end;
+        public Vector3 startCenter;
+        public Quaternion startRotation;
+        public Vector3 pivotToCenter;
+        public Vector3 travel;
+        public Vector3 spinAxis;
+        public float arc;
+        public float drop;
+        public float spin;
     }
 
     private readonly List<PieceState> states = new List<PieceState>();
     private bool cached;
     private bool burst;
+    private bool flying;
+    private float flightProgress;
     private Coroutine routine;
     public event System.Action BurstFinished;
 
@@ -74,35 +90,47 @@ public sealed class BossShellBurst : MonoBehaviour
         burst = true;
         NGH.ReviewedAudio.Play("Revision/47_ShellBreak_v01");
         Vector3 center = burstCenter != null ? burstCenter.position : transform.position;
-        foreach (PieceState state in states)
+        for (int i = 0; i < states.Count; i++)
         {
+            PieceState state = states[i];
             if (state.target == null) continue;
-            // 모델들이 같은 피벗을 공유해도 각 메시의 실제 중심 방향으로 퍼집니다.
             Renderer meshRenderer = state.target.GetComponent<Renderer>();
             Vector3 pieceCenter = meshRenderer != null ? meshRenderer.bounds.center : state.target.position;
-            Vector3 direction = pieceCenter - center;
-            if (direction.sqrMagnitude < 0.000001f) direction = transform.up;
-            Vector3 offset = direction.normalized * moveDistance;
-            state.start = state.target.localPosition;
-            state.end = state.start + (state.target.parent != null
-                ? state.target.parent.InverseTransformVector(offset) : offset);
+            Vector3 direction = Vector3.ProjectOnPlane(pieceCenter - center, Vector3.up);
+            if (direction.sqrMagnitude < 0.000001f)
+                direction = Quaternion.AngleAxis(i * 137.508f, Vector3.up) * Vector3.forward;
+            direction.Normalize();
+            // 게임 전체의 난수 상태에 영향을 주지 않는 조각별 편차입니다.
+            float spread = Mathf.Sin((i + 1) * 2.399963f);
+            float lift = Mathf.Sin((i + 1) * 1.713f + 0.7f);
+            direction = Quaternion.AngleAxis(spread * pieceVariation * 25f, Vector3.up) * direction;
+            state.startCenter = pieceCenter;
+            state.startRotation = state.target.rotation;
+            state.pivotToCenter = Quaternion.Inverse(state.startRotation) * (pieceCenter - state.target.position);
+            state.travel = direction * moveDistance * (1f + spread * pieceVariation);
+            state.arc = arcHeight * (1f + lift * pieceVariation);
+            state.drop = dropDistance * (1f - lift * pieceVariation * 0.5f);
+            state.spinAxis = (Vector3.Cross(Vector3.up, direction) + direction * spread * 0.35f).normalized;
+            state.spin = tumbleAngle * (1f + lift * pieceVariation) * ((i % 2 == 0) ? 1f : -1f);
         }
+        flightProgress = 0f;
+        flying = true;
         routine = StartCoroutine(BurstRoutine());
     }
 
     private IEnumerator BurstRoutine()
     {
+        // 기존 코어 노출 시점은 유지하고 정지 구간에서도 낙하/회전을 이어갑니다.
+        float duration = Mathf.Max(0f, moveDuration) + Mathf.Max(0f, holdDuration);
         float elapsed = 0f;
-        while (elapsed < moveDuration)
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / moveDuration);
-            // 처음 빠르게 튀어나가고 끝에서 감속합니다.
-            ApplyPosition(1f - Mathf.Pow(1f - t, 3f));
+            flightProgress = Mathf.Clamp01(elapsed / duration);
             yield return null;
         }
-        ApplyPosition(1f);
-        if (holdDuration > 0f) yield return new WaitForSeconds(holdDuration);
+        ApplyPose(1f);
+        flying = false;
         foreach (PieceState state in states)
             if (state.target != null) state.target.gameObject.SetActive(false);
         routine = null;
@@ -110,10 +138,25 @@ public sealed class BossShellBurst : MonoBehaviour
         onBurstFinished.Invoke();
     }
 
-    private void ApplyPosition(float t)
+    private void LateUpdate()
     {
+        // 부모의 애니메이션/이동 이후 월드 궤적을 적용합니다.
+        if (flying) ApplyPose(flightProgress);
+    }
+
+    private void ApplyPose(float t)
+    {
+        float travel = 1f - (1f - t) * (1f - t);
         foreach (PieceState state in states)
-            if (state.target != null) state.target.localPosition = Vector3.Lerp(state.start, state.end, t);
+        {
+            if (state.target == null) continue;
+            float height = 4f * state.arc * t * (1f - t) - state.drop * t * t;
+            Vector3 center = state.startCenter + state.travel * travel + Vector3.up * height;
+            Quaternion rotation = Quaternion.AngleAxis(state.spin * t, state.spinAxis) * state.startRotation;
+            // 공통 피벗 대신 각 조각의 메시 중심을 축으로 회전합니다.
+            state.target.rotation = rotation;
+            state.target.position = center - rotation * state.pivotToCenter;
+        }
     }
 
     // 2페이즈 진입 시 호출: 연출 중이어도 취소하고 원래 조립 상태로 즉시 복원합니다.
@@ -122,6 +165,7 @@ public sealed class BossShellBurst : MonoBehaviour
         CacheOriginalPose();
         if (routine != null) StopCoroutine(routine);
         routine = null;
+        flying = false;
         foreach (PieceState state in states)
         {
             if (state.target == null) continue;
@@ -137,5 +181,6 @@ public sealed class BossShellBurst : MonoBehaviour
     {
         if (routine != null) StopCoroutine(routine);
         routine = null;
+        flying = false;
     }
 }

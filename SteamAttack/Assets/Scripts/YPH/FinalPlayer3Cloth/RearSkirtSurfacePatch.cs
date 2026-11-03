@@ -23,6 +23,7 @@ internal sealed class RearSkirtSurfacePatch : IDisposable
     readonly NativeArray<byte> boundary;
     readonly NativeArray<float3> positions, normals;
     Mesh modifiedMesh;
+    int tangentCountdown;
 
     public RearSkirtSurfacePatch(SkinnedMeshRenderer source, Mesh rest, Transform root, float[] mask, NativeArray<int> representatives)
     {
@@ -67,7 +68,7 @@ internal sealed class RearSkirtSurfacePatch : IDisposable
         {
             var t = face.vertices;
             // Equal subdivisions keep shared edges watertight as the surface bends.
-            const int divisions = 12;
+            const int divisions = 6;   // NGH 최적화: 12 → 6 (정점 약 1/3.5, 접촉 계산·탄젠트 비용 감소)
             var map = new int[divisions + 1, divisions + 1];
             bool ab = edgeCounts[Edge(t.x, t.y)] == 1, ac = edgeCounts[Edge(t.x, t.z)] == 1, bc = edgeCounts[Edge(t.y, t.z)] == 1;
             for (int x = 0; x <= divisions; x++) for (int y = 0; y <= divisions - x; y++)
@@ -106,7 +107,9 @@ internal sealed class RearSkirtSurfacePatch : IDisposable
             skin = skin, vest = vest, triangles = vestTriangles, nodes = nodes, order = order,
             toLocal = root.worldToLocalMatrix, normalToLocal = math.transpose((float3x3)(float4x4)root.localToWorldMatrix), positions = positions, normals = normals
         }.Schedule(positions.Length, 32).Complete();
-        patch.SetVertices(positions); patch.SetNormals(normals); patch.RecalculateBounds(); patch.RecalculateTangents();
+        patch.SetVertices(positions); patch.SetNormals(normals); patch.RecalculateBounds();
+        // 탄젠트(노멀맵 방향)는 천천히 변하므로 매 프레임 대신 4번에 1번만 다시 계산 (NGH 최적화, 한 번에 약 2ms)
+        if (tangentCountdown-- <= 0) { patch.RecalculateTangents(); tangentCountdown = 3; }
         if (modifiedMesh != source.sharedMesh)
         {
             Restore();

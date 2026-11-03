@@ -1,5 +1,67 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &996016170678070176
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2662328583306766015}
+  m_Layer: 0
+  m_Name: RightHandGrip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2662328583306766015
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 996016170678070176}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.74563026, y: 0.6444489, z: -0.050966084, w: -0.16162814}
+  m_LocalPosition: {x: 0.347576, y: 0.008622005, z: 0.031421352}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5780658026047061863}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1079880133821660126
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8925577311636535115}
+  m_Layer: 0
+  m_Name: LeftHandGrip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8925577311636535115
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1079880133821660126}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.031690534, y: -0.61040485, z: -0.79138863, w: 0.010285605}
+  m_LocalPosition: {x: -0.13555671, y: 0.019445779, z: -0.11554869}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5780658026047061863}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1442823610676542324
 GameObject:
   m_ObjectHideFlags: 0
@@ -30,6 +92,9 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2934277369285147041}
+  - {fileID: 8925577311636535115}
+  - {fileID: 2662328583306766015}
+  - {fileID: 3401983968703833165}
   m_Father: {fileID: 596635568911009945}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1697941068087966156
@@ -9525,6 +9590,8 @@ GameObject:
   m_Component:
   - component: {fileID: 596635568911009945}
   - component: {fileID: 9222124366589878296}
+  - component: {fileID: 1245623020280675052}
+  - component: {fileID: 7405894298594440953}
   m_Layer: 0
   m_Name: YPH_SteamRifle
   m_TagString: Untagged
@@ -9567,6 +9634,91 @@ MonoBehaviour:
   heavyDamage: 3
   reach: 1.17
   hitRadius: 0.78
+--- !u!114 &1245623020280675052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5190338063312235500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 636d4481a5e99db47b002d143fb5e056, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::YPH.RifleGripIK
+  _primaryGrip: {fileID: 2662328583306766015}
+  _primaryElbowHint: {fileID: 0}
+  _rightFingerLocalEulerAngles:
+  - {x: 44.635, y: 42.083, z: 36.023}
+  - {x: 0.93, y: 357.65, z: 352.689}
+  - {x: 353.292, y: 1.28, z: 319.452}
+  - {x: 34.6, y: 20, z: -20}
+  - {x: 16.7, y: 354.612, z: 351.72}
+  - {x: 85, y: 347.095, z: 342.714}
+  - {x: 57.435, y: 358.995, z: 350.614}
+  - {x: 82.436, y: 259.412, z: 253.466}
+  - {x: 79.26, y: 326.932, z: 320.942}
+  - {x: 63.705, y: 342.785, z: 330.095}
+  - {x: 61.693, y: 351.193, z: 346.2}
+  - {x: 56.006, y: 354.525, z: 350.657}
+  - {x: 68.015, y: 322.491, z: 308.096}
+  - {x: 51.692, y: 356.199, z: 351.304}
+  - {x: 43.69, y: 357.991, z: 353.78}
+  _adaptPrimaryPose: 1
+  _maxPrimaryWristAngle: 40
+  _maxPrimaryGunShift: 0.14
+  _supportGrip: {fileID: 8925577311636535115}
+  _elbowHint: {fileID: 0}
+  _rotationWeight: 1
+  _blendSpeed: 12
+--- !u!114 &7405894298594440953
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5190338063312235500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9372c2f0c0ea05b4297a3291c2d43278, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::YPH.RifleAimPose
+  _muzzle: {fileID: 2271439086209552927}
+  _torsoYawShare: 0.65
+  _torsoPitchShare: 0.45
+  _maxTorsoYaw: 45
+  _maxTorsoPitch: 30
+--- !u!1 &6456716638387700607
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3401983968703833165}
+  m_Layer: 0
+  m_Name: RightElbowHint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3401983968703833165
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6456716638387700607}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.66444623, y: 0.25944242, z: -0.15556316}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5780658026047061863}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6767558616249787331
 GameObject:
   m_ObjectHideFlags: 0

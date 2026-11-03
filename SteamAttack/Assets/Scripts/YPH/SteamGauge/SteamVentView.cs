@@ -7,6 +7,7 @@ namespace YPH
     /// 잔량이 있을 때만 분출하며, 잔량이 0이 되면 남아 있는 입자까지 제거하고 재생을 멈춥니다.
     /// 성공은 실제 소비량에 비례하고, 양수 잔량의 부족 실패는 정해진 개수만 분출합니다. 회복만으로는 분출하지 않습니다.
     /// </summary>
+    [DefaultExecutionOrder(1100)]
     public class SteamVentView : MonoBehaviour
     {
         [Tooltip("소비 성공·실패와 잔량을 확인할 증기 탱크입니다. 잔량이 0 이하이면 분출을 멈추며 회복만으로는 분출하지 않습니다. 플레이 시작 전에 연결하세요.")]
@@ -20,36 +21,87 @@ namespace YPH
         [Tooltip("잔량은 있지만 요청량보다 부족하여 소비하지 못했을 때 분출할 파티클 수입니다. 잔량이 0이면 이 값과 관계없이 분출하지 않습니다. 0이면 모든 실패 분출을 끕니다.")]
         [SerializeField, Min(0)] private int _failBurstCount = 8;
 
-        [Tooltip("켜면 증기가 최대치일 때 굴뚝에서 붉은 증기가 계속 피어오르며, 줄어들면 멈춥니다. 기본은 꺼짐입니다.")]
+        [Tooltip("켜면 증기가 최대치일 때 굴뚝에서 연속 증기가 피어오르며, 줄어들면 멈춥니다. 기본은 꺼짐입니다.")]
         [SerializeField] private bool _fullSteamEnabled;
         [Tooltip("가득 찼을 때 증기 색입니다. 알파를 높이면 진하게 보이며 평소 소비 분출 색은 파티클 설정을 유지합니다.")]
         [SerializeField] private Color _fullSteamColor = new Color(0.85f, 0.15f, 0.1f, 0.8f);
         [Tooltip("가득 찼을 때 초당 내보낼 입자 수입니다. 높이면 더 진하게 피어오르며 0이면 분출하지 않습니다.")]
         [SerializeField, Min(0f)] private float _fullSteamRate = 12f;
+        [Tooltip("이동 중 연속 증기 입자 사이의 최대 간격(m)입니다. 작을수록 빠른 달리기에서도 흐름이 이어지지만 입자가 많아집니다. 권장 0.04~0.08m이며 초당 방출량과 함께 적용됩니다.")]
+        [SerializeField, Range(0.02f, 0.2f)] private float _fullSteamSpacing = 0.05f;
 
         private bool _isFull;
         private float _fullSteamAccumulator;
+        private Vector3 _previousVentPosition;
+        private Vector3 _lastEmissionPosition;
+        private bool _hasEmissionPosition;
         private ParticleSystem.EmitParams _fullSteamParams = new ParticleSystem.EmitParams();
+        private const int MaxContinuousParticlesPerFrame = 128;
+        private const float TeleportDistance = 2f;
 
-        /// <summary>가득 찬 동안 시간에 맞춰 붉은 입자를 내보냅니다. 재사용 구조체로 소비 분출 색과 분리합니다.</summary>
-        private void Update()
+        /// <summary>캐릭터의 최종 자세 뒤에서 배출구의 이동 구간을 채웁니다.</summary>
+        private void LateUpdate()
         {
-            if (!_fullSteamEnabled || !_isFull || _ventParticles == null)
+            UpdateContinuousSteam(Time.deltaTime);
+        }
+
+        /// <summary>시간과 이동 거리 중 더 촘촘한 기준으로 방출하고 프레임 사이 위치를 보간합니다.</summary>
+        private void UpdateContinuousSteam(float deltaTime)
+        {
+            if (!_fullSteamEnabled || !_isFull || _ventParticles == null || _fullSteamRate <= 0f)
             {
-                _fullSteamAccumulator = 0f;
+                ResetContinuousSteam();
                 return;
             }
-            _fullSteamAccumulator += Time.deltaTime * _fullSteamRate;
-            _fullSteamParams.startColor = _fullSteamColor;
-            if (_fullSteamAccumulator >= 1f && !_ventParticles.isPlaying)
+            Vector3 position = _ventParticles.transform.position;
+            float distance = _hasEmissionPosition ? Vector3.Distance(_previousVentPosition, position) : 0f;
+            if (!_hasEmissionPosition || distance > TeleportDistance)
+            {
+                ResetContinuousSteam();
+                _lastEmissionPosition = position;
+                _hasEmissionPosition = true;
+            }
+            _previousVentPosition = position;
+            _fullSteamAccumulator += Mathf.Max(0f, deltaTime) * _fullSteamRate;
+            float spacing = Mathf.Max(0.02f, _fullSteamSpacing);
+            float segmentLength = Vector3.Distance(_lastEmissionPosition, position);
+            int distanceCount = segmentLength >= spacing ? Mathf.CeilToInt(segmentLength / spacing) : 0;
+            int count = Mathf.Min(MaxContinuousParticlesPerFrame,
+                Mathf.Max(Mathf.FloorToInt(_fullSteamAccumulator), distanceCount));
+            if (count <= 0)
+            {
+                return;
+            }
+            _fullSteamAccumulator = Mathf.Clamp(_fullSteamAccumulator - count, 0f, 1f);
+            EmitContinuousSteam(position, count);
+        }
+
+        /// <summary>World·Local·Custom 좌표계에 맞춰 이동 구간에 입자를 고르게 나눕니다.</summary>
+        private void EmitContinuousSteam(Vector3 position, int count)
+        {
+            if (!_ventParticles.isPlaying)
             {
                 _ventParticles.Play();
             }
-            while (_fullSteamAccumulator >= 1f)
+            var main = _ventParticles.main;
+            Transform space = main.simulationSpace == ParticleSystemSimulationSpace.Custom
+                ? main.customSimulationSpace : _ventParticles.transform;
+            _fullSteamParams.startColor = _fullSteamColor;
+            for (int i = 0; i < count; i++)
             {
+                Vector3 world = Vector3.Lerp(_lastEmissionPosition, position, (i + 1f) / count);
+                _fullSteamParams.position = main.simulationSpace == ParticleSystemSimulationSpace.World
+                    ? world : space != null ? space.InverseTransformPoint(world) : world;
                 _ventParticles.Emit(_fullSteamParams, 1);
-                _fullSteamAccumulator -= 1f;
             }
+            _lastEmissionPosition = position;
+        }
+
+        /// <summary>재개·순간 이동 때 이전 위치까지 긴 연기 선을 만들지 않도록 기록을 지웁니다.</summary>
+        private void ResetContinuousSteam()
+        {
+            _fullSteamAccumulator = 0f;
+            _hasEmissionPosition = false;
         }
 
         private void Awake()
@@ -79,7 +131,7 @@ namespace YPH
         private void OnDisable()
         {
             _isFull = false;
-            _fullSteamAccumulator = 0f;
+            ResetContinuousSteam();
             // 꺼진 배출구가 분출하지 않게 하고, 다시 켰을 때 알림이 중복되지 않도록 구독과 재생을 정리합니다.
             if (_tank != null)
             {
@@ -98,7 +150,7 @@ namespace YPH
             _isFull = max > 0f && current >= max;
             if (!_isFull)
             {
-                _fullSteamAccumulator = 0f;
+                ResetContinuousSteam();
             }
             // 소비 이벤트보다 먼저 호출됩니다. 마지막 소비로 빈 탱크가 되면 기존 입자까지 즉시 지웁니다.
             // 회복으로 양수가 되어도 여기서는 Play를 호출하지 않아 자동으로 분출하지 않습니다.

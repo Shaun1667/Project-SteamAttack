@@ -189,17 +189,29 @@ namespace NMJ
             HasPath(e) && (e.action == PlayerController.ActionState.HeavyAttack
                            || (Current == Mode.Flair && IsLight(e.action) && actionPressure >= MaxPressure() * 0.5f));
 
+        // 증기 탱크 목록은 1초마다만 다시 찾음 (매 프레임 씬 전체를 찾던 것을 줄임 — NGH 최적화)
+        private static SteamTank[] cachedTanks;
+        private static float nextTankScan;
+
+        private static SteamTank[] Tanks()
+        {
+            bool stale = cachedTanks == null || Time.unscaledTime >= nextTankScan;
+            if (!stale) foreach (SteamTank t in cachedTanks) if (t == null) { stale = true; break; }
+            if (stale) { cachedTanks = NmjStartTutorial.FindTanks(); nextTankScan = Time.unscaledTime + 1f; }
+            return cachedTanks;
+        }
+
         private static float CurrentPressure()
         {
             float p = 0f;
-            foreach (SteamTank tank in NmjStartTutorial.FindTanks()) if (tank != null) p = Mathf.Max(p, tank.CurrentPressure);
+            foreach (SteamTank tank in Tanks()) if (tank != null) p = Mathf.Max(p, tank.CurrentPressure);
             return p;
         }
 
         private static float MaxPressure()
         {
             float m = 0f;
-            foreach (SteamTank tank in NmjStartTutorial.FindTanks()) if (tank != null) m = Mathf.Max(m, tank.MaxPressure);
+            foreach (SteamTank tank in Tanks()) if (tank != null) m = Mathf.Max(m, tank.MaxPressure);
             return m > 0f ? m : 100f;
         }
 

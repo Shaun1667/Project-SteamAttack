@@ -49,6 +49,8 @@ namespace NGH
         public float DeadTime { get; private set; }
         /// <summary>(현재 HP, 최대 HP) — HP가 바뀔 때마다 호출</summary>
         public event System.Action<int, int> HpChanged;
+        /// <summary>(데미지, 피격(대) 여부) — 살아 있는 채로 맞았을 때 한 번 알림 (화면 피격 연출용)</summary>
+        public event System.Action<int, bool> Damaged;
         /// <summary>살아 있던 대상을 근접 공격으로 실제로 맞힌 뒤 한 번 알립니다. (병합 — YPH 증기 회복 연결용)</summary>
         public event System.Action<Damageable> OnHitLanded;
         /// <summary>원거리 장비(isMelee = false) 사격 동작이 시작될 때 장착 무기와 함께 알립니다. 실제 발사·투척은 구독하는 쪽이 처리합니다. (병합 — YPH 총·수류탄 연결용)</summary>
@@ -57,6 +59,10 @@ namespace NGH
         public System.Func<bool> HeavyAttackGate { get; set; }
         /// <summary>원거리 장비로 좌클릭했을 때 사격 동작을 시작해도 되는지 묻습니다. false면 사격 동작을 시작하지 않습니다. 비어 있으면 항상 허용합니다. (병합 — YPH 화승총 발사 가능 확인용)</summary>
         public System.Func<Weapon, bool> ShotGate { get; set; }
+        /// <summary>납도 상태에서 원거리 장비를 들고 좌클릭했을 때 무기를 꺼내도 되는지 묻습니다. 비어 있으면 항상 꺼냅니다. (화승총: 증기가 한 발 이상 차 있을 때만)</summary>
+        public System.Func<Weapon, bool> RangedDrawGate { get; set; }
+        /// <summary>Shift를 눌렀을 때 달려도 되는지 묻습니다. false면 걷기 속도·동작을 씁니다. 비어 있으면 항상 허용합니다. (병합 — YPH 조준 중 달리기 막기용)</summary>
+        public System.Func<bool> SprintGate { get; set; }
 
         [Header("이동 속도 (m/s)")]
         public float walkSpeed = 0.7f;
@@ -322,7 +328,8 @@ namespace NGH
 
             // ---------- 입력
             Vector2 input = ReadMoveInput();
-            bool run = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
+            bool run = (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed)
+                && (SprintGate == null || SprintGate());
 
             if (debugHitKeys)
             {
@@ -397,7 +404,13 @@ namespace NGH
         /// 플레이어가 맞았을 때 호출. 무적 중이면 무시하고 false 반환.
         /// 데미지가 Heavy Hit Threshold(기본 25) 이상이면 피격(대, 넉백), 미만이면 피격(소). 피격 동작이 끝날 때까지 무적.
         /// </summary>
-        public bool TakeHit(int damage, Vector3 from)
+        public bool TakeHit(int damage, Vector3 from) => TakeHit(damage, from, HitStagger.Light);
+
+        /// <summary>
+        /// 경직 단계를 함께 받는 피격. 경직이 강(Heavy) 이상이면 데미지가 작아도 피격(대) — 넘어졌다 일어남.
+        /// (예: 일반 적 강공격·발차기는 데미지 15라도 Heavy 로 넘어오면 넘어짐)
+        /// </summary>
+        public bool TakeHit(int damage, Vector3 from, HitStagger stagger)
         {
             if (damage <= 0 || IsInvincible) return false;
             Vector3 to = Flat(from - transform.position);
@@ -405,8 +418,9 @@ namespace NGH
             _buffered = ActionState.None;
             SetHp(hp - damage);
             if (hp <= 0) { Die(); return true; }
-            bool heavyHit = damage >= heavyHitThreshold;
+            bool heavyHit = damage >= heavyHitThreshold || stagger >= HitStagger.Heavy;
             StartAction(heavyHit ? ActionState.HitLarge : ActionState.HitSmall);
+            Damaged?.Invoke(damage, heavyHit);
             Debug.Log($"[CHG] 플레이어 피격 데미지 {damage} → {(heavyHit ? "피격(대)" : "피격(소)")}, HP {hp}/{maxHp}, {_actionDuration:0.##}초 무적");
             return true;
         }
@@ -631,7 +645,13 @@ namespace NGH
                 action = ActionState.None;
                 _attack = null;
                 if (animator) animator.speed = 1f;
-                if (next != ActionState.None) { _chainBlend = chaining; StartAction(next); }
+                if (next != ActionState.None)
+                {
+                    _chainBlend = chaining;
+                    StartAction(next);
+                    // 예약된 동작이 시작되지 못함 (증기가 모자라 강공격이 막힘, 무기 교체 중 등) → 끝난 동작 마지막 자세에 멈추지 않게 대기로 돌아감
+                    if (action == ActionState.None && animator) animator.CrossFadeInFixedTime(locomotionState, 0.2f);
+                }
                 else if (finished == ActionState.HitLarge && StartGetUp()) return;   // 넘어진 뒤 일어나기
                 else
                 {
@@ -770,6 +790,13 @@ namespace NGH
         {
             if (!IsMeleeEquipped())
             {
+                // 납도 상태: 좌클릭으로 무기를 꺼냄 (사격은 꺼낸 뒤 우클릭 조준 + 좌클릭)
+                if (!drawn)
+                {
+                    if (mouse.leftButton.wasPressedThisFrame && (RangedDrawGate == null || RangedDrawGate(weapons ? weapons.Current : null)))
+                        Request(ActionState.Draw);
+                    return;
+                }
                 if (mouse.leftButton.wasPressedThisFrame && (ShotGate == null || ShotGate(weapons ? weapons.Current : null)))
                     Request(ActionState.Shot);
                 return;

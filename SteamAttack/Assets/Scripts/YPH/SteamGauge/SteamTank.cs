@@ -133,18 +133,8 @@ namespace YPH
                 return;
             }
             // 회복 전용 이벤트를 만들지 않고 공통 값 변경 경로로 보내 뷰만 갱신합니다.
-            float before = _currentPressure;
+            // 차는 소리·다 찼을 때 소리는 뺐습니다 (NGH, 2026-11-02 요청)
             SetPressure(Mathf.Min(_maxPressure, _currentPressure + amount));
-            if (_currentPressure > before)
-            {
-                if (before < _maxPressure && _currentPressure >= _maxPressure)
-                    NGH.ReviewedAudio.Play("Revision/21_SteamFull_v01");
-                else if (Time.time >= _nextReviewedCharge)
-                {
-                    _nextReviewedCharge = Time.time + 1f;
-                    NGH.ReviewedAudio.Play("Initial/04_Steam/SFX_SteamCharge_02", 0.7f);
-                }
-            }
         }
 
         /// <summary>
@@ -161,8 +151,6 @@ namespace YPH
             SetPressure(Mathf.Clamp(pressure, 0f, _maxPressure));
         }
 
-        private float _nextReviewedCharge;
-
         private void Consume(float amount, bool suppressReviewedVent = false)
         {
             // 오차 허용으로 요청량이 잔량보다 아주 조금 커질 수 있어 0 아래로 내려가지 않게 합니다.
@@ -172,11 +160,8 @@ namespace YPH
             float consumed = previous - next;
             // 먼저 잔량을 저장하고 뷰에 알린 뒤, 실제 감소가 있을 때만 소비 연출을 알립니다.
             SetPressure(next);
-            if (consumed > 0f)
-            {
-                if (!suppressReviewedVent) NGH.ReviewedAudio.Play("Initial/04_Steam/SFX_SteamVent_03", 0.5f);
-                OnConsumed?.Invoke(consumed);
-            }
+            // 쓰일 때 나던 증기 배출 소리는 뺐습니다 (NGH, 2026-11-02 요청)
+            if (consumed > 0f) OnConsumed?.Invoke(consumed);
         }
 
         private void SetPressure(float pressure)

@@ -46,7 +46,7 @@ namespace NMJ
         private struct Warp { public string label; public Vector3 pos; }
         private static readonly Warp[] Warps =
         {
-            new Warp { label = "2. 근정전 마당 · 첫 전투 포졸 2", pos = new Vector3(0f, 0.1f, 14f) },
+            new Warp { label = "2. 근정전 마당 · 첫 전투 포졸 2", pos = new Vector3(0f, 0.1f, 6f) },   // 하월대(z 9.9~47.9) 바로 앞 마당 바닥
             new Warp { label = "3. 비망록 · 궁수 · 첫 받아치기", pos = new Vector3(-3f, 0.1f, -4f) },
             new Warp { label = "4. 광화문 안쪽 · 얼음 문 전투", pos = new Vector3(0f, 0.1f, -24f) },
             new Warp { label = "5. 광화문 밖 · 육조거리", pos = new Vector3(0f, 0.1f, -56f) },
@@ -85,6 +85,7 @@ namespace NMJ
         private Vector3 bossHomePos;
         private Quaternion bossHomeRot;
         private bool bossUseHome;               // 보스방 현무는 BHS가 놓은 자리 그대로, 시험용 보스는 보스방 표식 자리
+        private bool arenaOnlyScene;            // 보스방만 있는 씬 (레벨 순간이동 대신 보스방 이동만)
         private readonly List<GameObject> spawnedBosses = new List<GameObject>();
 
         // 무적
@@ -143,6 +144,8 @@ namespace NMJ
                     if (bossTemplate == null || !b.gameObject.activeInHierarchy) bossTemplate = b.gameObject;
                 }
             if (bossTemplate != null) { bossHomePos = bossTemplate.transform.position; bossHomeRot = bossTemplate.transform.rotation; }
+            // 보스방만 따로 있는 씬(BossArena_Hyangwonjeong 등): 레벨 순간이동(Main 좌표)·안개문이 없으므로 보스방용 이동만 보여 준다
+            arenaOnlyScene = FindInScene(BossGateName) == null && FindInScene(BossArenaName) != null;
             if (Invincible) ApplyInvincible(true);
         }
 
@@ -337,6 +340,19 @@ namespace NMJ
             Teleport(fg.Target.position, fg.Target.rotation);
         }
 
+        /// <summary>보스방만 있는 씬: 현무(또는 보스 자리 표식) 정면 12m 앞, 현무를 보고 선다</summary>
+        private void MoveToBossFront()
+        {
+            Transform boss = FindInScene(HyeonmuName);
+            if (boss == null || !boss.gameObject.activeInHierarchy) boss = FindInScene(BossSpawnName);
+            Vector3 c = boss != null ? boss.position : bossHomePos;
+            Vector3 from = hasStart ? startPos - c : Vector3.back;
+            from.y = 0f;
+            if (from.sqrMagnitude < 0.01f) from = Vector3.back;
+            from = from.normalized * 12f;
+            Teleport(new Vector3(c.x + from.x, (hasStart ? startPos.y : c.y), c.z + from.z), Quaternion.LookRotation(-from));
+        }
+
         private void Teleport(Vector3 pos, Quaternion rot)
         {
             Close();
@@ -510,8 +526,14 @@ namespace NMJ
                     NmjSubtitle.Caption("검 이펙트 시안: " + NmjSwordSlash.Label(m), 2f);
                 } },
                 new Item { label = "리젠 — 지금 구역 적 다시", act = Respawn },
-                new Item { label = "이동 1. 시작 지점 · 허수아비", act = MoveToStart, small = true },
             };
+            if (arenaOnlyScene)
+            {
+                list.Add(new Item { label = "이동 1. 보스방 입구 (시작 지점)", act = MoveToStart, small = true });
+                list.Add(new Item { label = "이동 2. 현무 앞", act = MoveToBossFront, small = true });
+                return list;
+            }
+            list.Add(new Item { label = "이동 1. 시작 지점 · 허수아비", act = MoveToStart, small = true });
             foreach (Warp w in Warps)
             {
                 Vector3 to = w.pos;

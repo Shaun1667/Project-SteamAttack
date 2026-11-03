@@ -71,6 +71,8 @@ public sealed class NGHSleeveSkirtSeparation : MonoBehaviour
     void Separate()
     {
         if(quitting || !isActiveAndEnabled || !Application.isPlaying || !MagicaManager.IsPlaying()) return;
+        // NGH 최적화: 가만히 서 있어 소매가 애니메이션 자세로 붙어 있는 동안은 분리 보정이 보이지 않으므로 건너뜀
+        if (NGH.SleeveActionGuard.SleevesResting) return;
         if (!sleeves || !skirt || !sleeves.IsValid() || !skirt.IsValid()
             || !sleeves.Process.IsRunning() || !skirt.Process.IsRunning()) return;
         var teams = MagicaManager.Team;

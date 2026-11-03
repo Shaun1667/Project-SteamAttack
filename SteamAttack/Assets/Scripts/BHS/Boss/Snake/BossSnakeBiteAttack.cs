@@ -17,6 +17,14 @@ public class BossSnakeBiteAttack : BossAttack
     [Tooltip("실제 입/머리 본에 새로 만든 물기 전용 SphereCollider입니다. IK Target에 붙이지 마세요. 실행 중에는 물리 충돌 대신 조회용 모양으로 사용합니다.")]
     public SphereCollider mouthCollider;
 
+    [Header("물기 소리")]
+    public AudioSource threatAudio;
+    public AudioSource biteAudio;
+    [Range(0f, 1f)] public float threatVolume = .75f;
+    [Range(0f, 1f)] public float biteVolume = .85f;
+    private bool biteSoundPlayed;
+    private bool threatAudioPaused, biteAudioPaused;
+
     [Header("물기 금지 영역 - 공격 범위와 독립")]
     [Tooltip("거북이 본체 또는 등껍질 중심의 Transform을 연결하세요. 이 중심을 따라 물기 금지 원이 이동합니다. 비우면 제한을 사용하지 않습니다.")]
     public Transform biteBlockOrigin;
@@ -24,14 +32,18 @@ public class BossSnakeBiteAttack : BossAttack
     [Min(0f)] public float biteBlockRadius = 4f;
 
     [Header("물기 동작 - 월드 거리 / 초")]
-    [Tooltip("Ready Time 동안 머리를 뒤로 당기는 거리입니다.")]
+    [Tooltip("켜면 Ready Time 동안 머리 이동 범위 SphereCollider의 중심으로 IK 타겟을 이동합니다.")]
+    public bool prepareAtMovementCenter = true;
+    [Tooltip("중심 준비를 끈 경우에만 사용합니다. 중심 준비를 켜면 중심에 도달해 물기를 시작하는 순간의 플레이어 위치를 조준합니다.")]
+    [Min(0f)] public float aimLockBeforeStrike = 0.12f;
+    [Tooltip("중심 준비를 끈 경우에만 사용하는 기존 뒤당김 거리입니다.")]
     [Min(0f)] public float pullbackDistance = 0.35f;
     [Min(0.01f)] public float extendTime = 0.2f;
     [Min(0.01f)] public float holdTime = 0.1f;
     [Min(0.01f)] public float returnTime = 0.35f;
     [Tooltip("플레이어 Transform에서 위로 더한 조준 높이입니다. 발밑이 피벗이면 몸통 높이에 맞추세요.")]
     public float targetHeightOffset = 1f;
-    [Tooltip("예고 때 정한 조준점을 이 거리만큼 지나가도록 뻗습니다.")]
+    [Tooltip("입을 벌린 뒤 돌진 시작 순간에 정한 조준점을 이 거리만큼 지나가도록 뻗습니다.")]
     [Min(0f)] public float extraDistance = 0.2f;
     [Tooltip("Chain IK 본 길이 합의 이 비율까지만 뻗습니다. 완전히 일자로 펴지는 것을 피합니다.")]
     [Range(0.5f, 0.99f)] public float reachRatio = 0.98f;
@@ -44,6 +56,16 @@ public class BossSnakeBiteAttack : BossAttack
     // 이 패턴의 공격 시간은 뻗기 + 유지 + 복귀입니다. 공통 Attack Time은 사용하지 않습니다.
     protected override float ActiveDuration => lockedDuration;
     protected override bool ContinueWithoutTarget => true;
+
+    private SphereCollider movementSphere;
+    private bool aimLocked;
+
+    public bool IsPreparingBite => IsRunning && controlsTarget && !activeStarted;
+    public float BitePreparationProgress => IsPreparingBite
+        ? Mathf.Clamp01(lockedReadyTime > 0f ? (Time.time - readyStartedAt) / lockedReadyTime : 1f) : 0f;
+    public Vector3 BiteWarningStart => pulledBack;
+    public Vector3 BiteWarningEnd => strikePoint;
+    public float BiteWarningRadius => mouthCollider != null ? GetMouthRadius() : .4f;
 
     private SnakeSphereTarget controlledDriver;
     private Transform controlledTarget;
@@ -75,7 +97,7 @@ public class BossSnakeBiteAttack : BossAttack
     {
         minUseDistance = 0f;
         maxUseDistance = 3f;
-        readyTime = 0.6f;
+        readyTime = 0.5f;
         recoveryTime = 1f;
         damage = 2f;
     }
@@ -137,6 +159,10 @@ public class BossSnakeBiteAttack : BossAttack
         maxReach = length * Mathf.Clamp(reachRatio, 0.5f, 0.99f);
         if (maxReach < 0.01f) return SetupError("뱀의 본 길이가 너무 짧습니다. Root와 Tip을 확인하세요.");
 
+        movementSphere = targetController.GetComponent<SphereCollider>();
+        if (prepareAtMovementCenter && movementSphere == null)
+            return SetupError("머리 이동 범위 SphereCollider가 필요합니다.");
+        aimLocked = false;
         controlledDriver = targetController;
         controlledTarget = data.target;
         chainRoot = data.root;
@@ -145,16 +171,8 @@ public class BossSnakeBiteAttack : BossAttack
         savedLocalRotation = controlledTarget.localRotation;
         readyStart = controlledTarget.position;
         lockedRotation = controlledTarget.rotation;
-        aimPoint = Target.position + Vector3.up * targetHeightOffset;
-
         Vector3 mouthCenter = GetMouthCenter();
-        Vector3 direction = aimPoint - mouthCenter;
-        if (direction.sqrMagnitude < 0.000001f) direction = Direction * Vector3.forward;
-        direction.Normalize();
-        pulledBack = ClampToReach(readyStart - direction * Mathf.Max(0f, pullbackDistance));
-        // IK Target은 머리 끝의 목표점이므로 입 중심과 실제 Tip 사이의 차이를 보정합니다.
-        Vector3 mouthOffset = mouthCenter - data.tip.position;
-        strikePoint = ClampToReach(aimPoint - mouthOffset + direction * Mathf.Max(0f, extraDistance));
+        RefreshAim();
 
         lockedReadyTime = Mathf.Max(0f, readyTime);
         lockedExtendTime = Mathf.Max(0.01f, extendTime);
@@ -171,7 +189,12 @@ public class BossSnakeBiteAttack : BossAttack
         driverWasEnabled = controlledDriver.enabled;
         controlsTarget = true;
         controlledDriver.enabled = false;
+        // OnDisable이 이동 구의 흔들림을 복구한 뒤 정확한 중심을 다시 읽습니다.
+        RefreshAim();
+        // 추적 스크립트는 꺼 두고 입 동작만 이 공격에서 진행한다.
+        controlledDriver.OpenAttackMouth();
         DisablePhysicalMouthCollider();
+        PlayThreatAudio();
         return true;
     }
 
@@ -187,12 +210,16 @@ public class BossSnakeBiteAttack : BossAttack
 
         if (!activeStarted)
         {
-            // 예고 중 금지 영역으로 피하면 뻗기를 시작하지 않고 추적 상태로 복구한다.
-            if (Target != null && IsInsideBlockedArea(Target.position))
+            if (!aimLocked)
             {
-                CancelAttack();
-                return;
+                RefreshAim();
+                // 중심 준비에서는 뻗기 시작 순간까지 유효한 플레이어 위치를 갱신한다.
+                if (!prepareAtMovementCenter)
+                    aimLocked |= Time.time - readyStartedAt >=
+                        Mathf.Max(0f, lockedReadyTime - Mathf.Max(0f, aimLockBeforeStrike));
             }
+            if (prepareAtMovementCenter && movementSphere != null)
+                pulledBack = ClampToReach(movementSphere.transform.TransformPoint(movementSphere.center));
             float t = lockedReadyTime > 0f ? (Time.time - readyStartedAt) / lockedReadyTime : 1f;
             SetTargetPose(Vector3.Lerp(readyStart, pulledBack, Smooth(t)), lockedRotation);
             return;
@@ -215,6 +242,38 @@ public class BossSnakeBiteAttack : BossAttack
         }
     }
 
+    // 금지 영역 안은 재조준하지 않는다. 중심 준비 중에는 마지막 유효 위치를 유지하고,
+    // 다시 밖으로 나오면 갱신한다. 뻗기 시작 시 최종 위치를 고정해 물기를 끝까지 진행한다.
+    private void RefreshAim()
+    {
+        if (aimLocked || Target == null || chainIK == null || chainIK.data.tip == null) return;
+        if (IsInsideBlockedArea(Target.position))
+        {
+            if (!prepareAtMovementCenter) aimLocked = true;
+            return;
+        }
+        aimPoint = Target.position + Vector3.up * targetHeightOffset;
+        Vector3 mouthCenter = GetMouthCenter();
+        Vector3 direction = aimPoint - mouthCenter;
+        if (direction.sqrMagnitude < 0.000001f) direction = Direction * Vector3.forward;
+        direction.Normalize();
+        pulledBack = prepareAtMovementCenter && movementSphere != null
+            ? ClampToReach(movementSphere.transform.TransformPoint(movementSphere.center))
+            : ClampToReach(readyStart - direction * Mathf.Max(0f, pullbackDistance));
+        Vector3 mouthOffset = mouthCenter - chainIK.data.tip.position;
+        strikePoint = ClampToReach(aimPoint - mouthOffset + direction * Mathf.Max(0f, extraDistance));
+    }
+
+    protected override bool WaitBeforeActive(float deltaTime)
+    {
+        if (controlledDriver == null || !controlledDriver.gameObject.activeInHierarchy)
+        {
+            CancelAttack();
+            return true;
+        }
+        return !controlledDriver.IsAttackMouthOpen;
+    }
+
     protected override void StartActive()
     {
         if (controlledTarget == null || chainRoot == null || mouthCollider == null)
@@ -222,12 +281,12 @@ public class BossSnakeBiteAttack : BossAttack
             CancelAttack();
             return;
         }
-        // FSM의 TickAttack이 이 컴포넌트의 Update보다 먼저 호출되어도 차단한다.
-        if (Target != null && IsInsideBlockedArea(Target.position))
-        {
-            CancelAttack();
-            return;
-        }
+        if (prepareAtMovementCenter && movementSphere != null && lockedReadyTime > 0f)
+            SetTargetPose(movementSphere.transform.TransformPoint(movementSphere.center), lockedRotation);
+        // 중심에 도달해 뻗기 시작하는 순간의 위치를 한 번 잡는다.
+        // 금지 영역 안이라면 마지막 유효 조준점을 사용하고 공격은 취소하지 않는다.
+        if (!aimLocked) RefreshAim();
+        aimLocked = true;
         // Ready Time이 0이어도 뒤로 순간이동하지 않고 현재 위치에서 뻗습니다.
         pulledBack = ClampToReach(controlledTarget.position);
         previousMouthCenter = GetMouthCenter();
@@ -235,11 +294,29 @@ public class BossSnakeBiteAttack : BossAttack
         activeStarted = true;
         elapsed = 0f;
         canDamage = true;
+        if (threatAudio != null) threatAudio.Stop();
+        threatAudioPaused = false;
     }
 
     protected override void TickActive(float deltaTime)
     {
         elapsed += deltaTime;
+        // 목표점까지 뻗기가 끝나는 순간부터 입을 닫는다.
+        if (elapsed >= lockedExtendTime && controlledDriver != null)
+        {
+            controlledDriver.CloseAttackMouth();
+            if (!biteSoundPlayed)
+            {
+                biteSoundPlayed = true;
+                if (biteAudio != null && biteAudio.clip != null && biteAudio.isActiveAndEnabled)
+                {
+                    biteAudio.Stop();
+                    biteAudio.volume = biteVolume;
+                    biteAudio.loop = false;
+                    biteAudio.Play();
+                }
+            }
+        }
         // 뒤로 회수할 때는 피해를 주지 않습니다.
         canDamage = elapsed <= lockedExtendTime + lockedHoldTime;
     }
@@ -247,7 +324,10 @@ public class BossSnakeBiteAttack : BossAttack
     // IK가 평가된 뒤 실제 입 위치를 읽습니다. Animator의 Update Mode는 Normal을 사용합니다.
     private void LateUpdate()
     {
+        UpdateBiteAudio();
         if (!IsRunning || !controlsTarget || mouthCollider == null) return;
+        // 비활성 SnakeSphereTarget은 LateUpdate가 없으므로 여기서 한 번 진행한다.
+        if (controlledDriver != null) controlledDriver.TickAttackMouth(Time.deltaTime);
         Vector3 center = GetMouthCenter();
         float radius = GetMouthRadius();
         Vector3 from = previousMouthCenter;
@@ -308,6 +388,7 @@ public class BossSnakeBiteAttack : BossAttack
 
     protected override void EndAttack()
     {
+        StopBiteAudio();
         canDamage = false;
         activeStarted = false;
         DisablePhysicalMouthCollider();
@@ -319,10 +400,55 @@ public class BossSnakeBiteAttack : BossAttack
             controlledTarget.localPosition = savedLocalPosition;
             controlledTarget.localRotation = savedLocalRotation;
         }
-        if (controlledDriver != null) controlledDriver.enabled = driverWasEnabled;
+        if (controlledDriver != null)
+        {
+            controlledDriver.RestoreBreathMouth();
+            controlledDriver.enabled = driverWasEnabled;
+        }
+        aimLocked = false;
+        movementSphere = null;
         controlledTarget = null;
         controlledDriver = null;
         chainRoot = null;
+    }
+
+    private void PlayThreatAudio()
+    {
+        biteSoundPlayed = false;
+        threatAudioPaused = biteAudioPaused = false;
+        if (threatAudio == null || threatAudio.clip == null || !threatAudio.isActiveAndEnabled) return;
+        threatAudio.Stop();
+        threatAudio.volume = threatVolume;
+        threatAudio.loop = false;
+        threatAudio.Play();
+    }
+
+    private void UpdateBiteAudio()
+    {
+        UpdateAudioPause(threatAudio, ref threatAudioPaused);
+        UpdateAudioPause(biteAudio, ref biteAudioPaused);
+        if (Time.timeScale <= 0f || !IsPreparingBite || threatAudio == null) return;
+        // A short fade keeps the hiss from clicking when the lunge starts.
+        float remaining = Mathf.Max(0f, lockedReadyTime - (Time.time - readyStartedAt));
+        threatAudio.volume = threatVolume * Mathf.Clamp01(remaining / .06f);
+    }
+
+    private static void UpdateAudioPause(AudioSource source, ref bool paused)
+    {
+        if (source == null) { paused = false; return; }
+        if (Time.timeScale <= 0f)
+        {
+            if (source.isPlaying) { source.Pause(); paused = true; }
+        }
+        else if (paused) { source.UnPause(); paused = false; }
+    }
+
+    private void StopBiteAudio()
+    {
+        if (threatAudio != null) threatAudio.Stop();
+        if (biteAudio != null) biteAudio.Stop();
+        threatAudioPaused = biteAudioPaused = false;
+        biteSoundPlayed = false;
     }
 
     private void DisablePhysicalMouthCollider()

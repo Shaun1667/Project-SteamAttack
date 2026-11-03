@@ -10,6 +10,7 @@ namespace NGH
     ///   깎인 만큼을 코어로 옮긴 뒤 수신용 HP 는 다시 채운다. 다리 뼈에 직접 붙이면 Damageable 의 밀림이 다리를 움직이므로 콜라이더 쪽에 붙인다.
     /// - 코어가 피해를 받을 수 없을 때(전투 시작 전 메인코어, 파괴 후)는 수신용 Damageable 을 꺼서 락온에서도 빠지게 한다.
     /// 증기 회복(YPH.CombatTags)이 보스로 알아보도록 태그 비교는 Boss 로 답한다.
+    /// - 개발자 창 원펀맨이 켜져 있으면 맞은 다리·신핵이 한 대에 부서진다.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(BossCoreHealth))]
@@ -28,8 +29,11 @@ namespace NGH
 
         public void TakeDamage(float amount, Vector3 hitFrom)
         {
-            if (core != null) core.TakeDamage(amount, hitFrom);
+            if (core != null) core.TakeDamage(OnePunch(amount), hitFrom);
         }
+
+        // 개발자 창 원펀맨: 다리·신핵도 한 대에 부서지게 남은 HP 전부를 준다
+        private float OnePunch(float amount) => NMJ.NmjDevWindow.OnePunch && core != null ? Mathf.Max(amount, core.CurrentHp) : amount;
 
         bool YPH.IDamageable.CompareTag(string tag) => tag == YPH.CombatTags.BossTag || CompareTag(tag);
 
@@ -75,7 +79,7 @@ namespace NGH
                     GameObject found = GameObject.FindGameObjectWithTag(YPH.CombatTags.PlayerTag);
                     player = found != null ? found.transform : null;
                 }
-                core.TakeDamage(lost, player != null ? player.position : transform.position);
+                core.TakeDamage(OnePunch(lost), player != null ? player.position : transform.position);
             }
         }
     }

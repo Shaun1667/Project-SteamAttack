@@ -8,6 +8,9 @@ public class BossDashAttack : BossAttack
     [Header("현무 Animator - Bool 이름은 IsRushing")]
     public Animator animator;
 
+    [Header("돌진 효과음 (선택)")]
+    public HyunMuEffects.HyunMuRushAirBarrierController rushAudio;
+
     [Header("기존 HeadTa를 움직이는 목 추적 스크립트")]
     public TurtleHeadSphereTarget headTarget;
 
@@ -17,12 +20,20 @@ public class BossDashAttack : BossAttack
     [Header("돌진 이동")]
     [Min(0.01f)] public float speed = 12f;
     [Min(0f)] public float extraDistance = 2f;
+    [Tooltip("출발 후 이동하면서 목표 방향으로 돌아가는 시간입니다. 출발 순간의 플레이어 위치를 향해 회전한 뒤 직진합니다.")]
+    [Min(0.01f)] public float turnDuration = 0.35f;
 
     private CharacterController controller;
     private Collider[] playerColliders;
     private Vector3 forward;
     private float dashSpeed;
-    private float dashDuration;
+    private Vector3 dashAimPoint;
+    private float dashStartYaw;
+    private float dashTargetYaw;
+    private float turnElapsed;
+    private float lockedTurnDuration;
+    private float lockedExtraDistance;
+    private bool turnComplete;
     private float remainingDistance;
     private bool controlsAnimation;
 
@@ -32,7 +43,8 @@ public class BossDashAttack : BossAttack
     private readonly List<(Collider boss, Collider player)> ignoredPairs =
         new List<(Collider boss, Collider player)>();
 
-    protected override float ActiveDuration => dashDuration;
+    // 회전 경로까지 이동한 뒤 남은 직선 거리를 소진하면 직접 종료한다.
+    protected override float ActiveDuration => float.PositiveInfinity;
     protected override bool ContinueWithoutTarget => true;
 
     private void Awake()
@@ -109,7 +121,7 @@ public class BossDashAttack : BossAttack
         attackCollider.isTrigger = true;
         attackCollider.enabled = false;
 
-        // Ready Time에는 목 정렬 시간과 RushAf 재생 시간을 모두 포함한다.
+        // Ready Time에는 목 정렬 시간과 RushBe 재생 시간을 모두 포함한다.
         if (!headTarget.BeginRush(PlayRushAnimation)) return false;
         controlsAnimation = true;
         return true;
@@ -118,7 +130,10 @@ public class BossDashAttack : BossAttack
     private void PlayRushAnimation()
     {
         if (IsRunning && controlsAnimation && animator != null)
+        {
             animator.SetBool(IsRushingHash, true);
+            if (rushAudio != null) rushAudio.BeginRushPreparationAudio();
+        }
     }
 
     protected override void StartActive()
@@ -139,22 +154,31 @@ public class BossDashAttack : BossAttack
             return;
         }
 
-        // 출발 순간의 방향과 거리를 저장한다.
-        Vector3 offset = Target.position - Owner.position;
+        // 출발 시점의 목표 위치만 저장한다. 이후 플레이어가 움직여도 다시 추적하지 않는다.
+        dashAimPoint = Target.position;
+        Vector3 offset = dashAimPoint - Owner.position;
         offset.y = 0f;
         float distance = offset.magnitude;
-        forward = distance > 0.0001f ? offset / distance :
-            Vector3.ProjectOnPlane(Owner.forward, Vector3.up).normalized;
+        forward = Vector3.ProjectOnPlane(Owner.forward, Vector3.up).normalized;
         if (forward.sqrMagnitude < 0.0001f) forward = Vector3.forward;
 
+        // 현재 바라보는 방향으로 먼저 출발하고, 이동 중에 회전한다.
         Direction = Quaternion.LookRotation(forward, Vector3.up);
-        Owner.rotation = Direction;
+        dashStartYaw = Direction.eulerAngles.y;
+        float aimYaw = distance > 0.0001f
+            ? Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg : dashStartYaw;
+        dashTargetYaw = dashStartYaw + Mathf.DeltaAngle(dashStartYaw, aimYaw);
+        turnElapsed = 0f;
+        lockedTurnDuration = Mathf.Max(0.01f, turnDuration);
+        lockedExtraDistance = Mathf.Max(0f, extraDistance);
+        turnComplete = distance <= 0.0001f ||
+            Mathf.Abs(dashTargetYaw - dashStartYaw) <= 0.01f;
         dashSpeed = Mathf.Max(0.01f, speed);
-        remainingDistance = distance + Mathf.Max(0f, extraDistance);
-        dashDuration = remainingDistance / dashSpeed;
+        remainingDistance = distance + lockedExtraDistance;
 
         IgnorePlayerCollision();
         attackCollider.enabled = true;
+        if (rushAudio != null) rushAudio.BeginRushLoopAudio();
     }
 
     protected override void TickActive(float deltaTime)
@@ -165,30 +189,62 @@ public class BossDashAttack : BossAttack
             return;
         }
 
-        // 앞쪽 콜라이더의 실제 위치/크기를 사용한다.
-        Vector3 before = BoxCenter();
-        Quaternion rotation = attackCollider.transform.rotation;
-        Vector3 halfSize = BoxHalfSize();
-
-        float step = Mathf.Min(dashSpeed * deltaTime, remainingDistance);
-        if (step > 0f) controller.Move(forward * step);
-        if (!IsRunning) return;
-        remainingDistance = Mathf.Max(0f, remainingDistance - step);
-
-        if (CanHitCollider && IsEnabled(attackCollider))
+        // 회전 중 공격 콜라이더도 함께 움직이므로 짧은 구간으로 나눠 이동/충돌 검사한다.
+        int steps = Mathf.Clamp(Mathf.CeilToInt(deltaTime * 60f), 1, 32);
+        float stepTime = deltaTime / steps;
+        for (int i = 0; i < steps && IsRunning; i++)
         {
-            // Update에서 이동한 직후이므로 물리 엔진에 최신 위치를 반영한다.
-            Physics.SyncTransforms();
-            if (TouchesPlayer(before, BoxCenter(), halfSize, rotation))
-            {
-                Debug.Log($"[돌진 명중] {Target.name} / 피해 {damage}", this);
-                attackCollider.enabled = false;
-                HitOnce(checkTargetHeight: false);
-            }
-        }
+            Vector3 before = BoxCenter();
+            Quaternion rotation = attackCollider.transform.rotation;
+            Vector3 halfSize = BoxHalfSize();
 
-        // 맞힌 뒤에도 이동은 계속한다.
-        if (IsRunning && remainingDistance <= 0.00001f) CancelAttack();
+            TurnDuringDash(stepTime);
+            Owner.rotation = Direction;
+            forward = Direction * Vector3.forward;
+            float step = dashSpeed * stepTime;
+            if (turnComplete) step = Mathf.Min(step, remainingDistance);
+            if (step > 0f) controller.Move(forward * step);
+            if (!IsRunning) return;
+            if (turnComplete)
+                remainingDistance = Mathf.Max(0f, remainingDistance - step);
+
+            if (CanHitCollider && IsEnabled(attackCollider))
+            {
+                Physics.SyncTransforms();
+                if (TouchesPlayer(before, BoxCenter(), halfSize, rotation))
+                {
+                    Debug.Log($"[돌진 명중] {Target.name} / 피해 {damage}", this);
+                    attackCollider.enabled = false;
+                    HitOnce(checkTargetHeight: false);
+                }
+            }
+
+            // 맞힌 뒤에도 이동은 계속하고, 회전 종료 후 목표 지점 너머까지 진행한다.
+            if (IsRunning && turnComplete && remainingDistance <= 0.00001f)
+                CancelAttack();
+        }
+    }
+
+    private void TurnDuringDash(float deltaTime)
+    {
+        if (turnComplete) return;
+        turnElapsed = Mathf.Min(lockedTurnDuration, turnElapsed + deltaTime);
+        Vector3 offset = dashAimPoint - Owner.position;
+        offset.y = 0f;
+        if (offset.sqrMagnitude > 0.000001f)
+        {
+            float aimYaw = Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg;
+            // 180도 경계를 넘어도 회전 방향이 갑자기 반대로 바뀌지 않도록 누적한다.
+            dashTargetYaw += Mathf.DeltaAngle(dashTargetYaw, aimYaw);
+        }
+        float progress = Mathf.SmoothStep(0f, 1f, turnElapsed / lockedTurnDuration);
+        Direction = Quaternion.Euler(0f,
+            Mathf.Lerp(dashStartYaw, dashTargetYaw, progress), 0f);
+        if (turnElapsed < lockedTurnDuration) return;
+
+        turnComplete = true;
+        // 곡선으로 돌아온 거리 때문에 정지한 플레이어 앞에서 멈추지 않도록 다시 잰다.
+        remainingDistance = offset.magnitude + lockedExtraDistance;
     }
 
     private Vector3 BoxCenter()
@@ -263,7 +319,8 @@ public class BossDashAttack : BossAttack
 
     protected override void EndAttack()
     {
-        // 돌진 종료: RushBe 재생 후, Recovery Time의 마지막 구간에 목 추적 복귀.
+        if (rushAudio != null) rushAudio.EndRushAudio();
+        // 돌진 종료: RushAf 재생 후, Recovery Time의 마지막 구간에 목 추적 복귀.
         // BeginAttack도 처음에 EndAttack을 호출하므로 이번 공격이 켠 Bool만 끈다.
         if (controlsAnimation)
         {
@@ -291,6 +348,7 @@ public class BossDashAttack : BossAttack
 
     private void OnDestroy()
     {
+        if (rushAudio != null) rushAudio.StopRushAudio();
         EndAttack();
     }
 

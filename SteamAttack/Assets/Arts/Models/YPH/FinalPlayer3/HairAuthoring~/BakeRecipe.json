@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-31",
+  "source": "이 대화의 AI 생성 시안. UV 투영에 장식이 섞이지 않도록 장식을 제거한 원본 두 장",
+  "mesh_sha256": "ABF6769B2F4194A90E0AB555ADDDE626605FE5D9DEF011DEC264A95959E72FA0",
+  "back_crop": [
+    150,
+    220,
+    1030,
+    690
+  ],
+  "side_crop": [
+    370,
+    270,
+    915,
+    700
+  ],
+  "surface_channels": "RG: tangent normal, B: 시안의 표시 색 공간 명암, A: 고주파 머리결 반사 마스크",
+  "flow_channels": "RG: 탄젠트 기준 cos(2 theta), sin(2 theta), B: 홈의 어두움, A: 옆머리 세부결 영역",
+  "color_space": "네 텍스처 모두 Linear 데이터. 곡선 좌표 맵만 Mipmap과 압축을 끔",
+  "shader_reference": [
+    "https://github.com/vurimad/Hair-rendering-in-unity",
+    "https://github.com/cathyhlshih/UnityURPAnisoHighlightHairShader"
+  ],
+  "implementation": "URP 전용 구현. 외부 Shader의 방향성 반사 원리를 참고했으며 해당 소스 코드를 복사하지 않음",
+  "mask_method": "현재 메시를 위한 보수적인 머리 영역 근사 마스크로 피부와 배경을 제외. 정상적인 따뜻한 머리 광택은 보존",
+  "curl_source": {
+    "title": "Hair texture",
+    "author": "Robert Ramsay",
+    "url": "https://opengameart.org/content/hair-texture-1",
+    "license": "CC BY 4.0",
+    "file": "CurlFiberSource.png",
+    "method": "옆머리의 3D 단면에서 곡선을 추정하고 16비트 좌표 맵으로 원본 UV 조각 사이의 결을 연결",
+    "profile_z_range": [
+      3.29,
+      3.63
+    ],
+    "root_blend_z": [
+      3.55,
+      3.64
+    ]
+  },
+  "coordinate_channels": "RG: U16 상위/하위 바이트, BA: V16 상위/하위 바이트. Linear, 비압축, Mipmap 없음"
+}

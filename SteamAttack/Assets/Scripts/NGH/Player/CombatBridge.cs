@@ -7,7 +7,7 @@ namespace NGH
     /// <summary>
     /// 병합용 연결 (NGH) — CHG 플레이어의 입력·무기 칸과 YPH 화승총·조준·증기를 잇는다. (CombatTestInput 대체)
     /// - 좌클릭(화승총): 쏠 수 있을 때만 사격 동작을 시작하고(ShotGate), 사격 동작이 시작되면(ShotStarted) 발사
-    /// - 우클릭(화승총 장착 + 발도 중): 조준. 조준 배율을 CHG 카메라 감도·이동 속도에 반영하고, 끝나면 1로 되돌림
+    /// - 우클릭(화승총 장착 + 발도 중): 조준. 조준 배율을 CHG 카메라 감도·이동 속도에 반영하고, 끝나면 1로 되돌림. 조준 중에는 Shift를 눌러도 걷기(SprintGate)
     /// - CHG 근접 명중(OnHitLanded) → YPH 증기 회복 (약공격만 회복, 강공격은 회복 없음)
     /// - 강공격 시작(HeavyAttackGate) → YPH 증기 지불. 모자라면 강공격이 나가지 않음
     /// - YPH 받아치기(ParryController.ParryAttempted) → 환도를 들고 있으면 CHG 칼 패링 모션. 성공하면 받아친 적을 보고 칼이 부딪히는 불꽃
@@ -52,6 +52,16 @@ namespace NGH
 
         private Weapon Equipped => weapons != null && !weapons.IsSwapping ? weapons.Current : null;
         private bool GunReady => player != null && player.IsDrawn && gunWeapon != null && Equipped == gunWeapon;
+        // 이번 프레임 입력으로 바로 판단. 지난 프레임의 aim.IsAiming을 보면 Shift와 우클릭을 같이 누른 첫 프레임에 달리기가 들어감
+        private bool WantsAim
+        {
+            get
+            {
+                Mouse mouse = Mouse.current;
+                return aim != null && aim.isActiveAndEnabled && mouse != null && player != null && !player.IsDead
+                    && !ControlsOverlay.IsOpen && GunReady && mouse.rightButton.isPressed;
+            }
+        }
 
         private IParryTarget parriedTarget;   // TargetParried → ParryAttempted(true) 사이에만 유효
 
@@ -70,6 +80,8 @@ namespace NGH
                 player.ShotStarted += HandleShotStarted;
                 player.OnHitLanded += HandleMeleeHit;
                 player.ShotGate = CanStartShot;
+                player.RangedDrawGate = CanDrawGun;
+                player.SprintGate = CanSprint;
                 if (hitRefill != null) player.HeavyAttackGate = hitRefill.TryPayHeavyAttack;
             }
             if (parry != null)
@@ -92,6 +104,8 @@ namespace NGH
                 player.ShotStarted -= HandleShotStarted;
                 player.OnHitLanded -= HandleMeleeHit;
                 player.ShotGate = null;
+                player.RangedDrawGate = null;
+                if (player.SprintGate == (System.Func<bool>)CanSprint) player.SprintGate = null;
                 player.HeavyAttackGate = null;
                 player.MoveSpeedMultiplier = 1f;
             }
@@ -103,12 +117,12 @@ namespace NGH
         {
             if (player == null) return;
 
-            Mouse mouse = Mouse.current;
-            bool canAct = mouse != null && !player.IsDead && !ControlsOverlay.IsOpen;
-
             // 조준: 화승총 칸 + 발도 중 + 우클릭 유지
-            if (aim != null) aim.SetAiming(canAct && GunReady && mouse.rightButton.isPressed);
+            if (aim != null) aim.SetAiming(WantsAim);
         }
+
+        /// <summary>조준 중에는 달리지 않음. 우클릭을 놓으면 누르고 있던 Shift로 다시 달림</summary>
+        private bool CanSprint() => !WantsAim;
 
         private void LateUpdate()
         {
@@ -127,6 +141,13 @@ namespace NGH
             gun.NotifyFireBlocked();
             Log("사격 막힘: 조준 " + aiming + ", 상태 " + gun.CurrentState);
             return false;
+        }
+
+        // 납도 상태에서 화승총을 들고 좌클릭: 증기가 한 발 이상 차 있을 때만 총을 꺼냄
+        private bool CanDrawGun(Weapon weapon)
+        {
+            if (weapon != gunWeapon || gun == null) return true;      // 화승총이 아니면 관여하지 않음
+            return gun.HasSteamForShot;
         }
 
         private void HandleShotStarted(Weapon weapon)

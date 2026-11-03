@@ -19,11 +19,24 @@ public abstract class BossAttack : MonoBehaviour
     [Header("공격 효과 / 피해")]
     public ParticleSystem attackEffect;
     [Min(0f)] public float damage = 2f;
+    // 병합 연결 (NGH): 본체에 직접 맞으면 플레이어가 강공격 피격 모션으로 넘어짐 (돌진·내려찍기). 파동 등 HitOnce 밖의 피해에는 적용 안 됨
+    [Tooltip("켜면 이 공격에 직접 맞았을 때 플레이어가 넘어집니다 (강공격 피격 모션). 파동 피해에는 적용되지 않습니다.")]
+    public bool knockdownPlayer;
     [SerializeField] private Phase currentPhase;
 
     public bool IsRunning => currentPhase != Phase.Finished;
+    // HitOnce(본체 직접 명중)로 피해를 알리는 동안에만 true — FSM 이 플레이어 피격 강도를 정할 때 읽는다
+    public bool IsDirectKnockdownHit { get; private set; }
+    // The body can finish its action while an already launched effect continues.
+    public virtual bool IsActionComplete => !IsRunning;
+    protected virtual bool ControlsOwnerRotation => true;
+
+    // Only a normal action completion may detach its remaining effect.
+    // Cancellation, disabling and destruction still use CancelAttack.
+    public virtual void ReleaseControl() => CancelAttack();
     protected Transform Owner { get; private set; }
     protected Transform Target { get; private set; }
+    protected Action<float> DamageReporter => reportHit;
     protected Vector3 Origin { get; private set; }
     protected Quaternion Direction { get; set; }
 
@@ -83,7 +96,7 @@ public abstract class BossAttack : MonoBehaviour
         return false;
     }
 
-    // 공격 컴포넌트에는 Update가 없다. 전체 흐름은 BossFSM이 진행시킨다.
+    // FSM advances the owned action; a detached effect may advance its own remaining lifetime.
     public void TickAttack(float deltaTime)
     {
         if (!IsRunning) return;
@@ -95,13 +108,15 @@ public abstract class BossAttack : MonoBehaviour
             return;
         }
 
-        Owner.rotation = Direction;
+        if (ControlsOwnerRotation) Owner.rotation = Direction;
         deltaTime = Mathf.Max(0f, deltaTime);
 
         if (currentPhase == Phase.Ready)
         {
             timer += deltaTime;
             if (timer < readyTime) return;
+            // 패턴에 따라 예고 이후 애니메이션이 끝날 때까지 판정 시작을 미룬다.
+            if (WaitBeforeActive(deltaTime) || !IsRunning) return;
 
             timer = 0f;
             currentPhase = Phase.Active;
@@ -133,7 +148,9 @@ public abstract class BossAttack : MonoBehaviour
         if (checkTargetHeight ? !CanHit : !CanHitCollider) return;
         // 여러 콜라이더가 겹쳐도 같은 피해 단계에서는 한 번만 피해를 준다.
         hasHit = true;
-        reportHit?.Invoke(Mathf.Max(0f, amount));
+        IsDirectKnockdownHit = knockdownPlayer;
+        try { reportHit?.Invoke(Mathf.Max(0f, amount)); }
+        finally { IsDirectKnockdownHit = false; }
         if (this is BossDashAttack) NGH.ReviewedAudio.Play("Initial/08_Boss/BossChargeHit_v01");
     }
 
@@ -154,6 +171,7 @@ public abstract class BossAttack : MonoBehaviour
 
     protected abstract bool PrepareAttack();
     protected abstract void TickActive(float deltaTime);
+    protected virtual bool WaitBeforeActive(float deltaTime) => false;
     protected virtual void StartActive() { }
     protected virtual void EndAttack() { }
     protected virtual void OnDisable() => CancelAttack();

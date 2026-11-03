@@ -199,28 +199,138 @@ namespace NGH
     [DisallowMultipleComponent]
     public sealed class ReviewedPlayerAudio : MonoBehaviour
     {
+        private const float RollFadeOut = 0.08f;
         private PlayerController player;
-        private CharacterController controller;
         private int serial = -1;
         private PlayerController.ActionState previousAction;
-        private float nextStep;
         private float nextHeartbeat;
-        private bool alternate;
+        // 구르기 소리는 구르기가 끝나면 멈춰야 해서 따로 재생 (PlayOneShot 은 도중에 멈출 수 없음)
+        private AudioSource rollSource;
+        private float rollVolume;
+        // 발도·납도 소리를 동작 시작보다 늦게 냄
+        private const float DrawSheathSoundDelay = 0.5f;
+        private string pendingPath;
+        private float pendingAt;
+        private int pendingSerial;
+
+        // 달리기 발자국: 애니메이션에서 발이 땅에 닿는 순간마다 NghSfxLibrary.runStep 중 하나를 냄
+        private class Foot
+        {
+            public Transform bone;
+            public float prevHeight, lastPlant = -9f;
+            public bool descending, lifted;
+            // 최근 발 높이 기록 (시간, 높이) — 가장 낮은 높이를 최근 걸음들만으로 정해 서 있다가 걷기 시작해도 바로 맞음
+            public readonly Queue<Vector2> recent = new Queue<Vector2>();
+            public float RecentMin(float now, float window, float h)
+            {
+                recent.Enqueue(new Vector2(now, h));
+                while (recent.Count > 0 && now - recent.Peek().x > window) recent.Dequeue();
+                float m = h;
+                foreach (var r in recent) if (r.y < m) m = r.y;
+                return m;
+            }
+        }
+        private const float StepGroundBand = 0.01f;   // 최근 가장 낮은 높이에서 이만큼(m) 안으로 내려와 멈추면 디딘 것
+        private const float StepLift = 0.045f;        // 한 번 디딘 뒤 이만큼(m) 들려야 다음 디딤으로 셈 (걸을 때 발이 땅에서 구르며 출렁이는 것을 무시)
+        private const float StepWindow = 1.2f;        // 가장 낮은 높이를 볼 최근 시간 (초) — 걷기 한 걸음 주기(1.03초)보다 길게
+        private const float StepMinGap = 0.2f;        // 같은 발이 이보다 빨리 다시 디디지 않음
+        private CharacterController controller;
+        private NghSfxLibrary sfx;
+        private readonly Foot[] feet = { new Foot(), new Foot() };
+        private AudioSource[] stepSources;
+        private int nextStepSource;
+
+        private void Delayed(string path)
+        {
+            pendingPath = path;
+            pendingAt = Time.time + DrawSheathSoundDelay;
+            pendingSerial = player.ActionSerial;
+        }
 
         private void Awake()
         {
             player = GetComponent<PlayerController>();
             controller = GetComponent<CharacterController>();
+            rollSource = gameObject.AddComponent<AudioSource>();
+            rollSource.playOnAwake = false;
+            rollSource.spatialBlend = 0f;
+            rollSource.clip = Resources.Load<AudioClip>("NGH/VARCO_Reviewed/Initial/01_Movement/SFX_SnowRoll_03");
+            sfx = Resources.Load<NghSfxLibrary>(NghSfxLibrary.ResourcePath);
+            // 걸음이 빨라 앞 소리가 끝나기 전에 다음 소리가 나므로 두 개를 번갈아 씀 (앞부분을 건너뛰어야 해서 PlayOneShot 은 못 씀)
+            stepSources = new AudioSource[2];
+            for (int i = 0; i < stepSources.Length; i++)
+            {
+                stepSources[i] = gameObject.AddComponent<AudioSource>();
+                stepSources[i].playOnAwake = false;
+                stepSources[i].spatialBlend = 0f;
+            }
+            if (player && player.animator)
+            {
+                feet[0].bone = player.animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+                feet[1].bone = player.animator.GetBoneTransform(HumanBodyBones.RightFoot);
+            }
+        }
+
+        // 애니메이션이 자세를 잡은 뒤 발 높이를 읽음
+        private void LateUpdate()
+        {
+            if (!player || !player.isActiveAndEnabled || Time.timeScale <= 0f || sfx == null) return;
+            bool moving = false, running = false;
+            if (controller && controller.isGrounded && player.CurrentAction == PlayerController.ActionState.None)
+            {
+                Vector3 v = controller.velocity; v.y = 0f;
+                moving = v.magnitude > 0.3f;
+                running = v.magnitude > Mathf.Max(1.5f, player.runSpeed * 0.65f);
+            }
+            foreach (var f in feet)
+            {
+                if (!f.bone) continue;
+                float h = f.bone.position.y - transform.position.y;
+                float ground = f.RecentMin(Time.time, StepWindow, h);
+                if (h > ground + StepLift) f.lifted = true;
+                // 내려오던 발이 다시 올라가기 시작하면 바로 앞 프레임이 가장 낮은 점 — 그 높이로 판정 (프레임이 성겨도 놓치지 않게)
+                bool planted = f.lifted && f.descending && h >= f.prevHeight - 0.0005f && f.prevHeight < ground + StepGroundBand;
+                if (planted && Time.time - f.lastPlant >= StepMinGap)
+                {
+                    f.lastPlant = Time.time;
+                    f.lifted = false;
+                    if (moving) PlayRunStep(running);
+                }
+                if (Mathf.Abs(h - f.prevHeight) > 0.0005f) f.descending = h < f.prevHeight;
+                f.prevHeight = h;
+            }
+        }
+
+        // 걸을 때도 같은 발자국 소리를 내되 조금 작게 (sfx.walkStepVolumeScale)
+        private void PlayRunStep(bool running)
+        {
+            // 돌 바닥(궁궐 바닥·박석) 밖의 눈밭이면 눈 밟는 소리, 아니면 기본 발자국 (FootSurfaceMap 지도로 판정)
+            bool snow = FootSurfaceMap.IsSnow(transform.position) && sfx.snowRunStep != null && sfx.snowRunStep.clips != null && sfx.snowRunStep.clips.Length > 0;
+            var s = snow ? sfx.snowRunStep : sfx.runStep;
+            float impactAt = snow ? sfx.snowRunStepImpactAt : sfx.runStepImpactAt;
+            var clip = s != null ? s.Pick() : null;
+            if (!clip) return;
+            var src = stepSources[nextStepSource];
+            nextStepSource = (nextStepSource + 1) % stepSources.Length;
+            src.clip = clip;
+            src.volume = s.volume * (running ? 1f : sfx.walkStepVolumeScale);
+            src.pitch = 1f + Random.Range(-s.pitchJitter, s.pitchJitter);
+            src.time = Mathf.Clamp(impactAt, 0f, Mathf.Max(0f, clip.length - 0.02f));
+            src.Play();
         }
 
         private void Update()
         {
             if (!player || !player.isActiveAndEnabled || Time.timeScale <= 0f) return;
             var action = player.CurrentAction;
+            // 구르기가 끝나면 (다른 동작으로 넘어가거나 다시 서면) 구르기 소리를 짧게 줄이며 멈춤
+            if (rollSource.isPlaying && action != PlayerController.ActionState.Roll)
+            {
+                rollSource.volume = Mathf.MoveTowards(rollSource.volume, 0f, rollVolume * Time.unscaledDeltaTime / RollFadeOut);
+                if (rollSource.volume <= 0f) rollSource.Stop();
+            }
             if (action != previousAction && action == PlayerController.ActionState.Death)
                 ReviewedAudio.Play("AdditionalReview/31_PlayerDeath_v01_from_3s");
-            if (previousAction == PlayerController.ActionState.Roll && action == PlayerController.ActionState.None)
-                nextStep = Time.time + 0.15f;
             previousAction = action;
             if (serial != player.ActionSerial)
             {
@@ -228,14 +338,19 @@ namespace NGH
                 switch (action)
                 {
                     case PlayerController.ActionState.Roll:
-                        ReviewedAudio.Play("Initial/01_Movement/SFX_SnowRoll_03");
+                        if (rollSource.clip)
+                        {
+                            rollVolume = 1f;
+                            rollSource.volume = rollVolume;
+                            rollSource.Play();
+                        }
                         break;
                     case PlayerController.ActionState.Draw:
-                        ReviewedAudio.Play(player.weapons && player.weapons.Current && !player.weapons.Current.isMelee
+                        Delayed(player.weapons && player.weapons.Current && !player.weapons.Current.isMelee
                             ? "Initial/04_Steam/SFX_GunDraw_02" : "Initial/02_Sword/SFX_SwordDraw_03");
                         break;
                     case PlayerController.ActionState.Sheath:
-                        ReviewedAudio.Play(player.weapons && player.weapons.Current && !player.weapons.Current.isMelee
+                        Delayed(player.weapons && player.weapons.Current && !player.weapons.Current.isMelee
                             ? "Initial/04_Steam/SFX_GunHolster_01" : "Revision/09_Sheath_v01");
                         break;
                     case PlayerController.ActionState.HeavyAttack:
@@ -249,30 +364,18 @@ namespace NGH
                         break;
                 }
             }
+            // 발도·납도 소리: 동작이 시작되고 조금 뒤 (칼이 실제로 빠지고 꽂히는 순간), 그 사이 동작이 끊기면 내지 않음
+            if (pendingPath != null && Time.time >= pendingAt)
+            {
+                if (player.ActionSerial == pendingSerial) ReviewedAudio.Play(pendingPath);
+                pendingPath = null;
+            }
             if (!player.IsDead && player.Hp > 0 && player.Hp <= 1 && Time.time >= nextHeartbeat)
             {
                 nextHeartbeat = Time.time + 2f;
                 ReviewedAudio.Play("Initial/06_Player/LowHealth_v01", 0.7f);
             }
-            if (!controller || !controller.isGrounded || action != PlayerController.ActionState.None || Time.time < nextStep) return;
-            Vector3 velocity = controller.velocity; velocity.y = 0f;
-            float speed = velocity.magnitude;
-            if (speed < 0.15f) return;
-            bool running = speed > Mathf.Max(1.5f, player.runSpeed * 0.65f);
-            nextStep = Time.time + (running ? 0.34f : 0.65f);
-            string step;
-            if (Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down, out var hit, 1.5f,
-                ~0, QueryTriggerInteraction.Ignore) && hit.collider &&
-                (hit.collider.name.ToLowerInvariant().Contains("stone") || hit.collider.name.Contains("박석")))
-                step = "Revision/03_StoneStep_v01";
-            else if (running) step = "Initial/01_Movement/SFX_SnowRun_01";
-            else
-            {
-                alternate = !alternate;
-                step = alternate ? "Initial/01_Movement/SFX_Player_Walk_Snow_L_01" : "Initial/01_Movement/SFX_Player_Walk_Snow_R_01";
-            }
-            ReviewedAudio.Play(step, 0.8f);
-            if (running) ReviewedAudio.Play("Revision/07_PackRun_v01", 0.45f);
+            // 걷기 발자국·달릴 때 가방 소리는 뺐고, 달리기 발자국은 LateUpdate 에서 새 소리(runStep)로 냄 (2026-11-02 요청)
         }
     }
 }

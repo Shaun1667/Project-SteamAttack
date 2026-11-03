@@ -14,7 +14,7 @@ namespace NGH
     ///     NGH_PlayerAnimator의 제너릭 클립(원래 플레이어 뼈대용)을 휴머노이드 클립으로 구워 NGH_HeroAnimator에 연결.
     ///     원래 클립을 플레이어 뼈대에 재생 → NGH_ChgHumanAvatar로 근육 값을 읽어 기록. 공격 모션을 다시 굽고 나면 이 메뉴만 다시 실행.
     ///  2) Tools/NGH/Hero/2. Swap NGH_Player Model To Hero_Bound (한 번만)
-    ///     YPH 통합 프리팹에서 무기·칼집이 붙은 Hero_Bound를 복사해 넣고, 원래 모델(chg_Model)을 가리키던 참조를 옮긴 뒤 제거.
+    ///     YPH 통합 프리팹에서 무기·칼집이 붙은 Hero_Bound를 복사해 넣고, 원래 모델(HeroSourceRig, 옛 chg_Model)을 가리키던 참조를 옮긴 뒤 제거.
     /// </summary>
     public static class HeroConversion
     {
@@ -29,7 +29,8 @@ namespace NGH
         const string PlayerPrefabPath = "Assets/Prefabs/NGH/NGH_Player.prefab";
         const string YphPrefabPath = "Assets/Prefabs/YPH/HeroPlayer/YPH_HeroPlayerIntegration.prefab";
         const string YphHeroPath = "NGH_Player/Hero_Bound";
-        const string OldModelName = "chg_Model";
+        const string OldModelName = "HeroSourceRig";
+        const string DrawnSwordName = "HeroSword";
         const float ModelYaw = 17.53f;   // 원래 모델은 앞을 보도록 플레이어 안에서 이만큼 돌려 배치돼 있었음
         const float Fps = 60f;
 
@@ -324,7 +325,7 @@ namespace NGH
                 {
                     GameObject to = null;
                     if (t == oldModel) to = hero;
-                    else if (heroByName.TryGetValue(t.name, out var same)) to = same;                     // 무기 (chg_sword 등)
+                    else if (heroByName.TryGetValue(t.name, out var same)) to = same;                     // 무기 (HeroSword 등)
                     else if (heroByName.TryGetValue("mixamorig:" + t.name, out var bone)) to = bone;      // 뼈 (Hips → mixamorig:Hips)
                     map[t.gameObject] = to;
                 }
@@ -519,7 +520,7 @@ namespace NGH
             }
 
             var bones = hero.GetComponentsInChildren<Transform>(true);
-            var drawn = bones.FirstOrDefault(t => t.name == "chg_sword" && t.GetComponent<Weapon>());
+            var drawn = bones.FirstOrDefault(t => t.name == DrawnSwordName &&t.GetComponent<Weapon>());
             var socket = bones.FirstOrDefault(t => t.name == "Socket_SwordSheathed");
             var sheathed = socket ? socket.GetComponentsInChildren<Renderer>(true).FirstOrDefault() : null;
             if (drawn && sheathed)

@@ -201,13 +201,14 @@ namespace NMJ
                 bodyText.maxVisibleCharacters = done ? len : Mathf.FloorToInt(typed);
             }
 
+            float outStart = typeTime + hold;
             if (next)
             {
                 if (!done) { timer = typeTime; typed = len; }
-                else timer = typeTime + hold;   // 다음 줄로
+                else if (timer < outStart) timer = outStart;   // 다음 줄로 (사라지기 시작)
+                else timer = outStart + FadeTime;              // 이미 사라지는 중이면 바로 다음 줄 (연타해도 사라지기가 처음으로 되돌아가 멈추지 않게)
             }
 
-            float outStart = typeTime + hold;
             float a = timer < FadeTime ? timer / FadeTime : timer > outStart ? 1f - (timer - outStart) / FadeTime : 1f;
             a = Mathf.Clamp01(a);
             if (card)
