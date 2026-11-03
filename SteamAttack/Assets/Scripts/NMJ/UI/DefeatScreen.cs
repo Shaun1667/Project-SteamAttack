@@ -42,7 +42,7 @@ namespace NMJ
         [Tooltip("화면이 뜬 뒤 키를 받기 시작할 때까지 (연타로 바로 넘어가지 않게)")]
         [SerializeField, Min(0f)] private float inputDelay = 1.2f;
         [Tooltip("화면이 뜬 뒤 이 시간이 지나면 키를 누르지 않아도 저절로 일어난다 (0이면 끔). 시연이 끊기지 않게")]
-        [SerializeField, Min(0f)] private float autoRestartAfter = 3f;
+        [SerializeField, Min(0f)] private float autoRestartAfter = 0f;
         [SerializeField] private InkStyle restartTransition = InkStyle.Drip;
 
         [Header("종이 타듯 사라짐 (세계관 v6 6-2 — 죽음이 아니라 이 시간선에서 지워짐)")]

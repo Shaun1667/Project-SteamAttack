@@ -19143,10 +19143,10 @@ MonoBehaviour:
     - "\uB0A8\uADC0\uD6C8"
   - role: "\uBCF4\uC2A4 \xB7 \uD604\uBB34"
     names:
-    - "BHS (\uC774\uB984)"
+    - "\uBD09\uD604\uC1A1"
   - role: "\uC8FC\uC778\uACF5 \uBAA8\uB378 \xB7 \uD654\uC2B9\uCD1D \xB7 \uBC1B\uC544\uCE58\uAE30 \xB7 \uC77C\uBC18 \uC801"
     names:
-    - "YPH (\uC774\uB984)"
+    - "\uC724\uD3C9\uD654"
   epilogue:
   - kind: 2
     speaker: "\uBB3C\uACFC \uBD88\uC774 \uC81C\uC790\uB9AC\uB97C \uCC3E\uB2E4"
@@ -19238,7 +19238,7 @@ MonoBehaviour:
   prompt: "\uC544\uBB34 \uD0A4\uB098 \uB20C\uB7EC \uB2E4\uC2DC \uC77C\uC5B4\uC11C\uAE30"
   showDelay: 0.3
   inputDelay: 1.2
-  autoRestartAfter: 3
+  autoRestartAfter: 0
   restartTransition: 2
   burnAway: 1
   burnTime: 1.8

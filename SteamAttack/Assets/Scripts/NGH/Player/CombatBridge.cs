@@ -80,6 +80,7 @@ namespace NGH
                 player.ShotStarted += HandleShotStarted;
                 player.OnHitLanded += HandleMeleeHit;
                 player.ShotGate = CanStartShot;
+                player.RangedDrawGate = CanDrawGun;
                 player.SprintGate = CanSprint;
                 if (hitRefill != null) player.HeavyAttackGate = hitRefill.TryPayHeavyAttack;
             }
@@ -103,6 +104,7 @@ namespace NGH
                 player.ShotStarted -= HandleShotStarted;
                 player.OnHitLanded -= HandleMeleeHit;
                 player.ShotGate = null;
+                player.RangedDrawGate = null;
                 if (player.SprintGate == (System.Func<bool>)CanSprint) player.SprintGate = null;
                 player.HeavyAttackGate = null;
                 player.MoveSpeedMultiplier = 1f;
@@ -139,6 +141,13 @@ namespace NGH
             gun.NotifyFireBlocked();
             Log("사격 막힘: 조준 " + aiming + ", 상태 " + gun.CurrentState);
             return false;
+        }
+
+        // 납도 상태에서 화승총을 들고 좌클릭: 증기가 한 발 이상 차 있을 때만 총을 꺼냄
+        private bool CanDrawGun(Weapon weapon)
+        {
+            if (weapon != gunWeapon || gun == null) return true;      // 화승총이 아니면 관여하지 않음
+            return gun.HasSteamForShot;
         }
 
         private void HandleShotStarted(Weapon weapon)

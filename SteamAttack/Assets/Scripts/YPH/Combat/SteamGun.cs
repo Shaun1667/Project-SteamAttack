@@ -42,6 +42,8 @@ namespace YPH
         public Vector3 AimDirection => _aimOrigin != null ? _aimOrigin.forward : Vector3.zero;
         /// <summary>총이 켜져 있고 재장전이 끝났으며 발당 증기가 충분한지 조회합니다. 증기를 소비하지 않으며 조준 여부는 호출자가 검사합니다.</summary>
         public bool CanFire => isActiveAndEnabled && _state == State.Ready && _tank != null && _tank.CanConsume(_steamCostPerShot);
+        /// <summary>한 발 쏠 증기가 차 있는지만 조회합니다. 총을 꺼내기 전(납도)에도 쓸 수 있습니다. (NGH: 납도 상태 좌클릭 발도 조건)</summary>
+        public bool HasSteamForShot => _tank != null && _tank.CanConsume(_steamCostPerShot);
         /// <summary>삭제 예정: NGH CombatBridge 정리 후 제거. 항상 현재 단계가 Ready인지 반환하며 증기·조준 조건은 검사하지 않습니다.</summary>
         public bool ChamberLoaded => _state == State.Ready;
         /// <summary>삭제 예정: NGH CombatBridge 정리 후 제거. 탄약을 저장하지 않아 항상 0입니다.</summary>

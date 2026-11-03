@@ -59,6 +59,8 @@ namespace NGH
         public System.Func<bool> HeavyAttackGate { get; set; }
         /// <summary>원거리 장비로 좌클릭했을 때 사격 동작을 시작해도 되는지 묻습니다. false면 사격 동작을 시작하지 않습니다. 비어 있으면 항상 허용합니다. (병합 — YPH 화승총 발사 가능 확인용)</summary>
         public System.Func<Weapon, bool> ShotGate { get; set; }
+        /// <summary>납도 상태에서 원거리 장비를 들고 좌클릭했을 때 무기를 꺼내도 되는지 묻습니다. 비어 있으면 항상 꺼냅니다. (화승총: 증기가 한 발 이상 차 있을 때만)</summary>
+        public System.Func<Weapon, bool> RangedDrawGate { get; set; }
         /// <summary>Shift를 눌렀을 때 달려도 되는지 묻습니다. false면 걷기 속도·동작을 씁니다. 비어 있으면 항상 허용합니다. (병합 — YPH 조준 중 달리기 막기용)</summary>
         public System.Func<bool> SprintGate { get; set; }
 
@@ -788,6 +790,13 @@ namespace NGH
         {
             if (!IsMeleeEquipped())
             {
+                // 납도 상태: 좌클릭으로 무기를 꺼냄 (사격은 꺼낸 뒤 우클릭 조준 + 좌클릭)
+                if (!drawn)
+                {
+                    if (mouse.leftButton.wasPressedThisFrame && (RangedDrawGate == null || RangedDrawGate(weapons ? weapons.Current : null)))
+                        Request(ActionState.Draw);
+                    return;
+                }
                 if (mouse.leftButton.wasPressedThisFrame && (ShotGate == null || ShotGate(weapons ? weapons.Current : null)))
                     Request(ActionState.Shot);
                 return;

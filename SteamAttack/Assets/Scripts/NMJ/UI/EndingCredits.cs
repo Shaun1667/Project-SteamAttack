@@ -45,8 +45,8 @@ namespace NMJ
         {
             new Credit { role = "기획 · UI · 세계관", names = new[] { "나민재" } },
             new Credit { role = "플레이어 · 전투 · 시간 역행", names = new[] { "남귀훈" } },
-            new Credit { role = "보스 · 현무", names = new[] { "BHS (이름)" } },
-            new Credit { role = "주인공 모델 · 화승총 · 받아치기 · 일반 적", names = new[] { "YPH (이름)" } },
+            new Credit { role = "보스 · 현무", names = new[] { "봉현송" } },
+            new Credit { role = "주인공 모델 · 화승총 · 받아치기 · 일반 적", names = new[] { "윤평화" } },
         };
 
         [Header("수화기제 — 처치 문구 뒤, 크레딧 앞의 대사 (세계관 v6 5장 4:40~5:00)")]
