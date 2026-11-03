@@ -152,8 +152,52 @@ Shader "YPH/Hero Hair Cards"
             #include "Assets/Shaders/YPH/HeroHairCardsForward.hlsl"
             ENDHLSL
         }
-        UsePass "Universal Render Pipeline/Lit/ShadowCaster"
-        UsePass "Universal Render Pipeline/Lit/DepthOnly"
+        // UsePass로 Lit 패스를 빌려 오면 빌드에서 빌린 패스가 빠져 셰이더 전체가 FallbackError(분홍)로 바뀐다.
+        // 그래서 Lit의 ShadowCaster·DepthOnly를 그대로 옮겨 적는다.
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags { "LightMode" = "ShadowCaster" }
+            ZWrite On
+            ZTest LEqual
+            ColorMask 0
+            Cull[_Cull]
+
+            HLSLPROGRAM
+            #pragma target 2.0
+            #pragma vertex ShadowPassVertex
+            #pragma fragment ShadowPassFragment
+            #pragma shader_feature_local _ALPHATEST_ON
+            #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma multi_compile_instancing
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
+            #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/ShadowCasterPass.hlsl"
+            ENDHLSL
+        }
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            ZWrite On
+            ColorMask R
+            Cull[_Cull]
+
+            HLSLPROGRAM
+            #pragma target 2.0
+            #pragma vertex DepthOnlyVertex
+            #pragma fragment DepthOnlyFragment
+            #pragma shader_feature_local _ALPHATEST_ON
+            #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
+            #pragma multi_compile_instancing
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
+            ENDHLSL
+        }
         Pass
         {
             Name "DepthNormals"
@@ -247,9 +291,7 @@ Shader "YPH/Hero Hair Cards"
             }
             ENDHLSL
         }
-        UsePass "Universal Render Pipeline/Lit/Universal2D"
-        UsePass "Universal Render Pipeline/Lit/MotionVectors"
-        UsePass "Universal Render Pipeline/Lit/XRMotionVectors"
+        // Universal2D·MotionVectors·XRMotionVectors는 쓰지 않는다 (2D 렌더러·XR 없음, 재질에서 모션 벡터 꺼 둠).
     }
     FallBack "Hidden/Universal Render Pipeline/FallbackError"
     CustomEditor "YPH.HairCardShaderGUI"

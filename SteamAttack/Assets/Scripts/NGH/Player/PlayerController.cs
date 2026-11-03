@@ -323,7 +323,16 @@ namespace NGH
             var kb = Keyboard.current;
             var mouse = Mouse.current;
             if (kb == null || mouse == null) return;
-            if (ControlsOverlay.IsOpen) return;   // ESC 조작키 안내가 열려 있으면 입력 무시
+            if (ControlsOverlay.IsOpen)   // ESC 조작키 안내·대사·엔딩 중에는 입력 무시
+            {
+                // 이동 키를 누른 채 막히면 걷기 값이 그대로 남아 제자리 걸음을 하므로 서 있기로 돌린다
+                if (animator && action == ActionState.None && !IsDead)
+                {
+                    animator.SetFloat(SpeedHash, 0f, 0.1f, Time.deltaTime);
+                    animator.SetFloat(AnimSpeedHash, 1f);
+                }
+                return;
+            }
             if (IsDead) { UpdateDeath(); ApplyGravityOnly(); return; }
 
             // ---------- 입력

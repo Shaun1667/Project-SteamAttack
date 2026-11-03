@@ -236,9 +236,8 @@ Shader "YPH/Hero Hair Detail"
             }
             ENDHLSL
         }
-        UsePass "Universal Render Pipeline/Lit/Universal2D"
-        UsePass "Universal Render Pipeline/Lit/MotionVectors"
-        UsePass "Universal Render Pipeline/Lit/XRMotionVectors"
+        // Lit의 Universal2D·MotionVectors·XRMotionVectors를 UsePass로 빌려 오면 빌드에서 셰이더 전체가
+        // FallbackError(분홍)로 바뀌어 뺐다 (2D 렌더러·XR 없음).
     }
     FallBack "Hidden/Universal Render Pipeline/FallbackError"
     CustomEditor "YPH.HeroHairShaderGUI"
