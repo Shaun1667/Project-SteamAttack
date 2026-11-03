@@ -321,7 +321,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NMJ.TitleScreen
   logoImage: {fileID: 0}
-  backgroundImage: {fileID: 2800000, guid: fc8ed625e0a58ec4fbb6e2d9230ef6b3, type: 3}
+  backgroundImage: {fileID: 2800000, guid: bdc5ae883041410c9347f95cea1c2727, type: 3}
   backgroundDim: 0.35
   artIncludesLogo: 1
   artFillScreen: 1
