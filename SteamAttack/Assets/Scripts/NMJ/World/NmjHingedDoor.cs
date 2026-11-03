@@ -26,6 +26,13 @@ namespace NMJ
         private Transform player;
         private float nextSearch;
 
+        /// <summary>플레이어 말고도 문을 여는 대상 (NGH 인트로 씨네머신 카메라). 이 거리 안이면 열린다</summary>
+        public static Transform ExtraOpener;
+        public static float ExtraOpenRadius = 9f;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { ExtraOpener = null; ExtraOpenRadius = 9f; }
+
         public void Configure(float angle) => openAngle = angle;
 
         private void Awake()
@@ -49,13 +56,16 @@ namespace NMJ
                     if (dd < best) { best = dd; player = p.transform; }
                 }
             }
-            if (player != null)
+            if (player != null || ExtraOpener != null)
             {
                 // 닫힌 문짝 가운데까지 수평 거리 (경첩 기준이면 칸마다 어긋난다)
-                Vector3 a = player.position, b = closedCenter; a.y = b.y = 0f;
-                float d = Vector3.Distance(a, b);
+                Vector3 b = closedCenter; b.y = 0f;
+                float d = float.MaxValue;
+                if (player != null) { Vector3 a = player.position; a.y = 0f; d = Vector3.Distance(a, b); }
+                bool extraNear = false;
+                if (ExtraOpener != null) { Vector3 e = ExtraOpener.position; e.y = 0f; extraNear = Vector3.Distance(e, b) < ExtraOpenRadius; }
                 bool before = wantOpen;
-                if (d < openRadius) wantOpen = true;
+                if (d < openRadius || extraNear) wantOpen = true;
                 else if (d > closeRadius) wantOpen = false;
                 if (wantOpen && !before && openSound != null) AudioSource.PlayClipAtPoint(openSound, transform.position, 0.8f);
             }

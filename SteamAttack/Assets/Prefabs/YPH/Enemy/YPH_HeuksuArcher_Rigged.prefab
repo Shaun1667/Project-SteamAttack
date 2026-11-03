@@ -300,8 +300,8 @@ MonoBehaviour:
   _wanderSpeed: 1.5
   _wanderWaitMin: 1
   _wanderWaitMax: 2.5
-  _detectRange: 8
-  _loseRange: 12
+  _detectRange: 28
+  _loseRange: 42
   _loseDelay: 3
   _damagedChaseMaxTime: 10
   _chaseSpeed: 3.5
@@ -404,7 +404,7 @@ MonoBehaviour:
   _damage: 8
   _stagger: 1
   _bulletSpeed: 15
-  _bulletRange: 25
+  _bulletRange: 87.5
   _bulletRadius: 0.12
   _fireInterval: 1.7
   _aimTime: 0.8
@@ -414,7 +414,7 @@ MonoBehaviour:
   _holdPosition: 1
   _preferredMaxDistance: 14
   _retreatDistance: 5
-  _maxFireDistance: 18
+  _maxFireDistance: 63
   _retreatSpeed: 1.1
   _aimAtPlayerBody: 1
   _aimHeight: 1.2

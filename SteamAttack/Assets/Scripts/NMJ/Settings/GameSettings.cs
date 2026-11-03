@@ -98,10 +98,19 @@ namespace NMJ
             return list;
         }
 
-        public static bool Fullscreen => Screen.fullScreenMode != FullScreenMode.Windowed;
+        // Screen.SetResolution은 다음 프레임(창 전환은 몇 프레임 더)에 적용된다. 그 사이 Screen.fullScreenMode는 바뀌기 전 값이라
+        // 바로 읽으면 표시가 반대로 나오고, 한 번 더 누르면 반대로 뒤집힌다 → 방금 고른 값을 잠시 기억해 쓴다
+        private static bool pendingFullscreen;
+        private static float pendingUntil = -1f;
+
+        public static bool Fullscreen => Time.realtimeSinceStartup < pendingUntil
+            ? pendingFullscreen
+            : Screen.fullScreenMode != FullScreenMode.Windowed;
 
         public static void SetDisplay(Vector2Int size, bool fullscreen)
         {
+            pendingFullscreen = fullscreen;
+            pendingUntil = Time.realtimeSinceStartup + 1f;
             Screen.SetResolution(size.x, size.y, fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed);
         }
 

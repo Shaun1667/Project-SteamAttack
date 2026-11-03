@@ -69,6 +69,7 @@ namespace NMJ
                 case Stage.WaitOpening:
                     if (startWithEmptySteam && Pressure() > 0f && NmjOpening.IsPlaying) SetAll(0f);
                     if (NmjOpening.IsPlaying || NmjDialogue.IsPlaying) return;
+                    if (NGH.IntroFlythrough.IsPlaying || NGH.IntroFlythrough.Pending) return;   // NGH 인트로 길 보여 주기 장면이 끝난 뒤
                     NmjSubtitle.Key("좌클릭", "허수아비를 베어 증기 채우기", 4f);
                     lastPressure = Pressure();
                     stage = Stage.Prompted;

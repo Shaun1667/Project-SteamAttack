@@ -28850,6 +28850,7 @@ GameObject:
   - component: {fileID: 5721444570083280139}
   - component: {fileID: 4147377630022172925}
   - component: {fileID: 3177510553548899871}
+  - component: {fileID: 6731350188945937911}
   m_Layer: 0
   m_Name: BHS_HyunMu
   m_TagString: Boss
@@ -29321,6 +29322,21 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   testKeys: 0
+--- !u!114 &6731350188945937911
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6762481187753873017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e55c82e0a07ebeb498680dcc07611bd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NGH.BossGravity
+  gravity: -25
+  maxFallSpeed: 30
+  groundStick: 2
 --- !u!1 &6771827934606674860
 GameObject:
   m_ObjectHideFlags: 0

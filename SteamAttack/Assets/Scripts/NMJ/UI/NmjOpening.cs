@@ -205,7 +205,8 @@ namespace NMJ
                 IsPlaying = false;
             }, 1.2f, 1.4f, 0.3f, () =>
             {
-                if (!string.IsNullOrEmpty(arrivalCaption)) NmjSubtitle.Caption(arrivalCaption, 3.2f);
+                // NGH 인트로 길 보여 주기 장면이 이어지면 자막을 띄우지 않는다
+                if (!string.IsNullOrEmpty(arrivalCaption) && !IntroFlythrough.IsPlaying) NmjSubtitle.Caption(arrivalCaption, 3.2f);
             });
         }
 
